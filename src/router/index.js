@@ -1,13 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
 // import HomeView from '../views/HomeView.vue'
+
 import LoginView from '../layout/LoginView.vue'
 import RegisterView from '../layout/RegisterView.vue'
 import ResetPassword from '../layout/ResetPassword.vue'
 import SetNewPassword from '../layout/SetNewPassword.vue'
 import VerificationCode from '../layout/VerificationCode.vue'
+import Message from '@/components/comMessage.vue';
 // import AboutView from '../components/AboutView.vue'
 
 const routes = [
+  {
+      path:'/message',
+      name:'message',
+      component:Message,
+    },
   {
     path: '/',
     redirect: '/login',
@@ -53,5 +60,4 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
-
 export default router
