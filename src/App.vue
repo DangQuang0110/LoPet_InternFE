@@ -23,6 +23,7 @@ export default {
   },
 };
 </script>
+
 <style>
 #vite-devtools-toggle {
   display: none !important;
@@ -42,3 +43,4 @@ html, body, #app {
 }
 
 </style>
+
