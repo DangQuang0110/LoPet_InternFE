@@ -1,23 +1,52 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import { createWebHistory,createRouter } from "vue-router";
+//import Home from '@/components/ComHome.vue';
+import FriendPage from "@/components/FriendPage.vue";
+import LopetProfile from "@/components/LopetProfile.vue";
+import LopetAbout from "@/components/LopetAbout.vue";
+import LopetPhotoGallery from "@/components/LopetPhotoGallery.vue";
+import LopetEditProfile from "@/components/LopetEditProfile.vue";
+// Phần admin
+//import AdminLayout from '@/components/admin/AdminLayout.vue';
 
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
+const routes=[
     {
-      path: '/',
-      name: 'home',
-      component: HomeView,
+        path: "/friend",
+        name:FriendPage,
+        component:FriendPage,
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+        path: "/profile",
+        name:LopetProfile,
+        component:LopetProfile,
     },
-  ],
-})
+    {
+        path: "/about",
+        name:LopetAbout,
+        component:LopetAbout,
+    },
+    {
+        path: "/photo",
+        name:LopetPhotoGallery,
+        component:LopetPhotoGallery,
+    },
+    {
+        path: "/edit",
+        name:LopetEditProfile,
+        component:LopetEditProfile,
+    },
+    // {
+    //     path: "/admin",
+    //     component: AdminLayout,
+    //     children: [
+            {
 
-export default router
+            }
+        
+    //     ],
+    // }
+]
+const router=createRouter({
+    history:createWebHistory(),
+    routes,
+});
+export default router    
