@@ -1,5 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router'
-// import HomeView from '../views/HomeView.vue'
+
+import { createWebHistory,createRouter } from "vue-router";
+//import Home from '@/components/ComHome.vue';
+import FriendPage from "@/components/FriendPage.vue";
+import LopetProfile from "@/components/LopetProfile.vue";
+import LopetAbout from "@/components/LopetAbout.vue";
+import LopetPhotoGallery from "@/components/LopetPhotoGallery.vue";
+import LopetEditProfile from "@/components/LopetEditProfile.vue";
 
 import LoginView from '../layout/LoginView.vue'
 import RegisterView from '../layout/RegisterView.vue'
@@ -7,9 +13,46 @@ import ResetPassword from '../layout/ResetPassword.vue'
 import SetNewPassword from '../layout/SetNewPassword.vue'
 import VerificationCode from '../layout/VerificationCode.vue'
 import Message from '@/components/comMessage.vue';
-// import AboutView from '../components/AboutView.vue'
+// Phần admin
+//import AdminLayout from '@/components/admin/AdminLayout.vue';
 
-const routes = [
+const routes=[
+    {
+        path: "/friend",
+        name:FriendPage,
+        component:FriendPage,
+    },
+    {
+        path: "/profile",
+        name:LopetProfile,
+        component:LopetProfile,
+    },
+    {
+        path: "/about",
+        name:LopetAbout,
+        component:LopetAbout,
+    },
+    {
+        path: "/photo",
+        name:LopetPhotoGallery,
+        component:LopetPhotoGallery,
+    },
+    {
+        path: "/edit",
+        name:LopetEditProfile,
+        component:LopetEditProfile,
+    },
+    // {
+    //     path: "/admin",
+    //     component: AdminLayout,
+    //     children: [
+            {
+
+            }
+        
+    //     ],
+    // }
+
   {
     path:'/message',
     name:'message',
@@ -60,3 +103,4 @@ const router = createRouter({
   routes,
 })
 export default router
+
