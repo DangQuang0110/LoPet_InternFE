@@ -9,6 +9,7 @@
       <div class="input-group">
         <input
           :type="showPassword ? 'text' : 'password'"
+          v-model="password"
           placeholder="Nhập mật khẩu mới"
         />
         <span @click="showPassword = !showPassword">
@@ -20,6 +21,7 @@
       <div class="input-group">
         <input
           :type="showConfirmPassword ? 'text' : 'password'"
+          v-model="confirmPassword"
           placeholder="Nhập lại mật khẩu"
         />
         <span @click="showConfirmPassword = !showConfirmPassword">
@@ -27,19 +29,55 @@
         </span>
       </div>
 
-      <button class="btn">Đặt lại mật khẩu</button>
+      <button class="btn" @click="handleReset">Đặt lại mật khẩu</button>
       <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { resetPassword } from '@/service/authService'
 
-const showPassword = ref(false);
-const showConfirmPassword = ref(false);
+const router = useRouter()
+
+const password = ref('')
+const confirmPassword = ref('')
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+
+const email = localStorage.getItem('email_otp')
+
+const handleReset = async () => {
+  if (!password.value || !confirmPassword.value) {
+    alert('Vui lòng nhập đầy đủ thông tin!')
+    return
+  }
+
+  if (password.value !== confirmPassword.value) {
+    alert('Mật khẩu không khớp!')
+    return
+  }
+
+  try {
+    await resetPassword({
+      email,
+      password: password.value,
+      confirmPassword: confirmPassword.value
+    })
+
+    alert('Đặt lại mật khẩu thành công!')
+    localStorage.removeItem('email_otp')
+    localStorage.removeItem('reset_flow')
+
+    router.push('/')
+  } catch (err) {
+    console.error(' Lỗi reset mật khẩu:', err)
+    alert(err?.response?.data?.message || 'Đặt lại mật khẩu thất bại!')
+  }
+}
 </script>
-
 <style scoped>
 .auth-container {
   position: fixed;

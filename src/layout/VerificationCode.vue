@@ -9,11 +9,12 @@
         <input
           v-for="(digit, index) in otp"
           :key="index"
+          :id="`otp-input-${index}`"
           type="text"
           maxlength="1"
           class="otp-input"
           v-model="otp[index]"
-          @input="handleOtpInput($event, index)"
+          @input="(e) => handleOtpInput(e, index)"
         />
       </div>
 
@@ -25,73 +26,106 @@
         Gửi lại mã OTP {{ formatCountdown() }}
       </a>
 
+      <!-- Nút cho xác minh -->
       <button class="btn" @click="sendLink">Xác nhận</button>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      otp: ['', '', '', '', '', ''],
-      countdown: 120,
-      intervalId: null,
-    };
-  },
-  mounted() {
-    this.focusFirstInput();
-    this.startCountdown();
-  },
-  beforeUnmount() {
-    clearInterval(this.intervalId);
-  },
-  methods: {
-    focusFirstInput() {
-      this.$nextTick(() => {
-        const firstInput = this.$el.querySelector('.otp-input');
-        if (firstInput) firstInput.focus();
-      });
-    },
-    handleOtpInput(event, index) {
-      const value = event.target.value;
-      if (value.length === 1 && index < 5) {
-        this.$el.querySelectorAll('.otp-input')[index + 1].focus();
-      } else if (
-        value === '' &&
-        index > 0 &&
-        event.inputType === 'deleteContentBackward'
-      ) {
-        this.$el.querySelectorAll('.otp-input')[index - 1].focus();
-      }
-      this.otp[index] = value;
-    },
-    startCountdown() {
-      this.intervalId = setInterval(() => {
-        if (this.countdown > 0) {
-          this.countdown--;
-        } else {
-          clearInterval(this.intervalId);
-        }
-      }, 1000);
-    },
-    formatCountdown() {
-      const minutes = Math.floor(this.countdown / 60)
-        .toString()
-        .padStart(2, '0');
-      const seconds = (this.countdown % 60).toString().padStart(2, '0');
-      return `${minutes}:${seconds}`;
-    },
-    resendOtp() {
-      if (this.countdown === 0) {
-        this.countdown = 120;
-        this.startCountdown();
-        // TODO: Gọi API gửi lại mã OTP
-        console.log('Đã gửi lại mã OTP!');
-      }
-    },
-  },
-};
+<script setup>
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { verifyOTP } from '@/service/otpService'
+import { registerUser, resetPassword } from '@/service/authService'
+
+const router = useRouter()
+const otp = ref(['', '', '', '', '', ''])
+const countdown = ref(120)
+let intervalId = null
+
+// ✅ Xác định đang ở luồng reset password hay đăng ký
+const isResetPasswordFlow = ref(localStorage.getItem('reset_flow') === 'true')
+
+// ✅ Lấy email phù hợp theo luồng
+const email = isResetPasswordFlow.value
+  ? localStorage.getItem('email_otp')              // reset password
+  : localStorage.getItem('register_email')     // đăng ký
+
+const username = localStorage.getItem('register_username')
+const password = localStorage.getItem('register_password')
+const confirmPassword = localStorage.getItem('register_confirm')
+console.log('Luồng:', isResetPasswordFlow.value ? 'RESET' : 'REGISTER')
+console.log('Email lấy ra:', email)
+
+const handleOtpInput = async (event, index) => {
+  const value = event.target.value
+  if (!/^\d?$/.test(value)) {
+    otp.value[index] = ''
+    return
+  }
+  otp.value[index] = value
+
+  if (value.length === 1 && index < otp.value.length - 1) {
+    await nextTick()
+    const nextInput = document.querySelector(`#otp-input-${index + 1}`)
+    if (nextInput) nextInput.focus()
+  }
+}
+
+const startCountdown = () => {
+  intervalId = setInterval(() => {
+    if (countdown.value > 0) countdown.value--
+    else clearInterval(intervalId)
+  }, 1000)
+}
+
+onMounted(() => {
+  document.querySelector('#otp-input-0')?.focus()
+  startCountdown()
+})
+
+onBeforeUnmount(() => clearInterval(intervalId))
+
+const resendOtp = async () => {
+  alert('Chức năng gửi lại mã OTP đang được phát triển.')
+}
+
+const sendLink = async () => {
+  const otpString = otp.value.join('')
+  if (otpString.length !== 6) return alert('Vui lòng nhập đủ 6 số!')
+
+  try {
+    console.log('📤 Gửi verify OTP với:', { email, otp: otpString })
+    await verifyOTP({ email, otp: otpString })
+
+    if (isResetPasswordFlow.value) {
+      localStorage.setItem('email_otp', email)
+      router.push('/setNewPassword')
+    } else {
+      // ✅ Đăng ký tài khoản
+      await registerUser({ email, username, password, confirmPassword })
+
+      // Dọn dẹp localStorage
+      localStorage.removeItem('register_email')
+      localStorage.removeItem('register_username')
+      localStorage.removeItem('register_password')
+      localStorage.removeItem('register_confirm')
+      localStorage.removeItem('reset_flow')
+
+      alert('Đăng ký thành công!')
+      router.push('/')
+    }
+  } catch (err) {
+    console.error('❌ Lỗi verifyOTP:', err)
+    alert(err?.response?.data?.message || 'Xác minh OTP hoặc xử lý thất bại!')
+  }
+}
+
+const formatCountdown = () => {
+  const min = String(Math.floor(countdown.value / 60)).padStart(2, '0')
+  const sec = String(countdown.value % 60).padStart(2, '0')
+  return `${min}:${sec}`
+}
 </script>
 
 <style scoped>

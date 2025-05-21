@@ -9,4 +9,9 @@
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io("http://localhost:8080")
+    socket.emit("register")
+  </script>
 </html>

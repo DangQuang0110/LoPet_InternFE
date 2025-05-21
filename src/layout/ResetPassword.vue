@@ -21,21 +21,34 @@
     </div>
   </div>
 </template>
-
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { sendOTP } from '@/service/otpService'
 
-const contact = ref('');
-const contactFocus = ref(false);
+const router = useRouter()
+const contact = ref('')
+const contactFocus = ref(false)
+// onMounted(()=>{
 
-const sendLink = () => {
-  if (!contact.value) {
-    alert('Vui lòng nhập số điện thoại hoặc email!');
-    return;
+// })
+const sendLink = async () => {
+  if (!contact.value) return alert('Vui lòng nhập email!')
+
+  try {
+    await sendOTP(contact.value)
+
+    // ✅ Lưu lại trạng thái và email đúng cách
+    localStorage.setItem('reset_flow', 'true')
+    localStorage.setItem('email_otp', contact.value)
+
+    router.push('/verificationCode')
+  } catch (err) {
+    alert(err.message || 'Lỗi gửi OTP!')
   }
-  // Ở đây bạn có thể thêm gọi API gửi link
-  alert(`Liên kết đăng nhập đã được gửi tới: ${contact.value}`);
-};
+}
+
+
 </script>
 
 <style scoped>

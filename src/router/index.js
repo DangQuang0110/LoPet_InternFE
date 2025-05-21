@@ -11,10 +11,10 @@ import Message from '@/components/comMessage.vue';
 
 const routes = [
   {
-      path:'/message',
-      name:'message',
-      component:Message,
-    },
+    path:'/message',
+    name:'message',
+    component:Message,
+  },
   {
     path: '/',
     redirect: '/login',
@@ -55,7 +55,6 @@ const routes = [
   //   component: AboutView,
   // },
 ]
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,

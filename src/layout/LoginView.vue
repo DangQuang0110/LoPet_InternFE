@@ -13,24 +13,29 @@
 
         <!-- Số điện thoại hoặc email -->
         <div class="input-group">
-          <input type="text" v-model="email" @focus="emailFocus = true" @blur="emailFocus = false" />
+          <input
+            type="text"
+            v-model="email"
+            @focus="emailFocus = true"
+            @blur="emailFocus = false"
+          />
           <label :class="{ active: emailFocus || email }">Số điện thoại hoặc email</label>
         </div>
 
         <!-- Mật khẩu -->
-      <div class="input-group">
-        <input
-          :type="showPassword ? 'text' : 'password'"
-          v-model="password"
-          @focus="passwordFocus = true"
-          @blur="passwordFocus = false"
-          placeholder=" "
-        />
-        <label :class="{ active: passwordFocus || password }">Mật khẩu</label>
-      </div>
+        <div class="input-group">
+          <input
+            :type="showPassword ? 'text' : 'password'"
+            v-model="password"
+            @focus="passwordFocus = true"
+            @blur="passwordFocus = false"
+            placeholder=" "
+          />
+          <label :class="{ active: passwordFocus || password }">Mật khẩu</label>
+        </div>
 
-        <a href="#" class="forgot">Quên mật khẩu?</a>
-        <button class="btn">Đăng nhập</button>
+        <a href="/resetPassword" class="forgot">Quên mật khẩu?</a>
+        <button class="btn" @click="handleLogin">Đăng nhập</button>
         <div class="or-divider">Hoặc</div>
         <p class="footer">
           Chưa có tài khoản? <router-link to="/register">Đăng ký ngay</router-link>
@@ -41,19 +46,35 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { loginUser } from '@/service/authService'
 
-const email = ref('');
-const password = ref('');
-const showPassword = ref(false);
-const emailFocus = ref(false);
-const passwordFocus = ref(false);
+const email = ref('')
+const password = ref('')
+const showPassword = ref(false)
+const emailFocus = ref(false)
+const passwordFocus = ref(false)
+const router = useRouter()
 
 const togglePassword = () => {
-  showPassword.value = !showPassword.value;
-};
-</script>
+  showPassword.value = !showPassword.value
+}
 
+const handleLogin = async () => {
+  try {
+    const response = await loginUser({
+      username: email.value, 
+      password: password.value
+    })
+    console.log(' Login success:', response)
+    router.push('/message')
+  } catch (err) {
+    console.error(' login failed:', err.response?.data || err.message)
+    alert(err.response?.data?.message || 'Đăng nhập thất bại')
+  }
+}
+</script>
 <style scoped>
 /* Giữ nguyên style của bạn */
 .auth-container {

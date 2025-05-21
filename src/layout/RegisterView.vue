@@ -49,29 +49,50 @@
         <label :class="{ active: confirmFocus || confirmPassword }">Nhập lại mật khẩu</label>
       </div>
 
-      <button class="btn">Đăng ký</button>
+      <button class="btn" @click="handleRegister">Đăng ký</button>
       <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { sendOTP } from '@/service/otpService'
 
-const contact = ref('');
-const contactFocus = ref(false);
+const contact = ref('')
+const contactFocus = ref(false)
+const fullname = ref('')
+const fullnameFocus = ref(false)
+const password = ref('')
+const passwordFocus = ref(false)
+const showPassword = ref(false)
+const confirmPassword = ref('')
+const confirmFocus = ref(false)
+const showConfirm = ref(false)
 
-const fullname = ref('');
-const fullnameFocus = ref(false);
+const router = useRouter()
 
-const password = ref('');
-const passwordFocus = ref(false);
-const showPassword = ref(false);
+const handleRegister = async () => {
+  try {
+    // Gửi OTP đến email
+    await sendOTP(contact.value)
 
-const confirmPassword = ref('');
-const confirmFocus = ref(false);
-const showConfirm = ref(false);
+    // Lưu dữ liệu đăng ký tạm vào localStorage
+    localStorage.setItem('register_email', contact.value)
+    localStorage.setItem('register_username', fullname.value)
+    localStorage.setItem('register_password', password.value)
+    localStorage.setItem('register_confirm', confirmPassword.value)
+
+    // Chuyển sang trang nhập mã OTP
+    router.push('/verificationCode')
+  } catch (err) {
+    alert(err?.response?.data?.message || 'Gửi OTP thất bại!')
+  }
+}
 </script>
+
+
 
 <style scoped>
 .auth-container {
