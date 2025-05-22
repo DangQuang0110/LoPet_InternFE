@@ -1,4 +1,3 @@
-
 <template>
   <div class="app-container">
     <!-- Sidebar -->
@@ -7,10 +6,11 @@
         <!-- <img src="/pet-logo.png" alt="LOPET" /> -->
         <span class="logo-text">LOPET</span>
       </div>
-      
+
       <div class="search-container">
         <div class="search-box">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
@@ -57,7 +57,8 @@
       <!-- Search Bar at the top -->
       <div class="search-container" style="display: flex; justify-content: center; width: 100%;">
         <div class="search-box">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
@@ -66,27 +67,17 @@
       </div>
       <!-- Tab Navigation -->
       <div class="tab-navigation">
-        <div 
-          class="tab-item" 
-          :class="{ active: activeTab === 'friend-requests' }"
-          @click="activeTab = 'friend-requests'"
-        >
+        <div class="tab-item" :class="{ active: activeTab === 'friend-requests' }"
+          @click="activeTab = 'friend-requests'">
           <i class="fas fa-plus-circle"></i>
           <span>Lời mời kết bạn</span>
         </div>
-        <div 
-          class="tab-item" 
-          :class="{ active: activeTab === 'friend-suggestions' }"
-          @click="activeTab = 'friend-suggestions'"
-        >
+        <div class="tab-item" :class="{ active: activeTab === 'friend-suggestions' }"
+          @click="activeTab = 'friend-suggestions'">
           <i class="fas fa-user-friends"></i>
           <span>Gợi ý kết bạn</span>
         </div>
-        <div 
-          class="tab-item" 
-          :class="{ active: activeTab === 'all-friends' }"
-          @click="activeTab = 'all-friends'"
-        >
+        <div class="tab-item" :class="{ active: activeTab === 'all-friends' }" @click="activeTab = 'all-friends'">
           <i class="fas fa-users"></i>
           <span>Tất cả bạn bè</span>
         </div>
@@ -96,10 +87,10 @@
       <div v-if="activeTab === 'friend-requests'" class="pet-grid">
         <div v-for="(pet, index) in friendRequests" :key="index" class="pet-card">
           <div class="pet-image">
-            <img :src="pet.image || '/default-dog.jpg'" :alt="pet.name" />
+            <img :src="pet.image || '/default-dog.jpg'" :alt="pet.username" />
           </div>
-          <div class="pet-name">{{ pet.name }}</div>
-          <button class="action-button accept">
+          <div class="pet-name">{{ pet.username }}</div>
+          <button class="action-button accept" @click="acceptRequest(pet.id)">
             <i class="fas fa-check"></i> Chấp nhận
           </button>
           <button class="action-button reject">
@@ -134,7 +125,7 @@
           <button class="action-button profile">
             Xem trang cá nhân
           </button>
-          <button class="action-button reject">
+          <button class="action-button reject" @click="confirmDeleteFriend(pet)">
             Xoá
           </button>
         </div>
@@ -150,21 +141,14 @@
 
 <script>
 import { getFriendList } from '@/service/friendService';
-
+import { getListRequestF } from '@/service/friendService';
+import {  acceptFriendRequest } from '@/service/friendService';
 export default {
   name: 'PetSocialPlatform',
   data() {
     return {
       activeTab: 'all-friends',
-      friendRequests: [
-        { name: 'Nhân Gà', image: '/images/cau.jpg' },
-        { name: 'Min Poodle', image: '/images/vu.jpg' },
-        { name: 'Lucky Husky', image: '/images/nhan.jpg' },
-        { name: 'Bo Corgi', image: '/images/phong.jpg' },
-        { name: 'Milo Beagle', image: '/images/quang.jpg' },
-        { name: 'Max Golden', image: '/images/cau.jpg' },
-        { name: 'Lucky Husky', image: '/images/quang.jpg' }
-      ],
+      friendRequests: [],
       friendSuggestions: [
         { name: 'Bo Corgi', image: '/images/phong.jpg' },
         { name: 'Milo Beagle', image: '/images/nhan.jpg' },
@@ -185,16 +169,48 @@ export default {
       } catch (error) {
         console.error('Failed to load friends:', error);
       }
-    }
+    },
+    // lấy danh sách lời mời kết bạn gửi tới mình
+    async fetchListRequestF(userId) {
+      try {
+        const data = await getListRequestF(userId);
+        this.friendRequests = data;
+      } catch (error) {
+        console.log('Lỗi nè cu: ', error);
+      }
+
+    },
+    // này là định nghĩa chấp nhận lời mời kết bạn nhe cầu UwU
+    async acceptRequest(senderId) {
+      // console.log(senderId);
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        // console.log(user.id);
+        if (!user?.id) return;
+        await acceptFriendRequest(user.id, senderId);
+        // làm mới trang khi chấp nhận nhe cái này chat chỉ :)) tao đang học
+        await this.fetchListRequestF(user.id);
+        await this.fetchFriends(user.id);
+      } catch (error) {
+        console.log("Không thể chấp nhận lời mời: ", error);
+      }
+    },
+    // này là định nghiawx của button xóa nha con lợn (bug gòi tí vũ về sửa)
+    // async confirmDeleteFriend(senderId) {
+    //   console.log(senderId);
+    // }
+
   },
-created() {
-  const user = JSON.parse(localStorage.getItem('user'))
-  if (user && user.id) {
-    this.fetchFriends(user.id)
-  } else {
-    console.warn('Không tìm thấy ID người dùng đăng nhập')
+  created() {
+    const user = JSON.parse(localStorage.getItem('user'))
+    if (user && user.id) {
+      this.fetchFriends(user.id)
+      this.fetchListRequestF(user.id)
+
+    } else {
+      console.warn('Không tìm thấy ID người dùng đăng nhập')
+    }
   }
-}
 }
 </script>
 <style scoped>
