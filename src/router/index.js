@@ -13,6 +13,8 @@ import ResetPassword from '../layout/ResetPassword.vue'
 import SetNewPassword from '../layout/SetNewPassword.vue'
 import VerificationCode from '../layout/VerificationCode.vue'
 import Message from '@/components/comMessage.vue';
+import CreatePost from '@/components/CreatePost.vue'
+
 // Phần admin
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
 
@@ -42,6 +44,8 @@ const routes=[
         name:LopetEditProfile,
         component:LopetEditProfile,
     },
+    { path: '/home',    name: 'Home',       component: Home },
+  { path: '/create-post',    name: 'CreatePost',       component: CreatePost },
     // {
     //     path: "/admin",
     //     component: AdminLayout,
@@ -103,4 +107,5 @@ const router = createRouter({
   routes,
 })
 export default router
+
 
