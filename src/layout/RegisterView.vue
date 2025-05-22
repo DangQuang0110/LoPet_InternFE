@@ -27,7 +27,8 @@
         <label :class="{ active: fullnameFocus || fullname }">Tên đầy đủ</label>
       </div>
 
-      <div class="input-group">
+      <!-- Mật khẩu -->
+      <div class="input-group password-group">
         <input
           :type="showPassword ? 'text' : 'password'"
           v-model="password"
@@ -36,9 +37,22 @@
           placeholder=" "
         />
         <label :class="{ active: passwordFocus || password }">Mật khẩu</label>
+        <span class="toggle-password" @click="togglePassword">
+          <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 1l22 22" />
+            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.5 0-10-4.5-10-10 0-2.5 1-4.7 2.64-6.36" />
+            <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
+            <path d="M12 4c4.5 0 8.3 2.7 9.54 6.36" />
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </span>
       </div>
 
-      <div class="input-group">
+      <!-- Xác nhận mật khẩu -->
+      <div class="input-group password-group">
         <input
           :type="showConfirm ? 'text' : 'password'"
           v-model="confirmPassword"
@@ -47,6 +61,18 @@
           placeholder=" "
         />
         <label :class="{ active: confirmFocus || confirmPassword }">Nhập lại mật khẩu</label>
+        <span class="toggle-password" @click="toggleConfirm">
+          <svg v-if="!showConfirm" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 1l22 22" />
+            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.5 0-10-4.5-10-10 0-2.5 1-4.7 2.64-6.36" />
+            <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
+            <path d="M12 4c4.5 0 8.3 2.7 9.54 6.36" />
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </span>
       </div>
 
       <button class="btn" @click="handleRegister">Đăng ký</button>
@@ -73,26 +99,27 @@ const showConfirm = ref(false)
 
 const router = useRouter()
 
+const togglePassword = () => {
+  showPassword.value = !showPassword.value
+}
+
+const toggleConfirm = () => {
+  showConfirm.value = !showConfirm.value
+}
+
 const handleRegister = async () => {
   try {
-    // Gửi OTP đến email
     await sendOTP(contact.value)
-
-    // Lưu dữ liệu đăng ký tạm vào localStorage
     localStorage.setItem('register_email', contact.value)
     localStorage.setItem('register_username', fullname.value)
     localStorage.setItem('register_password', password.value)
     localStorage.setItem('register_confirm', confirmPassword.value)
-
-    // Chuyển sang trang nhập mã OTP
     router.push('/verificationCode')
   } catch (err) {
     alert(err?.response?.data?.message || 'Gửi OTP thất bại!')
   }
 }
 </script>
-
-
 
 <style scoped>
 .auth-container {
@@ -122,7 +149,8 @@ const handleRegister = async () => {
 
 .logo {
   width: 120px;
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem; 
+  display: block;
 }
 
 h1 {
@@ -154,7 +182,6 @@ h1 {
   outline: none;
 }
 
-
 .input-group label {
   position: absolute;
   left: 10px;
@@ -173,6 +200,19 @@ h1 {
   font-size: 0.75rem;
   color: #ffa726;
   font-weight: 600;
+}
+
+.password-group {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  user-select: none;
 }
 
 .btn {
@@ -204,17 +244,7 @@ h1 {
   border: none;
 }
 
-.back:focus,
-.back:active {
-  background-color: transparent !important;
-  outline: none;
-  border: none;
-  color: #1e88e5;
-}
-
-
 .back:hover {
   text-decoration: underline;
 }
-
 </style>

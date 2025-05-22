@@ -1,4 +1,4 @@
-```vue
+
 <template>
   <div class="app-container">
     <!-- Sidebar -->
@@ -130,7 +130,7 @@
           <div class="pet-image">
             <img :src="pet.image || '/default-dog.jpg'" :alt="pet.name" />
           </div>
-          <div class="pet-name">{{ pet.name }}</div>
+          <div class="pet-name">{{ pet.username }}</div>
           <button class="action-button profile">
             Xem trang cá nhân
           </button>
@@ -139,8 +139,6 @@
           </button>
         </div>
       </div>
-
-      <!-- Pagination -->
       <div class="pagination">
         <button class="pagination-button">
           <i class="fas fa-chevron-down"></i>
@@ -151,6 +149,8 @@
 </template>
 
 <script>
+import { getFriendList } from '@/service/friendService';
+
 export default {
   name: 'PetSocialPlatform',
   data() {
@@ -174,29 +174,29 @@ export default {
         { name: 'Max Golden', image: '/images/cau.jpg' },
         { name: 'Max Golden', image: '/images/quang.jpg' }
       ],
-      allFriends: [
-        { name: 'Nhân Gà', image: '/images/cau.jpg' },
-        { name: 'Min Poodle', image: '/images/vu.jpg' },
-        { name: 'Lucky Husky', image: '/images/nhan.jpg' },
-        { name: 'Bo Corgi', image: '/images/phong.jpg' },
-        { name: 'Milo Beagle', image: '/images/quang.jpg' },
-        { name: 'Max Golden', image: '/images/cau.jpg' },
-        { name: 'Charlie Lab', image: '/images/vu.jpg' },
-        { name: 'Cooper Pug', image: '/images/nhan.jpg' },
-        { name: 'Luna Samoyed', image: '/images/phong.jpg' }
-      ]
+      allFriends: []
     }
   },
   methods: {
-    viewProfile(pet) {
-      // Xử lý khi người dùng click vào nút xem trang cá nhân
-      console.log('Xem trang cá nhân của:', pet.name);
-      // Ở đây có thể thêm logic điều hướng đến trang cá nhân
+    async fetchFriends(userId) {
+      try {
+        const data = await getFriendList(userId);
+        this.allFriends = data;
+      } catch (error) {
+        console.error('Failed to load friends:', error);
+      }
     }
+  },
+created() {
+  const user = JSON.parse(localStorage.getItem('user'))
+  if (user && user.id) {
+    this.fetchFriends(user.id)
+  } else {
+    console.warn('Không tìm thấy ID người dùng đăng nhập')
   }
 }
+}
 </script>
-
 <style scoped>
 .app-container {
   display: flex;

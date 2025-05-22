@@ -9,28 +9,18 @@
 <script>
 // import Header from "./layout/ComHeader.vue";
 
-// import Footer from "./layout/ComFooter.vue";
 
 export default {
   name: "App",
   components: {
    // header,
+    
   },
   // computed: {
   //   isAdminPage() {
   //     return this.$route.path.startsWith("/admin");
   //   },
   // },
-};
-</script>
-    // Header,
-    // Footer,
-  },
-  computed: {
-    isAdminPage() {
-      return this.$route.path.startsWith("/admin");
-    },
-  },
 };
 </script>
 

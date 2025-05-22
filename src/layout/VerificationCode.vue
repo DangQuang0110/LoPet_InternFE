@@ -156,6 +156,8 @@ const formatCountdown = () => {
 .logo {
   width: 125px;
   margin: 0 auto 1rem;
+    margin: 0 auto 1rem; 
+  display: block;
 }
 
 h1 {

@@ -79,6 +79,8 @@ const sendLink = async () => {
 .logo {
   width: 125px;
   margin: 0 auto 1rem;
+    margin: 0 auto 1rem; 
+  display: block;
 }
 
 .auth-box p {
