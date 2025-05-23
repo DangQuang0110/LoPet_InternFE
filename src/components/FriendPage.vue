@@ -1,55 +1,9 @@
 <template>
   <div class="app-container">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="logo">
-        <!-- <img src="/pet-logo.png" alt="LOPET" /> -->
-        <span class="logo-text">LOPET</span>
-      </div>
+    <!
+      
 
-      <div class="search-container">
-        <div class="search-box">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" placeholder="Tìm kiếm" />
-        </div>
-      </div>
-
-      <!-- Navigation Menu -->
-      <div class="nav-menu">
-        <div class="nav-item active">
-          <i class="fas fa-home"></i>
-          <span>Trang chủ</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-bell"></i>
-          <span>Thông báo</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-user"></i>
-          <span>Người dùng</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-users"></i>
-          <span>Cộng đồng</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-paw"></i>
-          <span>Thú cưng</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-message"></i>
-          <span>Tin nhắn</span>
-        </div>
-      </div>
-
-      <div class="account-info">
-        <i class="fas fa-user-circle"></i>
-        <span>Đăng nhập</span>
-      </div>
+      
     </div>
 
     <!-- Main Content -->
@@ -87,13 +41,13 @@
       <div v-if="activeTab === 'friend-requests'" class="pet-grid">
         <div v-for="(pet, index) in friendRequests" :key="index" class="pet-card">
           <div class="pet-image">
-            <img :src="pet.image || '/default-dog.jpg'" :alt="pet.username" />
+            <img :src="pet.avatarUrl ?? 'https://avatar.iran.liara.run/public'" :alt="pet.fullName || pet.username" />
           </div>
-          <div class="pet-name">{{ pet.username }}</div>
+          <div class="pet-name">{{ pet.fullName || pet.username }}</div>
           <button class="action-button accept" @click="acceptRequest(pet.id)">
-            <i class="fas fa-check"></i> Chấp nhận
+            <i class="fas fa-check"></i> Chấp nhận  
           </button>
-          <button class="action-button reject">
+          <button class="action-button reject"@click="confirmDelReqFriend(pet.id)">
             Xoá
           </button>
         </div>
@@ -119,9 +73,9 @@
       <div v-else class="pet-grid">
         <div v-for="(pet, index) in allFriends" :key="index" class="pet-card">
           <div class="pet-image">
-            <img :src="pet.image || '/default-dog.jpg'" :alt="pet.name" />
+            <img :src="pet.avatarUrl ?? 'https://avatar.iran.liara.run/public'" :alt="pet.fullName || pet.username" />
           </div>
-          <div class="pet-name">{{ pet.username }}</div>
+          <div class="pet-name">{{ pet.fullName || pet.username }}</div>
           <button class="action-button profile">
             Xem trang cá nhân
           </button>
@@ -143,6 +97,8 @@
 import { getFriendList } from '@/service/friendService';
 import { getListRequestF } from '@/service/friendService';
 import {  acceptFriendRequest } from '@/service/friendService';
+import { getProfileById } from '@/service/profileService';//lấy ảnh
+import {rejectFriendReq} from '@/service/friendService';
 export default {
   name: 'PetSocialPlatform',
   data() {
@@ -162,31 +118,54 @@ export default {
     }
   },
   methods: {
+    // Fetch profile data and merge with friend data
+    async fetchProfileData(friends) {
+      const friendsWithProfiles = await Promise.all(
+        friends.map(async (friend) => {
+          try {
+            const profile = await getProfileById(friend.id);
+            return {
+              ...friend,
+              avatarUrl: profile?.avatarUrl,
+              fullName: profile?.fullName,
+              bio: profile?.bio
+            };
+          } catch (error) {
+            console.error(`Failed to fetch profile for friend ${friend.id}:`, error);
+            return friend; // Return original friend data if profile fetch fails
+          }
+        })
+      );
+      return friendsWithProfiles;
+    },
+
     async fetchFriends(userId) {
       try {
         const data = await getFriendList(userId);
-        this.allFriends = data;
+        // Fetch profile data for each friend
+        this.allFriends = await this.fetchProfileData(data);
       } catch (error) {
         console.error('Failed to load friends:', error);
       }
     },
+
     // lấy danh sách lời mời kết bạn gửi tới mình
     async fetchListRequestF(userId) {
       try {
         const data = await getListRequestF(userId);
-        this.friendRequests = data;
+        // Fetch profile data for each friend request
+        this.friendRequests = await this.fetchProfileData(data);
       } catch (error) {
         console.log('Lỗi nè cu: ', error);
       }
-
     },
+
     // này là định nghĩa chấp nhận lời mời kết bạn nhe cầu UwU
     async acceptRequest(senderId) {
-      // console.log(senderId);
       try {
         const user = JSON.parse(localStorage.getItem('user'));
-        // console.log(user.id);
         if (!user?.id) return;
+        
         await acceptFriendRequest(user.id, senderId);
         // làm mới trang khi chấp nhận nhe cái này chat chỉ :)) tao đang học
         await this.fetchListRequestF(user.id);
@@ -195,18 +174,34 @@ export default {
         console.log("Không thể chấp nhận lời mời: ", error);
       }
     },
-    // này là định nghiawx của button xóa nha con lợn (bug gòi tí vũ về sửa)
-    // async confirmDeleteFriend(senderId) {
-    //   console.log(senderId);
-    // }
 
+    // này là định nghiawx của button xóa nha con lợn (bug gòi tí vũ về sửa)
+    async confirmDeleteFriend(friend) {
+      console.log('Delete friend:', friend);
+      // Add your delete friend logic here
+    },
+
+    // xóa lời mời kết bạn
+    async confirmDelReqFriend(senderId){
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user?.id) return;
+        
+        await rejectFriendReq(user.id, senderId);
+        // làm mới trang khi chấp nhận nhe cái này chat chỉ :)) tao đang học
+        await this.fetchListRequestF(user.id);
+        await this.fetchFriends(user.id);
+      } catch (error) {
+        console.log("Không thể xóa lời mời: ", error);
+      }
+    }
   },
+
   created() {
     const user = JSON.parse(localStorage.getItem('user'))
     if (user && user.id) {
-      this.fetchFriends(user.id)
       this.fetchListRequestF(user.id)
-
+      this.fetchFriends(user.id)
     } else {
       console.warn('Không tìm thấy ID người dùng đăng nhập')
     }

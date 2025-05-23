@@ -1,6 +1,6 @@
 
 import { createWebHistory,createRouter } from "vue-router";
-//import Home from '@/components/ComHome.vue';
+import Home from '@/components/ComHome.vue';
 import FriendPage from "@/components/FriendPage.vue";
 import LopetProfile from "@/components/LopetProfile.vue";
 import LopetAbout from "@/components/LopetAbout.vue";

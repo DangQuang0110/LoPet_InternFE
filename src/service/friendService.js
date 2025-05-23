@@ -33,6 +33,18 @@ export const acceptFriendRequest = async (receiverId, senderId) => {
   }
 }
 
+// Cái này là từ chối lời mời kết bạn nha cầu
+export const rejectFriendReq = async (receiverId, senderId)=>{
+  try {
+    const response = await apiService.post(`/v1/friendShips/reject`,{receiverId, senderId});
+    console.log(response);
+    return response.data;
+  } catch (error) {
+    console.log('Lỗi Khi xoa loi moi ket ban', error);
+    throw error;
+  }
+}
+
 // xóa bạn bè nha cu cầu
 
 // export const deleteFriend = async (receiverId, senderId) =>{
