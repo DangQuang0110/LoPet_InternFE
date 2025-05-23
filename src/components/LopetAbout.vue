@@ -1,23 +1,8 @@
 <template>
   <div class="lopet-app">
-    <!-- Header with logo and search -->
-    <header class="header">
-      <div class="logo">
-        <span class="logo-text">LOPET</span>
-        <span class="pet-icon">🐱</span>
-      </div>
-      <div class="search-box">
-        <input type="text" placeholder="Tìm kiếm..." />
-        <button class="search-button">
-          <i class="fa fa-search"></i>
-        </button>
-      </div>
-    </header>
+    
 
-    <!-- Back arrow -->
-    <div class="back-arrow">
-      <i class="fas fa-arrow-left"></i>
-    </div>
+    
 
     <!-- Profile section -->
     <div class="profile-container">
@@ -27,7 +12,7 @@
       </div>
 
       <!-- Profile details section -->
-      <div class="profile-details">
+      <div class="profile-details-sss">
         <div class="profile-avatar">
           <!-- Profile avatar circle -->
         </div>
@@ -226,26 +211,12 @@ export default {
   cursor: pointer;
 }
 
-.back-arrow {
-  position: absolute;
-  top: 60px;
-  left: 15px;
-  width: 30px;
-  height: 30px;
-  background-color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
+
 
 .profile-container {
   max-width: 900px;
   margin: 0 auto;
-  background-color: #f0f2f5;
+  background-color: #FAEBD7;
 }
 
 .profile-banner {
@@ -256,13 +227,14 @@ export default {
   position: relative;
 }
 
-.profile-details {
+.profile-details-sss {
   padding: 0 20px;
   position: relative;
-  margin-bottom: 15px;
+  
   display: flex;
   flex-direction: column;
   align-items: center;
+  background-color: #FFF8F0;
 }
 
 .profile-avatar {
@@ -328,6 +300,7 @@ export default {
 
 .about-content {
   padding: 15px;
+  background-color: #FAEBD7;
 }
 
 .about-main {
@@ -344,6 +317,7 @@ export default {
 
 .about-section:last-child {
   border-bottom: none;
+  background-color: #FAEBD7;
 }
 
 .about-header {

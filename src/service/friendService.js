@@ -10,7 +10,6 @@ export const getFriendList = async (userId) => {
   }
 }
 
-//cái này la lấy danh sách lời mời kết bạn nha cầu
 export const getListRequestF = async (userId) => {
   try {
     const response = await apiService.get(`/v1/friendships/receive/${userId}`)
@@ -21,40 +20,73 @@ export const getListRequestF = async (userId) => {
   }
 }
 
-// cái này cho button chấp nhận lời mời kết bạn
 export const acceptFriendRequest = async (receiverId, senderId) => {
   try {
-    const response = await apiService.post(`/v1/friendShips/accept`,{receiverId, senderId});
-    console.log(response)
-    return response.data;
+    const response = await apiService.post(`/v1/friendships/accept`, { receiverId, senderId })
+    return response.data
   } catch (error) {
-    console.log('Lỗi khi chấp nhận lời mời kết bạn', error);
-    throw error;
+    console.log('Lỗi khi chấp nhận lời mời kết bạn', error)
+    throw error
   }
 }
 
-// Cái này là từ chối lời mời kết bạn nha cầu
-export const rejectFriendReq = async (receiverId, senderId)=>{
+export const rejectFriendReq = async (receiverId, senderId) => {
   try {
-    const response = await apiService.post(`/v1/friendShips/reject`,{receiverId, senderId});
-    console.log(response);
-    return response.data;
+    const response = await apiService.post(`/v1/friendShips/reject`, { receiverId, senderId })
+    return response.data
   } catch (error) {
-    console.log('Lỗi Khi xoa loi moi ket ban', error);
-    throw error;
+    console.log('Lỗi Khi xóa lời mời kết bạn', error)
+    throw error
   }
 }
+
+export const getSuggestedFriends = async (userId, limit =10) => {
+  try {
+    const res = await apiService.get(`/v1/accounts/suggest/${userId}`, {
+      params: { limit: String(limit) }
+    })
+    return res.data.data
+  } catch (error) {
+    console.error('Lỗi khi lấy gợi ý bạn bè:', error)
+    return []
+  }
+}
+
+export const sendFriendRequest = async (senderId, receiverId) => {
+  try {
+    const response = await apiService.post(`/v1/friendships`, { senderId, receiverId })
+    return response.data
+  } catch (error) {
+    console.error('Lỗi khi gửi lời mời kết bạn:', error)
+    throw error
+  }
+}
+
+export const removeSuggestedFriend = async (receiverId, senderId) => {
+  try {
+    const response = await apiService.post(`/v1/friendships/reject`, { receiverId, senderId })
+    return response.data
+  } catch (error) {
+    console.error('Lỗi khi xóa gợi ý kết bạn:', error)
+    throw error
+  }
+}
+
+
 
 // xóa bạn bè nha cu cầu
 
-// export const deleteFriend = async (receiverId, senderId) =>{
-//   try {
-//     const response = await apiService.delete(`/v1/friendShips`, {receiverId,senderId});
-//     console.log(response);
-//     return response
-//   } catch (error) {
-//     console.log("Lỗi khi xóa kết bạn: ", error);
-//     throw error;
-//   }
-// }
-// có bug tí vũ sửa
+export const deleteFriend = async (receiverId, senderId) => {
+  try {
+    const response = await apiService.request({
+      url: `/v1/friendShips`,
+      method: 'DELETE',
+      data: { senderId, receiverId } // data phải nằm trong object này
+    });
+    console.log(response);
+    return response.data;
+  } catch (error) {
+    console.log("Lỗi khi xóa kết bạn: ", error);
+    throw error;
+  }
+}

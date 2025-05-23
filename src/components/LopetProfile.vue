@@ -1,24 +1,5 @@
 <template>
   <div class="lopet-app">
-    <!-- Header with logo and search -->
-    <header class="header">
-      <div class="logo">
-        <span class="logo-text">LOPET</span>
-        <span class="pet-icon">🐱</span>
-      </div>
-      <div class="search-box">
-        <input type="text" placeholder="Tìm kiếm..." />
-        <button class="search-button">
-          <i class="fa fa-search"></i>
-        </button>
-      </div>
-    </header>
-
-    <!-- Back arrow -->
-    <div class="back-arrow" @click="goBack">
-      <i class="fas fa-arrow-left"></i>
-    </div>
-
     <!-- Hidden file input for avatar change -->
     <input 
       type="file" 
@@ -36,7 +17,7 @@
       </div>
 
       <!-- Profile details section -->
-      <div class="profile-details">
+      <div class="profile-details-new">
         <div 
           class="profile-avatar"
           :style="{ 'background-image': 'url(' + user.avatar + ')' }"
@@ -58,10 +39,10 @@
 
       <!-- Profile content section -->
       <div class="profile-content">
-        <!-- Sidebar -->
+        <!-- Sidebar - Fixed position -->
         <div class="sidebar">
           <div class="intro-section">
-            <h3>Bài Đăng</h3>
+            <h3>Giới Thiệu</h3>
             <ul class="intro-list">
               <li>
                 <i class="fas fa-graduation-cap"></i>
@@ -111,16 +92,8 @@
             </div>
             <div class="create-post-actions">
               <button class="create-action">
-                <i class="fas fa-images"></i>
-                <span>Ảnh/Video</span>
-              </button>
-              <button class="create-action">
-                <i class="fas fa-paw"></i>
-                <span>Thú cưng</span>
-              </button>
-              <button class="create-action">
-                <i class="fas fa-map-marker-alt"></i>
-                <span>Địa điểm</span>
+                <img src="/icon/camera.png" alt="Home" class="nav-icon" />
+                <span>Ảnh</span>
               </button>
             </div>
           </div>
@@ -153,16 +126,16 @@
             
             <div class="post-actions">
               <button class="post-action">
-                <i class="far fa-heart"></i>
-                <span>Thích</span>
+                <img src="/icon/heart.png" alt="Home" class="nav-icon" />
+                <span></span>
               </button>
               <button class="post-action">
-                <i class="far fa-comment"></i>
-                <span>Bình luận</span>
+                <img src="/icon/chat.png" alt="Home" class="nav-icon" />
+                <span></span>
               </button>
               <button class="post-action">
-                <i class="fas fa-share"></i>
-                <span>Chia sẻ</span>
+                <img src="/icon/share.png" alt="Home" class="nav-icon" />
+                <span></span>
               </button>
             </div>
             
@@ -192,9 +165,7 @@
               <div class="comment-box">
                 <input type="text" placeholder="Viết bình luận..." />
                 <div class="comment-actions">
-                  <i class="far fa-smile"></i>
-                  <i class="fas fa-camera"></i>
-                  <i class="fas fa-paperclip"></i>
+                  
                 </div>
               </div>
             </div>
@@ -312,6 +283,11 @@ export default {
   box-sizing: border-box;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+.nav-icon {
+  margin-right: 8px; /* Khoảng cách giữa icon và text */
+  width: 20px; /* Điều chỉnh kích thước icon */
+  height: 20px;
+}
 
 .lopet-app {
   background-color: #f0f2f5;
@@ -391,7 +367,7 @@ export default {
 .profile-container {
   max-width: 900px;
   margin: 0 auto;
-  background-color: #f0f2f5;
+  background-color: #FAEBD7;
 }
 
 .profile-banner {
@@ -402,13 +378,12 @@ export default {
   position: relative;
 }
 
-.profile-details {
-  padding: 0 20px;
+.profile-details-new {
   position: relative;
-  margin-bottom: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background-color: #FFF8F0;
 }
 
 .profile-avatar {
@@ -483,18 +458,25 @@ export default {
   display: flex;
   padding: 10px;
   flex-direction: row;
+  background-color: #FAEBD7;
+  position: relative;
 }
 
 .sidebar {
   flex: 0 0 320px;
   margin-right: 15px;
+  position: sticky;
+  top: 10px;
+  height: fit-content;
+  z-index: 10;
 }
 
 .intro-section {
-  background-color: #faf8f0;
+  background-color: #FFF8F0;
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .intro-section h3 {
@@ -543,7 +525,7 @@ export default {
 }
 
 .create-post {
-  background-color: white;
+  background-color: #FFF8F0;
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   padding: 12px;
@@ -610,7 +592,7 @@ export default {
 }
 
 .post-item {
-  background-color: white;
+  background-color: #FFF8F0;
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   margin-bottom: 15px;
@@ -820,6 +802,7 @@ export default {
     flex: 1;
     margin-right: 0;
     margin-bottom: 15px;
+    position: static;
   }
   
   .create-post-actions {

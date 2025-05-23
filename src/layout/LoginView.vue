@@ -19,9 +19,8 @@
             @focus="emailFocus = true"
             @blur="emailFocus = false"
           />
-          <label :class="{ active: emailFocus || email }">Số điện thoại hoặc email</label>
+          <label :class="{ active: emailFocus || email }">Username</label>
         </div>
-
         <!-- Mật khẩu có con mắt -->
         <div class="input-group password-group">
           <input

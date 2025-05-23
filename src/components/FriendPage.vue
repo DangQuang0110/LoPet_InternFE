@@ -1,11 +1,5 @@
 <template>
   <div class="app-container">
-    <!
-      
-
-      
-    </div>
-
     <!-- Main Content -->
     <div class="main-content">
       <!-- Search Bar at the top -->
@@ -21,13 +15,11 @@
       </div>
       <!-- Tab Navigation -->
       <div class="tab-navigation">
-        <div class="tab-item" :class="{ active: activeTab === 'friend-requests' }"
-          @click="activeTab = 'friend-requests'">
+        <div class="tab-item" :class="{ active: activeTab === 'friend-requests' }" @click="activeTab = 'friend-requests'">
           <i class="fas fa-plus-circle"></i>
           <span>Lời mời kết bạn</span>
         </div>
-        <div class="tab-item" :class="{ active: activeTab === 'friend-suggestions' }"
-          @click="activeTab = 'friend-suggestions'">
+        <div class="tab-item" :class="{ active: activeTab === 'friend-suggestions' }" @click="activeTab = 'friend-suggestions'">
           <i class="fas fa-user-friends"></i>
           <span>Gợi ý kết bạn</span>
         </div>
@@ -41,13 +33,13 @@
       <div v-if="activeTab === 'friend-requests'" class="pet-grid">
         <div v-for="(pet, index) in friendRequests" :key="index" class="pet-card">
           <div class="pet-image">
-            <img :src="pet.avatarUrl ?? 'https://avatar.iran.liara.run/public'" :alt="pet.fullName || pet.username" />
+            <img :src="pet.avatarUrl ?? currentAvatar" :alt="pet.fullName || pet.username" />
           </div>
           <div class="pet-name">{{ pet.fullName || pet.username }}</div>
           <button class="action-button accept" @click="acceptRequest(pet.id)">
-            <i class="fas fa-check"></i> Chấp nhận  
+            <i class="fas fa-check"></i> Chấp nhận
           </button>
-          <button class="action-button reject"@click="confirmDelReqFriend(pet.id)">
+          <button class="action-button reject" @click="confirmDelReqFriend(pet.id)">
             Xoá
           </button>
         </div>
@@ -55,15 +47,15 @@
 
       <!-- Pet Grid - Friend Suggestions -->
       <div v-else-if="activeTab === 'friend-suggestions'" class="pet-grid">
-        <div v-for="(pet, index) in friendSuggestions" :key="index" class="pet-card">
+        <div v-for="pet in friendSuggestions" :key="pet.id" class="pet-card">
           <div class="pet-image">
-            <img :src="pet.image || '/default-dog.jpg'" :alt="pet.name" />
+            <img :src="pet.avatarUrl || currentAvatar" :alt="pet.fullName || pet.username || 'Người dùng'" />
           </div>
-          <div class="pet-name">{{ pet.name }}</div>
-          <button class="action-button accept">
+          <div class="pet-name">{{ pet.fullName || pet.username || 'Ẩn danh' }}</div>
+          <button class="action-button accept" @click="sendRequestToFriend(pet.id)">
             <i class="fas fa-user-plus"></i> Thêm bạn bè
           </button>
-          <button class="action-button reject">
+          <button class="action-button reject" @click="deleteSuggestedFriend(pet.id)">
             Xoá
           </button>
         </div>
@@ -73,13 +65,13 @@
       <div v-else class="pet-grid">
         <div v-for="(pet, index) in allFriends" :key="index" class="pet-card">
           <div class="pet-image">
-            <img :src="pet.avatarUrl ?? 'https://avatar.iran.liara.run/public'" :alt="pet.fullName || pet.username" />
+            <img :src="pet.avatarUrl ?? currentAvatar" :alt="pet.fullName || pet.username" />
           </div>
           <div class="pet-name">{{ pet.fullName || pet.username }}</div>
           <button class="action-button profile">
             Xem trang cá nhân
           </button>
-          <button class="action-button reject" @click="confirmDeleteFriend(pet)">
+          <button class="action-button reject" @click="isDeleteFriend(pet.id)">
             Xoá
           </button>
         </div>
@@ -94,31 +86,21 @@
 </template>
 
 <script>
-import { getFriendList } from '@/service/friendService';
-import { getListRequestF } from '@/service/friendService';
-import {  acceptFriendRequest } from '@/service/friendService';
-import { getProfileById } from '@/service/profileService';//lấy ảnh
-import {rejectFriendReq} from '@/service/friendService';
+import { getFriendList, getListRequestF, acceptFriendRequest, rejectFriendReq, getSuggestedFriends, sendFriendRequest, removeSuggestedFriend, deleteFriend } from '@/service/friendService';
+import { getProfileById } from '@/service/profileService';
+
 export default {
   name: 'PetSocialPlatform',
   data() {
     return {
       activeTab: 'all-friends',
       friendRequests: [],
-      friendSuggestions: [
-        { name: 'Bo Corgi', image: '/images/phong.jpg' },
-        { name: 'Milo Beagle', image: '/images/nhan.jpg' },
-        { name: 'Lucky Husky', image: '/images/nhan.jpg' },
-        { name: 'Bo Corgi', image: '/images/phong.jpg' },
-        { name: 'Milo Beagle', image: '/images/quang.jpg' },
-        { name: 'Max Golden', image: '/images/cau.jpg' },
-        { name: 'Max Golden', image: '/images/quang.jpg' }
-      ],
-      allFriends: []
+      friendSuggestions: [],
+      allFriends: [],
+      currentAvatar: '/image/avata.jpg'
     }
   },
   methods: {
-    // Fetch profile data and merge with friend data
     async fetchProfileData(friends) {
       const friendsWithProfiles = await Promise.all(
         friends.map(async (friend) => {
@@ -132,76 +114,98 @@ export default {
             };
           } catch (error) {
             console.error(`Failed to fetch profile for friend ${friend.id}:`, error);
-            return friend; // Return original friend data if profile fetch fails
+            return friend;
           }
         })
       );
       return friendsWithProfiles;
     },
-
     async fetchFriends(userId) {
       try {
         const data = await getFriendList(userId);
-        // Fetch profile data for each friend
         this.allFriends = await this.fetchProfileData(data);
       } catch (error) {
         console.error('Failed to load friends:', error);
       }
     },
-
-    // lấy danh sách lời mời kết bạn gửi tới mình
     async fetchListRequestF(userId) {
       try {
         const data = await getListRequestF(userId);
-        // Fetch profile data for each friend request
         this.friendRequests = await this.fetchProfileData(data);
       } catch (error) {
-        console.log('Lỗi nè cu: ', error);
+        console.log('Lỗi khi lấy danh sách lời mời:', error);
       }
     },
-
-    // này là định nghĩa chấp nhận lời mời kết bạn nhe cầu UwU
+    async fetchSuggestedFriends(userId) {
+      try {
+        const data = await getSuggestedFriends(userId);
+        this.friendSuggestions = await this.fetchProfileData(data);
+      } catch (error) {
+        console.log('Lỗi khi lấy gợi ý kết bạn:', error);
+      }
+    },
     async acceptRequest(senderId) {
       try {
         const user = JSON.parse(localStorage.getItem('user'));
         if (!user?.id) return;
-        
         await acceptFriendRequest(user.id, senderId);
-        // làm mới trang khi chấp nhận nhe cái này chat chỉ :)) tao đang học
         await this.fetchListRequestF(user.id);
         await this.fetchFriends(user.id);
       } catch (error) {
-        console.log("Không thể chấp nhận lời mời: ", error);
+        console.log("Không thể chấp nhận lời mời:", error);
       }
     },
-
-    // này là định nghiawx của button xóa nha con lợn (bug gòi tí vũ về sửa)
     async confirmDeleteFriend(friend) {
       console.log('Delete friend:', friend);
-      // Add your delete friend logic here
     },
-
-    // xóa lời mời kết bạn
-    async confirmDelReqFriend(senderId){
+    async confirmDelReqFriend(senderId) {
       try {
         const user = JSON.parse(localStorage.getItem('user'));
         if (!user?.id) return;
-        
         await rejectFriendReq(user.id, senderId);
-        // làm mới trang khi chấp nhận nhe cái này chat chỉ :)) tao đang học
         await this.fetchListRequestF(user.id);
         await this.fetchFriends(user.id);
       } catch (error) {
-        console.log("Không thể xóa lời mời: ", error);
+        console.log("Không thể xóa lời mời:", error);
       }
-    }
+    },
+    async sendRequestToFriend(receiverId) {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user?.id) return;
+        await sendFriendRequest(user.id, receiverId);
+        await this.fetchSuggestedFriends(user.id);
+      } catch (error) {
+        console.log("Không thể gửi lời mời:", error);
+      }
+    },
+    async deleteSuggestedFriend(receiverId) {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user?.id) return;
+        await removeSuggestedFriend(user.id, receiverId);
+        await this.fetchSuggestedFriends(user.id);
+      } catch (error) {
+        console.log("Không thể xoá gợi ý:", error);
+      }
+    },
+    async isDeleteFriend(senderId) {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user?.id) return;
+        await deleteFriend(senderId,user.id );
+        await this.fetchFriends(user.id);
+      } catch (error) {
+        console.log("Không thể xóa bạn:", error);
+      }
+    },
   },
-
   created() {
     const user = JSON.parse(localStorage.getItem('user'))
     if (user && user.id) {
       this.fetchListRequestF(user.id)
       this.fetchFriends(user.id)
+      this.fetchSuggestedFriends(user.id)
     } else {
       console.warn('Không tìm thấy ID người dùng đăng nhập')
     }

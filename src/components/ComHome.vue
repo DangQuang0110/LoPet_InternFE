@@ -13,97 +13,66 @@
         </div>
       </header>
 
-      <!-- Stories -->
-      <!-- <div class="stories">
-        <div class="story" v-for="(u, index) in stories" :key="u.name">
-          <div class="story-wrapper">
-            <img
-              :src="u.src"
-              :alt="u.name"
-              :class="{ 'first-story': index === 0 }"
-            />
-            <span v-if="index === 0" class="add-story">+</span>
-          </div>
-          <span>{{ u.name }}</span>
-        </div>
-      </div> -->
-
       <!-- Composer -->
-        <div class="composer" @click="showCreate = true">
-          <img
-            class="composer-avatar"
-            :src="currentAvatar"
-            alt="User Avatar"
+      <div class="composer" @click="showCreate = true">
+        <img
+          class="composer-avatar"
+          :src="currentAvatar"
+          alt="User Avatar"
+        />
+        <div class="composer-body">
+          <input
+            v-model="composeText"
+            type="text"
+            placeholder="Hôm nay, bạn nghĩ gì thế?"
+            class="composer-input"
+            readonly
           />
-          <div class="composer-body">
-            <input
-              v-model="composeText"
-              type="text"
-              placeholder="Hôm nay, bạn nghĩ gì thế?"
-              class="composer-input"
-              readonly
-            />
-            <i class="fas fa-camera composer-camera"></i>
-          </div>
+          <i class="fas fa-camera composer-camera"></i>
         </div>
+      </div>
+
       <!-- Feed -->
-<div class="content">
+      <div class="content">
         <div class="feed">
           <div class="post-card" v-for="post in posts" :key="post.postId">
-            <!-- Header -->
             <div class="post-header">
-              <img
-                :src="post.userSrc"
-                alt="avatar"
-                class="avatar"
-              />
+              <img :src="post.userSrc" alt="avatar" class="avatar" />
               <div class="post-info">
                 <span class="username">{{ post.user }}</span>
                 <small class="time">{{ post.time }}</small>
               </div>
               <div class="post-header-actions">
-                <!-- Report button -->
-               
-                <!-- Alert chat button -->
                 <button class="btn-icon comment-alert-btn" @click.stop="showReport = true">
-  <span class="icon-alert">
-    <i class="far fa-comment"></i>
-    <!-- dấu chấm than nằm chính giữa bong bóng -->
-    <i class="fas fa-exclamation comment-alert-icon"></i>
-  </span>
-</button>
-                <!-- Close post button -->
+                  <span class="icon-alert">
+                    <i class="far fa-comment"></i>
+                    <i class="fas fa-exclamation comment-alert-icon"></i>
+                  </span>
+                </button>
                 <button class="btn-icon close-btn" @click="removePost(post.id)">
                   <i class="fas fa-times"></i>
                 </button>
               </div>
             </div>
 
-            <!-- Content -->
             <div class="post-content">
               <p>{{ post.text }}</p>
               <img v-if="post.img" :src="post.img" alt="" />
             </div>
 
-            <!-- Actions -->
-          <div class="post-actions">
-                            <button class="btn-icon like-btn" @click="toggleLike(post)">
+            <div class="post-actions">
+              <button class="btn-icon like-btn" @click="toggleLike(post)">
                 <i :class="post.liked ? 'fas fa-heart liked' : 'far fa-heart'"></i>
               </button>
               <p class="count">{{ post.likes + (post.liked ? 1 : 0) }}</p>
-
               <i class="far fa-comment"></i><p>8</p>
-              <!-- thêm class share-icon -->
               <i class="fas fa-share share-icon"></i>
             </div>
 
-            <!-- Stats -->
             <div class="post-stats">
-              
               <a href="#">Xem thêm bình luận</a>
             </div>
 
-            <!-- Comment Input -->
             <div class="post-comment">
               <input type="text" placeholder="Bình luận..." />
             </div>
@@ -111,6 +80,7 @@
         </div>
       </div>
     </div>
+
     <aside class="suggestions">
       <div class="ads">
         <h3>Quảng cáo</h3>
@@ -146,29 +116,25 @@
 
       <h3>Gợi ý cho bạn</h3>
       <ul class="suggestion-list">
-        <li
-          v-for="s in suggestions"
-          :key="s.name"
-          class="suggestion-card"
-        >
-          <img :src="s.src" alt="" />
-          <div class="info">
-            <span class="name">{{ s.name }}</span>
-            <small>Gợi ý cho bạn</small>
-          </div>
-          <div class="actions">
-            <button class="btn-add">Thêm</button>
-            <button class="btn-remove">Xóa</button>
-          </div>
-        </li>
+      <li
+        v-for="s in suggestions"
+        :key="s.id"
+        class="suggestion-card"
+      >
+        <img :src="s.avatar || currentAvatar" alt="Avatar" />
+        <div class="info">
+          <span class="name">{{ s.username }}</span>
+          <small>Gợi ý cho bạn</small>
+        </div>
+        <div class="actions">
+          <button class="btn-add" @click="handleAddFriend(s.id)">Thêm</button>
+          <button class="btn-remove" @click="handleHideSuggestion(s.id)">Xóa</button>
+        </div>
+      </li>
       </ul>
     </aside>
 
-
-
-    <!-- CreatePost Modal -->
     <CreatePost v-if="showCreate" @close="showCreate = false" @post="fetchPosts" />
-    <!-- ReportModal -->
     <ReportModal v-if="showReport" @close="showReport = false" @report="onReport" />
   </div>
 </template>
@@ -179,22 +145,15 @@ import CreatePost from '@/components/CreatePost.vue'
 import ReportModal from '@/components/ReportModal.vue'
 import { getPosts } from '@/service/postService'
 import { getAccountById } from '@/service/authService'
-
+import { getSuggestedFriends, sendFriendRequest} from '@/service/friendService'
 
 const search = ref('')
 const showCreate = ref(false)
 const showReport = ref(false)
 const composeText = ref('')
 const posts = ref([])
-const currentAvatar = ref('/image/avata.jpg') // ảnh mặc định
-
-
-const suggestions = [
-  { name: 'Skibidi', src: '/assets/phem.jpg' },
-  { name: 'Conan', src: '/assets/phem.jpg' },
-  { name: 'Shinichi', src: '/assets/phem.jpg' },
-  { name: 'Sakura', src: '/assets/phem.jpg' },
-]
+const currentAvatar = ref('/image/avata.jpg')
+const suggestions = ref([])
 
 function removePost(id) {
   const idx = posts.value.findIndex(p => p.postId === id)
@@ -215,7 +174,6 @@ async function fetchPosts() {
     const postResults = []
 
     for (const post of res) {
-      // Nếu không có accounts trong post, gọi thêm từ accountService
       let username = 'Ẩn danh'
 
       if (post.accounts?.username) {
@@ -245,17 +203,58 @@ async function fetchPosts() {
   }
 }
 
+async function addFriend(receiverId) {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (!user.id) return
+  try {
+    await sendFriendRequest(senderId, receiverId)
+    suggestions.value = suggestions.value.filter(s => s.id !== receiverId)
+  } catch (error) {
+    console.error('Lỗi khi gửi lời mời kết bạn:', error)
+  }
+}
 
-onMounted(fetchPosts)
+async function removeSuggestion(receiverId) {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (!user.id) return
+  try {
+    await deleteSuggestedFriend(user.id, receiverId)
+    suggestions.value = suggestions.value.filter(s => s.id !== receiverId)
+  } catch (error) {
+    console.error('Lỗi khi xóa gợi ý bạn bè:', error)
+  }
+}
+
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (user.id) {
     const acc = await getAccountById(user.id)
-    if (acc?.avatar) {
-      currentAvatar.value = acc.avatar
-    }
+    if (acc?.avatar) currentAvatar.value = acc.avatar
+
+    const suggest = await getSuggestedFriends(user.id, 4)
+    suggestions.value = suggest
   }
 })
+function handleHideSuggestion(id) {
+  suggestions.value = suggestions.value.filter(s => s.id !== id)
+}
+
+async function handleAddFriend(receiverId) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user.id) return
+
+    await sendFriendRequest(user.id, receiverId)
+
+    // Ẩn khỏi danh sách sau khi gửi
+    suggestions.value = suggestions.value.filter(s => s.id !== receiverId)
+  } catch (error) {
+    console.error('Lỗi khi gửi lời mời:', error)
+  }
+}
+
+
+onMounted(fetchPosts)
 </script>
 
 

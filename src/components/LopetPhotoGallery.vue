@@ -1,23 +1,6 @@
 <template>
   <div class="lopet-app">
-    <!-- Header with logo and search -->
-    <header class="header">
-      <div class="logo">
-        <span class="logo-text">LOPET</span>
-        <span class="pet-icon">🐱</span>
-      </div>
-      <div class="search-box">
-        <input type="text" placeholder="Tìm kiếm..." />
-        <button class="search-button">
-          <i class="fa fa-search"></i>
-        </button>
-      </div>
-    </header>
-
-    <!-- Back arrow -->
-    <div class="back-arrow">
-      <i class="fas fa-arrow-left"></i>
-    </div>
+    
 
     <!-- Profile section -->
     <div class="profile-container">
@@ -48,38 +31,14 @@
       <div class="photos-content">
         <div class="photos-header">
           <h3>Hình ảnh của {{ user.name }}</h3>
-          <button class="upload-btn">
-            <i class="fas fa-plus"></i> Tải ảnh lên
-          </button>
-        </div>
-
-        <!-- Photo albums section -->
-        <div class="albums-section">
-          <div class="section-header">
-            <h4>Albums</h4>
-            <button class="view-all-btn">Xem tất cả</button>
-          </div>
-          <div class="albums-grid">
-            <div class="album-item" v-for="(album, index) in albums" :key="'album-'+index">
-              <div class="album-cover" :style="{ backgroundImage: `url(${album.coverUrl})` }">
-                <div class="album-count">{{ album.photoCount }} ảnh</div>
-              </div>
-              <div class="album-title">{{ album.name }}</div>
-            </div>
-          </div>
+          
         </div>
 
         <!-- All photos section -->
         <div class="photos-section">
           <div class="section-header">
             <h4>Tất cả hình ảnh</h4>
-            <div class="photos-filters">
-              <select class="filter-dropdown">
-                <option value="recent">Gần đây nhất</option>
-                <option value="oldest">Cũ nhất</option>
-                <option value="popular">Phổ biến nhất</option>
-              </select>
-            </div>
+            
           </div>
           <div class="photos-grid">
             <div class="photo-item" v-for="(photo, index) in photos" :key="'photo-'+index" @click="openPhotoViewer(index)">
@@ -102,7 +61,6 @@
       </div>
     </div>
 
-    <!-- Photo viewer modal -->
     <div class="photo-viewer" v-if="showPhotoViewer">
       <div class="viewer-header">
         <div class="viewer-user-info">
@@ -380,10 +338,10 @@ export default {
 .profile-details {
   padding: 0 20px;
   position: relative;
-  margin-bottom: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background-color: #FFF8F0;
 }
 
 .profile-avatar {
@@ -450,6 +408,7 @@ export default {
 /* Photos specific styles */
 .photos-content {
   padding: 15px;
+  background-color: #FAEBD7;
 }
 
 .photos-header {
@@ -509,7 +468,7 @@ export default {
 }
 
 .albums-section, .photos-section {
-  background-color: #faf8f0;
+  background-color: #FFF8F0;
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;

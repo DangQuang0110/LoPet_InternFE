@@ -9,10 +9,7 @@
 // Import Layout nếu bạn muốn dùng layout bao quanh các trang
 import Layout from '@/components/Layout.vue'
 </script>
-
 <style>
-/* Nếu có style chung cho App thì để ở đây */
-
 #vite-devtools-toggle {
   display: none !important;
 }
