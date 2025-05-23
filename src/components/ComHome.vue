@@ -11,6 +11,26 @@
             placeholder="Tìm kiếm"
           />
         </div>
+        <transition name="fade">
+  <div v-if="showDeleteConfirm" class="modal-overlay">
+    <div class="delete-modal">
+      <div class="modal-header">
+        <h3>Bạn có muốn ẩn bài viết này không</h3>
+        <button class="close-modal" @click="cancelDelete">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-title">Bạn có muốn ẩn bài viết này hay không?</p>
+        <p class="modal-text">
+          Khi bạn ẩn bài viết này thì nó sẽ không còn xuất hiện trong danh sách bài viết mà bạn được xem nữa.
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-confirm" @click="performDelete">Xác nhận</button>
+        <button class="btn-cancel" @click="cancelDelete">Hủy</button>
+      </div>
+    </div>
+  </div>
+</transition>
       </header>
 
       <!-- Stories -->
@@ -48,7 +68,7 @@
         </div>
 
       <!-- Feed -->
-<div class="content">
+      <div class="content">
         <div class="feed">
           <div class="post-card" v-for="post in posts" :key="post.id">
             <!-- Header -->
@@ -67,14 +87,14 @@
                
                 <!-- Alert chat button -->
                 <button class="btn-icon comment-alert-btn" @click.stop="showReport = true">
-  <span class="icon-alert">
-    <i class="far fa-comment"></i>
-    <!-- dấu chấm than nằm chính giữa bong bóng -->
-    <i class="fas fa-exclamation comment-alert-icon"></i>
-  </span>
-</button>
+                    <span class="icon-alert">
+                      <i class="far fa-comment"></i>
+                      <!-- dấu chấm than nằm chính giữa bong bóng -->
+                      <i class="fas fa-exclamation comment-alert-icon"></i>
+                    </span>
+                  </button>
                 <!-- Close post button -->
-                <button class="btn-icon close-btn" @click="removePost(post.id)">
+                <button class="btn-icon close-btn" @click="confirmDelete(post.id)">
                   <i class="fas fa-times"></i>
                 </button>
               </div>
@@ -100,8 +120,7 @@
 
             <!-- Stats -->
             <div class="post-stats">
-              
-              <a href="#">Xem thêm bình luận</a>
+              <a href="#" @click.prevent="openComments(post)">Xem thêm bình luận</a>
             </div>
 
             <!-- Comment Input -->
@@ -168,11 +187,45 @@
     </aside>
 
 
-
+    
     <!-- CreatePost Modal -->
     <CreatePost v-if="showCreate" @close="showCreate = false" />
     <!-- ReportModal -->
     <ReportModal v-if="showReport" @close="showReport = false" @report="onReport" />
+
+    <!-- Comments Modal --> 
+     <transition name="fade">
+      <div v-if="showCommentsModal" class="comments-overlay">
+        <div class="comments-modal">
+          <div class="comments-header">
+            <h3>Bài viết của {{ selectedPost.user }}</h3>
+            <button class="close-comments" @click="closeComments">&times;</button>
+          </div>
+          <div class="comments-body">
+            <div
+              v-for="comment in selectedPost.commentsList"
+              :key="comment.id"
+              class="comment-item"
+            >
+              <img :src="comment.userSrc" class="comment-avatar" />
+              <div class="comment-content">
+                <span class="comment-username">{{ comment.user }}</span>
+                <p class="comment-text">{{ comment.text }}</p>
+                <span class="comment-time">{{ comment.time }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="comments-footer">
+            <input
+              v-model="newComment"
+              type="text"
+              placeholder="Viết bình luận..."
+            />
+            <button class="btn-send" @click="addComment">Gửi</button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -185,6 +238,8 @@ const search = ref('')
 const showCreate = ref(false)
 const showReport = ref(false)
 const composeText = ref('')
+const showDeleteConfirm = ref(false)
+const deleteTargetId    = ref(null)
 
 
 
@@ -196,35 +251,25 @@ const stories = [
   { name: 'Trường', src: '/assets/trường.jpg' },
 ]
 
-
 const posts = ref([
   
-  {
+   {
     id: 1,
-    user: 'Cầu',
-    userSrc: '/assets/cầu.jpg',
-    time: '7 tháng 5 lúc 15:48',
-    text: 'Mình cần tìm giống chó này',
-    img: '/assets/pngtree-five-dogs-and-a-cat-together-on-a-black-background-image_2699926.jpg',
-    likes: 120, 
-    comments: 8, 
-    liked: false
+    user: 'Cầu', userSrc: '/assets/cầu.jpg', time: '7 tháng 5 lúc 15:48', text: 'Mình cần tìm giống chó này', img: '/assets/pngtree-five-dogs-and-a-cat-together-on-a-black-background-image_2699926.jpg', likes: 120, liked: false,
+    commentsList: [
+      { id: 11, user: 'Minh', userSrc: '/assets/phem.jpg', text: 'Đẹp quá!', time: '2 giờ trước' },
+      { id: 12, user: 'Trường', userSrc: 'public/assets/trường.jpg', text: 'Bạn mua ở đâu?', time: '1 giờ trước' }
+    ]
   },
-  {
+  { 
     id: 2,
-    user: 'Trường',
-    userSrc: '/assets/trường.jpg',
-    time: '6 tháng 5 lúc 15:50',
-    text: 'Phong Love Quang',
-    img: '/assets/pngtree-five-dogs-and-a-cat-together-on-a-black-background-image_2699926.jpg',
-    likes: 58,
-    likes: 58, 
-    comments: 3, 
-    liked: false
-  },
+    user: 'Phong', userSrc: '/assets/phem.jpg', time: '7 tháng 5 lúc 15:48', text: 'Mình cần tìm giống chó này', img: '/assets/pngtree-five-dogs-and-a-cat-together-on-a-black-background-image_2699926.jpg', likes: 120, liked: false,
+    commentsList: [
+      { id: 21, user: 'Minh', userSrc: '/assets/phem.jpg', text: 'Đẹp quá!', time: '2 giờ trước' },
+      { id: 22, user: 'Vũ', userSrc: '/assets/phem.jpg', text: 'Bạn mua ở đâu?', time: '1 giờ trước' }
+    ]
+  }
 ])
-
-
 
 const suggestions = [
   { name: 'Skibidi', src: '/assets/phem.jpg' },
@@ -243,10 +288,52 @@ function toggleLike(post) {
 }
 
 
+
+// Comments modal
+const showCommentsModal = ref(false)
+const selectedPost = ref({ commentsList: [] })
+const newComment = ref('')
+function openComments(post) {
+  selectedPost.value = post
+  showCommentsModal.value = true
+}
+
+function closeComments() {
+  showCommentsModal.value = false
+  selectedPost.value = { commentsList: [] }
+  newComment.value = ''
+}
+
+function addComment() {
+  if (!newComment.value.trim()) return
+  selectedPost.value.commentsList.push({ id: Date.now(), user: currentUser, userSrc: '/assets/quang.jpg', text: newComment.value, time: 'Vừa xong' })
+  newComment.value = ''
+}
+
 function onReport(reason) {
   console.log('Báo cáo vì:', reason)
   
 }
+
+function confirmDelete(id) {
+  deleteTargetId.value    = id
+  showDeleteConfirm.value = true
+}
+
+
+function performDelete() {
+  const idx = posts.value.findIndex(p => p.id === deleteTargetId.value)
+  if (idx !== -1) posts.value.splice(idx, 1)
+  showDeleteConfirm.value = false
+  deleteTargetId.value    = null
+}
+
+function cancelDelete() {
+  showDeleteConfirm.value = false
+  deleteTargetId.value    = null
+}
+
+
 </script>
 
 <style scoped>
@@ -691,5 +778,108 @@ html,
 .liked {
   color: #e0245e;
 }
+
+/* overlay tối nền */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* container modal */
+.delete-modal {
+  width: 360px;
+  background: #FFF8F0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+/* header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #FAEBD7;
+}
+.modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.close-modal {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* body */
+.modal-body {
+  padding: 12px 16px;
+}
+.modal-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.modal-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #333;
+}
+
+/* actions */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #FFEDD5;
+}
+.btn-confirm,
+.btn-cancel {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.btn-confirm {
+  background: #FFCC80;
+}
+.btn-cancel {
+  background: #FFE0B2;
+}
+
+/* simple fade */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .2s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+/* Comments overlay */
+.comments-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+.comments-modal { width: 600px; max-height: 80vh; background: #FFF; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+.comments-header { padding: 16px; background: #FAEBD7; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #DDD; }
+.comments-header h3 { margin: 0; font-size: 1.2rem; }
+.close-comments { background: transparent; border: none; font-size: 1.5rem; cursor: pointer; }
+.comments-body { flex: 1; padding: 16px; overflow-y: auto; }
+.comment-item { display: flex; gap: 12px; margin-bottom: 12px; }
+.comment-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.comment-content { flex: 1; }
+.comment-username { font-weight: 600; }
+.comment-text { margin: 4px 0; }
+.comment-time { font-size: 0.8rem; color: #666; }
+.comments-footer { padding: 12px; border-top: 1px solid #DDD; display: flex; gap: 8px; }
+.comments-footer input { flex: 1; padding: 8px; border: 1px solid #CCC; border-radius: 4px; }
+.btn-send { padding: 8px 16px; background: #009DFF; color: #FFF; border: none; border-radius: 4px; cursor: pointer; }
+/* Fade transition */
+.fade-enter-active, .fade-leave-active { transition: opacity .2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 </style>
