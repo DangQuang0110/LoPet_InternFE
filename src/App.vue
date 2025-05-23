@@ -30,4 +30,5 @@ html, body, #app {
   padding: 0;
   box-sizing: inherit;
 }
+
 </style>

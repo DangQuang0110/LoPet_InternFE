@@ -103,7 +103,7 @@ const handleLogin = async () => {
     console.log('Login success:', response)
 
     // Lưu userId vào localStorage
-    localStorage.setItem('user', JSON.stringify({ id: response.userId }))
+    localStorage.setItem('user', JSON.stringify({ id: response.userId, username: response.username }))
 
     router.push('/message')
   } catch (err) {

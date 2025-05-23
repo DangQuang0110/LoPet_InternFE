@@ -12,12 +12,12 @@
       <img :src="currentUserAvatar" class="avatar-icon" />
     </nav>
     <div class="right-main">
-      <aside class="sidebar">
+    <aside class="sidebar" v-show="!isMobile || showSidebar">
       <div class="search-bar">
         <img src="/image/tim.png" alt="Tìm kiếm" />
         <input type="text" placeholder="Tìm kiếm" />
       </div>
-        <div class="tab-section">
+        <div class="tab-section" v-show="!isMobile || showSidebar">
           <button class="tab-btn" :class="{ active: activeTab === 'all' }" @click="switchTab('all')">
             Tất cả tin nhắn
           </button>
@@ -46,8 +46,11 @@
         </div>
       </aside>
 
-      <section class="main-chat" v-if="selectedFriend">
+      <section class="main-chat" v-if="selectedFriend && (!isMobile || !showSidebar)">
         <header class="chat-header">
+        <button v-if="isMobile" @click="showSidebar = true" class="back-btn">
+          <img src="/image/back.png" alt="Back" class="back-icon" />
+        </button>
           <img :src="selectedFriend.avatar" class="avatar" />
           <div>
             <div class="name">{{ selectedFriend.name }}</div>
@@ -88,15 +91,12 @@
         </div>
       </footer>
       </section>
-      <div class="main-placeholder" v-else>
-        Chọn một người bạn để bắt đầu trò chuyện
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, nextTick, computed, watch } from 'vue'
 
 const currentUserAvatar = ref('/image/quang.png')
 const friends = ref([])
@@ -104,6 +104,21 @@ const messages = ref({})
 const selectedFriend = ref(null)
 const chatBody = ref(null)
 const activeTab = ref('all')
+const isMobile = ref(window.innerWidth <= 426)
+const showSidebar = ref(true)
+
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 432
+  if (!isMobile.value) showSidebar.value = true
+}
+
+window.addEventListener('resize', handleResize)
+
+watch(selectedFriend, (newVal) => {
+  if (isMobile.value && newVal) {
+    showSidebar.value = false
+  }
+})
 
 const switchTab = (tab) => {
   activeTab.value = tab
@@ -149,9 +164,9 @@ onMounted(() => {
     ]
   }
 
-  if (friends.value.length > 0) {
-    selectedFriend.value = friends.value[0]
-  }
+  // if (friends.value.length > 0) {
+  //   selectedFriend.value = friends.value[0]
+  // }
 })
 </script>
 
@@ -229,6 +244,7 @@ onMounted(() => {
 }
 .sidebar {
   width: 290px;
+  margin-right:0;
   background: #FAEBD7;
   padding: 10px;
   display: flex;
@@ -493,5 +509,104 @@ onMounted(() => {
   height: 20px;
   opacity: 0.8;
   transition: opacity 0.2s, transform 0.2s;
+}
+@media (max-width: 432px) {
+  .chat-app {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .left-bar {
+    width: 60px;
+    background: #FAEBD7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 0;
+    border-right: 1px solid #ddd;
+    position: relative;
+    border-radius: 0;
+    margin-left: 0;
+    height: 100%;
+  }
+
+  .left-bar::before {
+    bottom: 20px;
+  }
+
+  .right-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-left: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .main-chat {
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-body {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .chat-input {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    flex-shrink: 0;
+    background-color: #DCD9D4;
+  }
+
+  .chat-actions {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    margin-left: 10px;
+  }
+
+  .chat-header {
+    padding: 10px;
+    flex-shrink: 0;
+  }
+
+  .back-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+
+  .back-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+
+  .back-icon:hover {
+    opacity: 1;
+  }
 }
 </style>

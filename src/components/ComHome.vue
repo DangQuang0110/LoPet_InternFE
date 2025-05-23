@@ -29,28 +29,27 @@
       </div> -->
 
       <!-- Composer -->
-     <div class="composer" @click="showCreate = true">
+        <div class="composer" @click="showCreate = true">
           <img
             class="composer-avatar"
-            src="/assets/quang.jpg"
+            :src="currentAvatar"
             alt="User Avatar"
           />
           <div class="composer-body">
             <input
               v-model="composeText"
               type="text"
-              placeholder="Hôm nay, bạn nghĩ gì thế Quang Dang?"
+              placeholder="Hôm nay, bạn nghĩ gì thế?"
               class="composer-input"
               readonly
             />
             <i class="fas fa-camera composer-camera"></i>
           </div>
         </div>
-
       <!-- Feed -->
 <div class="content">
         <div class="feed">
-          <div class="post-card" v-for="post in posts" :key="post.id">
+          <div class="post-card" v-for="post in posts" :key="post.postId">
             <!-- Header -->
             <div class="post-header">
               <img
@@ -112,8 +111,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Suggestions -->
     <aside class="suggestions">
       <div class="ads">
         <h3>Quảng cáo</h3>
@@ -170,60 +167,26 @@
 
 
     <!-- CreatePost Modal -->
-    <CreatePost v-if="showCreate" @close="showCreate = false" />
+    <CreatePost v-if="showCreate" @close="showCreate = false" @post="fetchPosts" />
     <!-- ReportModal -->
     <ReportModal v-if="showReport" @close="showReport = false" @report="onReport" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import CreatePost from '@/components/CreatePost.vue'
 import ReportModal from '@/components/ReportModal.vue'
+import { getPosts } from '@/service/postService'
+import { getAccountById } from '@/service/authService'
+
 
 const search = ref('')
 const showCreate = ref(false)
 const showReport = ref(false)
 const composeText = ref('')
-
-
-
-const stories = [
-  { name: 'Phong', src: '/assets/phem.jpg' },
-  { name: 'Nhân', src: '/assets/nhân.jpg' },
-  { name: 'Cầu', src: '/assets/cầu.jpg' },
-  { name: 'Vũ', src: '/assets/vũ.jpg' },
-  { name: 'Trường', src: '/assets/trường.jpg' },
-]
-
-
-const posts = ref([
-  
-  {
-    id: 1,
-    user: 'Cầu',
-    userSrc: '/assets/cầu.jpg',
-    time: '7 tháng 5 lúc 15:48',
-    text: 'Mình cần tìm giống chó này',
-    img: '/assets/pngtree-five-dogs-and-a-cat-together-on-a-black-background-image_2699926.jpg',
-    likes: 120, 
-    comments: 8, 
-    liked: false
-  },
-  {
-    id: 2,
-    user: 'Trường',
-    userSrc: '/assets/trường.jpg',
-    time: '6 tháng 5 lúc 15:50',
-    text: 'Phong Love Quang',
-    img: '/assets/pngtree-five-dogs-and-a-cat-together-on-a-black-background-image_2699926.jpg',
-    likes: 58,
-    likes: 58, 
-    comments: 3, 
-    liked: false
-  },
-])
-
+const posts = ref([])
+const currentAvatar = ref('/image/avata.jpg') // ảnh mặc định
 
 
 const suggestions = [
@@ -234,20 +197,67 @@ const suggestions = [
 ]
 
 function removePost(id) {
-  const idx = posts.findIndex(p => p.id === id)
-  if (idx !== -1) posts.splice(idx, 1)
+  const idx = posts.value.findIndex(p => p.postId === id)
+  if (idx !== -1) posts.value.splice(idx, 1)
 }
 
 function toggleLike(post) {
   post.liked = !post.liked
 }
 
-
 function onReport(reason) {
   console.log('Báo cáo vì:', reason)
-  
 }
+
+async function fetchPosts() {
+  try {
+    const res = await getPosts()
+    const postResults = []
+
+    for (const post of res) {
+      // Nếu không có accounts trong post, gọi thêm từ accountService
+      let username = 'Ẩn danh'
+
+      if (post.accounts?.username) {
+        username = post.accounts.username
+      } else {
+        const acc = await getAccountById(post.accountId)
+        if (acc?.username) {
+          username = acc.username
+        }
+      }
+      postResults.push({
+        postId: post.postId,
+        user: username,
+        userSrc: '/image/avata.jpg',
+        time: new Date(post.createdAt).toLocaleString(),
+        text: post.content,
+        img: post.postMedias?.[0]?.mediaUrl || null,
+        likes: post.likeAmount || 0,
+        comments: 0,
+        liked: false
+      })
+    }
+
+    posts.value = postResults
+  } catch (err) {
+    console.error('Không thể load bài viết:', err)
+  }
+}
+
+
+onMounted(fetchPosts)
+onMounted(async () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (user.id) {
+    const acc = await getAccountById(user.id)
+    if (acc?.avatar) {
+      currentAvatar.value = acc.avatar
+    }
+  }
+})
 </script>
+
 
 <style scoped>
 :root {
@@ -554,7 +564,6 @@ html,
   color: var(--text);
 }
 
-/* đẩy icon Share ra tận bên phải */
 .post-actions .share-icon {
   margin-left: auto;
 }

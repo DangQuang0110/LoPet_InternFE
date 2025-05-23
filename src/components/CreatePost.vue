@@ -11,23 +11,20 @@
 
       <!-- Body -->
       <div class="modal-body">
-        <!-- User + Status Button -->
+        <!-- User -->
         <div class="user-status-row">
-          <img src="/assets/quang.jpg" class="avatar" alt="Quang Dang" />
-          <span class="username">Quang Dang</span>
-          <!-- <button class="status-btn" @click="showStatus = true">
-            Trạng thái bài viết
-          </button> -->
+          <img :src="avatar" class="avatar" alt="User Avatar" />
+          <span class="username">{{ acc.username || '...' }}</span>
         </div>
 
-        <!-- Textarea for post content -->
+        <!-- Textarea -->
         <textarea
           v-model="content"
           class="post-textarea"
-          placeholder="Quang ơi, bạn đang nghĩ gì ?"
+          :placeholder="`${acc.username || 'Bạn'} ơi, bạn đang nghĩ gì ?`"
         />
 
-        <!-- Image Previews -->
+        <!-- Previews -->
         <div v-if="mediaFiles.length" class="media-previews">
           <div v-for="(file, idx) in mediaFiles" :key="idx" class="preview-item">
             <img :src="file.url" alt="preview" />
@@ -35,7 +32,7 @@
           </div>
         </div>
 
-        <!-- Media picker -->
+        <!-- File Input -->
         <input
           type="file"
           ref="fileInput"
@@ -49,65 +46,30 @@
           <span>Thêm ảnh</span>
         </div>
 
-        <!-- Submit button -->
+        <!-- Submit -->
         <button class="submit-btn" @click="submitPost">
           Đăng
         </button>
-      </div>
-
-      <!-- Status Selection Popup -->
-      <div
-        v-if="showStatus"
-        class="status-overlay"
-        @click.self="showStatus = false"
-      >
-          <!-- <div class="status-modal">
-            <h3>Trạng thái bài viết của bạn</h3>
-            <p class="status-desc">
-              Bạn có thể chọn trạng thái bài viết của mình là riêng tư hoặc công khai.
-            </p>
-            <div class="status-options">
-              <label class="status-option">
-                <i class="fas fa-shield-alt"></i>
-                <input type="radio" value="private" v-model="status" />
-                <span>Riêng tư</span>
-              </label>
-              <label class="status-option">
-                <i class="fas fa-users"></i>
-                <input type="radio" value="public" v-model="status" />
-                <span>Công khai</span>
-              </label>
-            </div>
-            <button class="confirm-btn" @click="confirmStatus">
-              Xác nhận
-            </button>
-          </div> -->
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { createPost } from '@/service/postService'
+import { getAccountById } from '@/service/authService'
+
 const emit = defineEmits(['close', 'post'])
 
 const content = ref('')
-const status = ref('private')
-const showStatus = ref(false)
 const mediaFiles = reactive([])
 const fileInput = ref(null)
+const avatar = ref('/image/avata.jpg ') 
+const acc = ref({}) 
 
 function closeModal() {
   emit('close')
-}
-
-function submitPost() {
-  emit('post', { content: content.value, status: status.value, media: mediaFiles.map(f => f.file) })
-  closeModal()
-}
-
-function confirmStatus() {
-  showStatus.value = false
 }
 
 function pickMedia() {
@@ -123,13 +85,51 @@ function handleMediaChange(event) {
     }
     reader.readAsDataURL(file)
   })
-  // reset input
   event.target.value = null
 }
 
 function removeMedia(index) {
   mediaFiles.splice(index, 1)
 }
+
+async function submitPost() {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = user.id
+
+    if (!userId) {
+      alert('Không tìm thấy ID người dùng!')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('accountId', userId)
+    formData.append('content', content.value)
+
+    for (const file of mediaFiles.map(f => f.file)) {
+      formData.append('images', file)
+    }
+
+    const res = await createPost(formData)
+    emit('post', res.data)
+    closeModal()
+  } catch (err) {
+    console.error('Lỗi khi tạo bài viết:', err)
+  }
+}
+
+onMounted(async () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (user.id) {
+    const account = await getAccountById(user.id)
+    if (account) {
+      acc.value = account
+      if (account.avatar) {
+        avatar.value = account.avatar
+      }
+    }
+  }
+})
 </script>
 
 <style scoped>

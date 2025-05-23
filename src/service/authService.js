@@ -48,6 +48,15 @@ export const resetPassword = async ({ email, password, confirmPassword }) => {
 //     email, password
 //   }).then(res => res.data)
 // }
+export const getAccountById = async (id) => {
+  try {
+    const res = await apiService.get(`/v1/accounts/${id}`)
+    return res.data.data // Trả về { id, username, email, ... }
+  } catch (err) {
+    console.error(`Lỗi khi lấy account ID ${id}:`, err)
+    return null
+  }
+}
 export const logoutUser = () => {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
