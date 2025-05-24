@@ -86,7 +86,6 @@
           </svg>
         </span>
       </div>
-
       <button class="btn" @click="handleReset">Đặt lại mật khẩu</button>
       <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
     </div>
@@ -129,7 +128,7 @@ const handleReset = async () => {
     localStorage.removeItem('email_otp')
     localStorage.removeItem('reset_flow')
 
-    router.push('/')
+    router.push('/login')
   } catch (err) {
     console.error('Lỗi reset mật khẩu:', err)
     alert(err?.response?.data?.message || 'Đặt lại mật khẩu thất bại!')

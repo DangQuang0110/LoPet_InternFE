@@ -4,7 +4,7 @@
       <img src="@/assets/logoPetGram.png" alt="LOPET Logo" class="logo" />
       <p>Gặp sự cố khi đăng nhập?</p>
       <p>
-        Nhập email hoặc số điện thoại được gửi cho bạn liên kết để đăng nhập vào tài khoản.
+        Nhập email đã liên kết để đăng nhập vào tài khoản.
       </p>
       <div class="input-group">
         <input
@@ -14,10 +14,10 @@
           @blur="contactFocus = false"
           placeholder=" "
         />
-        <label :class="{ active: contactFocus || contact }">Số điện thoại hoặc email</label>
+        <label :class="{ active: contactFocus || contact }">email</label>
       </div>
-      <button class="btn" @click="sendLink">Gửi liên kết đăng nhập</button>
-      <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
+      <button class="btn" @click="sendLink">Gửi mã OTP</button>
+      <router-link to="/login" class="back">← Trở về trang đăng nhập</router-link>
     </div>
   </div>
 </template>
@@ -38,7 +38,6 @@ const sendLink = async () => {
   try {
     await sendOTP(contact.value)
 
-    // ✅ Lưu lại trạng thái và email đúng cách
     localStorage.setItem('reset_flow', 'true')
     localStorage.setItem('email_otp', contact.value)
 

@@ -1,9 +1,10 @@
 <template>
+  <Layout>
   <div class="app-wrapper">
     <div class="main">
       <!-- Search -->
       <header class="topbar">
-        <div class="search-box">
+        <div class="search-box-home">
           <span class="material-icons">search</span>
           <input
             v-model="search"
@@ -11,6 +12,26 @@
             placeholder="Tìm kiếm"
           />
         </div>
+        <transition name="fade">
+  <div v-if="showDeleteConfirm" class="modal-overlay">
+    <div class="delete-modal">
+      <div class="modal-header">
+        <h3>Bạn có muốn xoá bài viết này không</h3>
+        <button class="close-modal" @click="cancelDelete">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-title">Bạn có muốn xóa bài viết này hay không?</p>
+        <p class="modal-text">
+          Khi bạn xóa bài viết này thì nó sẽ không còn xuất hiện trong danh sách bài viết mà bạn được xem nữa.
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-confirm" @click="performDelete">Xác nhận</button>
+        <button class="btn-cancel" @click="cancelDelete">Hủy</button>
+      </div>
+    </div>
+  </div>
+</transition>
       </header>
 
       <!-- Composer -->
@@ -31,7 +52,6 @@
           <i class="fas fa-camera composer-camera"></i>
         </div>
       </div>
-
       <!-- Feed -->
       <div class="content">
         <div class="feed">
@@ -43,15 +63,19 @@
                 <small class="time">{{ post.time }}</small>
               </div>
               <div class="post-header-actions">
-                <button class="btn-icon comment-alert-btn" @click.stop="showReport = true">
-                  <span class="icon-alert">
-                    <i class="far fa-comment"></i>
-                    <i class="fas fa-exclamation comment-alert-icon"></i>
-                  </span>
-                </button>
-                <button class="btn-icon close-btn" @click="removePost(post.id)">
-                  <i class="fas fa-times"></i>
-                </button>
+              <button class="btn-icon menu-btn" @click.stop="togglePostMenu(post.id)">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+                  <div
+      v-if="openedMenuPostId === post.id"
+      class="post-menu"
+      @click.stop
+    >
+      <ul>
+        <li @click="showReport = true">Báo cáo bài viết</li>
+        <!-- <li @click="confirmDelete(post.id)">Xóa bài viết</li> -->
+      </ul>
+    </div>
               </div>
             </div>
 
@@ -60,7 +84,7 @@
               <img v-if="post.img" :src="post.img" alt="" />
             </div>
 
-            <div class="post-actions">
+            <div class="post-actions">  
               <button class="btn-icon like-btn" @click="toggleLike(post)">
                 <i :class="post.liked ? 'fas fa-heart liked' : 'far fa-heart'"></i>
               </button>
@@ -68,11 +92,9 @@
               <i class="far fa-comment"></i><p>8</p>
               <i class="fas fa-share share-icon"></i>
             </div>
-
             <div class="post-stats">
               <a href="#">Xem thêm bình luận</a>
             </div>
-
             <div class="post-comment">
               <input type="text" placeholder="Bình luận..." />
             </div>
@@ -80,7 +102,6 @@
         </div>
       </div>
     </div>
-
     <aside class="suggestions">
       <div class="ads">
         <h3>Quảng cáo</h3>
@@ -136,16 +157,19 @@
 
     <CreatePost v-if="showCreate" @close="showCreate = false" @post="fetchPosts" />
     <ReportModal v-if="showReport" @close="showReport = false" @report="onReport" />
+
   </div>
+  </layout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import Layout from './Layout.vue'
 import CreatePost from '@/components/CreatePost.vue'
 import ReportModal from '@/components/ReportModal.vue'
 import { getPosts } from '@/service/postService'
 import { getAccountById } from '@/service/authService'
-import { getSuggestedFriends, sendFriendRequest} from '@/service/friendService'
+import { getSuggestedFriends, sendFriendRequest,getFriendList} from '@/service/friendService'
 
 const search = ref('')
 const showCreate = ref(false)
@@ -154,10 +178,22 @@ const composeText = ref('')
 const posts = ref([])
 const currentAvatar = ref('/image/avata.jpg')
 const suggestions = ref([])
+const openedMenuPostId = ref(null)
+const showDeleteConfirm = ref(false)
+const deleteTargetId = ref(null)
 
 function removePost(id) {
   const idx = posts.value.findIndex(p => p.postId === id)
   if (idx !== -1) posts.value.splice(idx, 1)
+}
+
+function togglePostMenu(id) {
+  openedMenuPostId.value = openedMenuPostId.value === id ? null : id
+}
+
+function confirmDelete(id) {
+  deleteTargetId.value = id
+  showDeleteConfirm.value = true
 }
 
 function toggleLike(post) {
@@ -167,34 +203,41 @@ function toggleLike(post) {
 function onReport(reason) {
   console.log('Báo cáo vì:', reason)
 }
-
 async function fetchPosts() {
   try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user.id) return
+
+    // Lấy danh sách bạn bè
+    const friendList = await getFriendList(user.id)
+    const friendIds = friendList.map(friend => friend.id)
+
     const res = await getPosts()
     const postResults = []
 
     for (const post of res) {
+      const authorId = post.accountId
       let username = 'Ẩn danh'
 
       if (post.accounts?.username) {
         username = post.accounts.username
       } else {
-        const acc = await getAccountById(post.accountId)
-        if (acc?.username) {
-          username = acc.username
-        }
+        const acc = await getAccountById(authorId)
+        if (acc?.username) username = acc.username
       }
-      postResults.push({
-        postId: post.postId,
-        user: username,
-        userSrc: '/image/avata.jpg',
-        time: new Date(post.createdAt).toLocaleString(),
-        text: post.content,
-        img: post.postMedias?.[0]?.mediaUrl || null,
-        likes: post.likeAmount || 0,
-        comments: 0,
-        liked: false
-      })
+      if (authorId === user.id || friendIds.includes(authorId)) {
+        postResults.push({
+          postId: post.postId,
+          user: username,
+          userSrc: '/image/avata.jpg',
+          time: new Date(post.createdAt).toLocaleString(),
+          text: post.content,
+          img: post.postMedias?.[0]?.mediaUrl || null,
+          likes: post.likeAmount || 0,
+          comments: 0,
+          liked: false
+        })
+      }
     }
 
     posts.value = postResults
@@ -202,7 +245,6 @@ async function fetchPosts() {
     console.error('Không thể load bài viết:', err)
   }
 }
-
 async function addFriend(receiverId) {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (!user.id) return
@@ -298,9 +340,10 @@ html,
   display: flex;
   flex-direction: column;
   background: var(--bg-main);
-  padding: 100px;  
+  padding: 100px 100px 0 100px;  
   padding-top: 0%;
   overflow-y: auto;
+  margin-bottom :0;
 }
 .suggestions {
   width: 280px;
@@ -311,30 +354,27 @@ html,
 }
 
 /* SEARCH BAR */
-.topbar {
-  padding: 8px 16px;
+.topbar{
+  padding-left:5px;
 }
-.search-box {
+.search-box-home {
   display: flex;
   align-items: center;
   background: #FAEBD7;
   border: 1px solid #000;
   border-radius: 8px;
   padding: 4px 8px;
-
-  /* MỞ RỘNG PHẦN TÌM KIẾM */
-  width: 100%;        /* chiếm hết khung cha */
-  max-width: 600px;   /* hoặc chỉnh thành bất kỳ giá trị nào bạn muốn */
-  margin: 0 auto;     /* căn giữa trên màn hình */
+  width:710px;
+  margin-right:10px;
 }
 
-.search-box .material-icons {
+.search-box-home .material-icons {
   font-size: 20px;
   color: #888;
   margin-right: 6px;
 }
 
-.search-box input {
+.search-box-home input {
   flex: 1;
   border: none;
   background-color: transparent; /* giữ nền bằng search-box */
@@ -396,7 +436,8 @@ html,
 /* COMPOSER */
 .composer {
   display: flex;
-  width: 99%;
+  width: 97%;
+  margin-left:10px;
   align-items: flex-start;
   background: var(--bg-composer); /* #FAEBD7 */
   padding: 16px;
@@ -489,8 +530,6 @@ html,
   font-size: 20px;
   color: var(--text);
 }
-
-/* dấu chấm than đặt chính giữa */
 .icon-alert .fa-exclamation {
   position: absolute;
   top: 43%;
@@ -607,11 +646,17 @@ html,
   flex-direction: column;
   gap: 12px;
 }
-.ad-card,
-.suggestion-card {
+.ad-card {
   display: flex;
   gap: 12px;
   padding: 8px;
+}
+.suggestion-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  gap: 12px;
 }
 .ad-card img {
   width: 60px;
@@ -642,9 +687,11 @@ html,
   border: 3px solid var(--accent);
 }
 .suggestion-card .info {
-  flex: 1;
+  width: 90px; 
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 .suggestion-card .name {
   font-size: 14px;
@@ -660,6 +707,8 @@ html,
   display: flex;
   flex-direction: column;
   gap: 6px;
+  align-items: flex-end;
+  flex-shrink: 0;
 }
 .suggestion-card button {
   padding: 6px 12px;
@@ -698,6 +747,41 @@ html,
 } 
 .liked {
   color: #e0245e;
+}
+.post-header {
+  position: relative;
+}
+
+.menu-btn i {
+  font-size: 20px;
+  color: var(--text);
+}
+
+.post-menu {
+  position: absolute;
+  top: 15%;
+  right: 25px;
+  background: var(--bg-post);
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+}
+
+.post-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.post-menu li {
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.post-menu li:hover {
+  background: rgba(0,0,0,0.05);
 }
 
 </style>

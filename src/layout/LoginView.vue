@@ -3,7 +3,6 @@
     <div class="auth-box">
       <div class="left-side">
         <img src="@/assets/logoPetGram.png" alt="LOPET" class="logo" />
-        <h1>LOPET</h1>
         <p>
           Trang mạng xã hội đầu tiên ở Việt Nam, nơi bạn có thể trao đổi và chia sẻ về thú cưng
         </p>
@@ -19,7 +18,7 @@
             @focus="emailFocus = true"
             @blur="emailFocus = false"
           />
-          <label :class="{ active: emailFocus || email }">Username</label>
+          <label :class="{ active: emailFocus || email }">Tên Người dùng</label>
         </div>
         <!-- Mật khẩu có con mắt -->
         <div class="input-group password-group">
@@ -64,7 +63,6 @@
             </svg>
           </span>
         </div>
-
         <a href="/resetPassword" class="forgot">Quên mật khẩu?</a>
         <button class="btn" @click="handleLogin">Đăng nhập</button>
         <div class="or-divider">Hoặc</div>
@@ -98,19 +96,13 @@ const handleLogin = async () => {
       username: email.value,
       password: password.value
     })
-
-    console.log('Login success:', response)
-
-    // Lưu userId vào localStorage
     localStorage.setItem('user', JSON.stringify({ id: response.userId, username: response.username }))
 
-    router.push('/message')
+    router.push('/home')
   } catch (err) {
-    console.error('Login failed:', err.response?.data || err.message)
     alert(err.response?.data?.message || 'Đăng nhập thất bại')
   }
 }
-
 </script>
 
 <style scoped>

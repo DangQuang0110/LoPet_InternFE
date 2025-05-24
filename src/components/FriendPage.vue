@@ -1,9 +1,10 @@
 <template>
+<layout>
   <div class="app-container">
     <!-- Main Content -->
     <div class="main-content">
       <!-- Search Bar at the top -->
-      <div class="search-container" style="display: flex; justify-content: center; width: 100%;">
+      <div class="search-container">
         <div class="search-box">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
@@ -83,13 +84,20 @@
       </div>
     </div>
   </div>
+  </layout>
 </template>
 
 <script>
 import { getFriendList, getListRequestF, acceptFriendRequest, rejectFriendReq, getSuggestedFriends, sendFriendRequest, removeSuggestedFriend, deleteFriend } from '@/service/friendService';
 import { getProfileById } from '@/service/profileService';
+import Layout from '@/components/Layout.vue'
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 
 export default {
+    components: {
+    Layout,
+  },
   name: 'PetSocialPlatform',
   data() {
     return {
@@ -151,6 +159,11 @@ export default {
         await acceptFriendRequest(user.id, senderId);
         await this.fetchListRequestF(user.id);
         await this.fetchFriends(user.id);
+        toast.success('Đã chấp nhận kết bạn!', {
+          autoClose: 3000,
+          position: toast.POSITION.TOP_RIGHT,
+          theme:'colored'
+        });
       } catch (error) {
         console.log("Không thể chấp nhận lời mời:", error);
       }
@@ -165,6 +178,11 @@ export default {
         await rejectFriendReq(user.id, senderId);
         await this.fetchListRequestF(user.id);
         await this.fetchFriends(user.id);
+        toast.success('Đã xóa lời mời gợi ý kết bạn!', {
+          autoClose: 3000,
+          position: toast.POSITION.TOP_RIGHT,
+          theme:'colored'
+        });
       } catch (error) {
         console.log("Không thể xóa lời mời:", error);
       }
@@ -175,6 +193,11 @@ export default {
         if (!user?.id) return;
         await sendFriendRequest(user.id, receiverId);
         await this.fetchSuggestedFriends(user.id);
+        toast.success('Đã gửigửi lời mời kết bạn!', {
+          autoClose: 3000,
+          position: toast.POSITION.TOP_RIGHT,
+          theme:'colored'
+        });
       } catch (error) {
         console.log("Không thể gửi lời mời:", error);
       }
@@ -185,6 +208,11 @@ export default {
         if (!user?.id) return;
         await removeSuggestedFriend(user.id, receiverId);
         await this.fetchSuggestedFriends(user.id);
+        toast.success('Đã xóa lời mời gợi ýý kết bạn!', {
+          autoClose: 3000,
+          position: toast.POSITION.TOP_RIGHT,
+          theme:'colored'
+        });
       } catch (error) {
         console.log("Không thể xoá gợi ý:", error);
       }
@@ -195,6 +223,11 @@ export default {
         if (!user?.id) return;
         await deleteFriend(senderId,user.id );
         await this.fetchFriends(user.id);
+        toast.success('Đã xóa bạn bè', {
+          autoClose: 3000,
+          position: toast.POSITION.TOP_RIGHT,
+          theme:'colored'
+        });
       } catch (error) {
         console.log("Không thể xóa bạn:", error);
       }
@@ -249,12 +282,10 @@ export default {
 }
 
 .search-container {
-  display: flex;
   justify-content: flex-start;
   width: 100%;
   padding-left: 20px;
 }
-
 .search-box {
   display: flex;
   align-items: center;
@@ -262,9 +293,7 @@ export default {
   border-radius: 12px;
   padding: 8px 15px;
   border: 1px solid #e5d5b8;
-  max-width: 420px;
-  width: 100%;
-  margin-right: 650px;
+  width: 600px;
 }
 
 .search-icon {

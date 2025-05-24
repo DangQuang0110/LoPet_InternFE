@@ -50,9 +50,6 @@ const routes=[
     //     path: "/admin",
     //     component: AdminLayout,
     //     children: [
-            {
-
-            },
         
     //     ],
     // }
@@ -91,16 +88,6 @@ const routes=[
     name: 'verificationCode',
     component: VerificationCode,
   },
-  // {
-  //   path: '/home',
-  //   name: 'home',
-  //   component: HomeView,
-  // },
-  // {
-  //   path: '/about',
-  //   name: 'about',
-  //   component: AboutView,
-  // },
 ]
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

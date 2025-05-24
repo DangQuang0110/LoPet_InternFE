@@ -24,7 +24,7 @@
           @blur="fullnameFocus = false"
           placeholder=" "
         />
-        <label :class="{ active: fullnameFocus || fullname }">Tên đầy đủ</label>
+        <label :class="{ active: fullnameFocus || fullname }">Tên Người dùng</label>
       </div>
 
       <!-- Mật khẩu -->

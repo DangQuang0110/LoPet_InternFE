@@ -1,6 +1,12 @@
 <template>
+  <layout>
   <div class="lopet-app">
-    
+    <div class="search-box-image">
+            <input type="text" placeholder="Tìm kiếm" />
+            <button class="search-button">
+              <img src="/icon/search.png" alt="Search" class="nav-icon" />
+            </button>
+          </div>
 
     <!-- Profile section -->
     <div class="profile-container">
@@ -19,10 +25,8 @@
           <p class="profile-stats">{{ user.friends }} Bạn bè</p>
           
           <div class="profile-nav">
-            <router-link to='/profile' class="nav-item">Bài đăng</router-link>
-            <router-link to='/about' class="nav-item">Giới Thiệu</router-link>
+            <router-link to='/profile' class="nav-item">Trang Cá Nhân</router-link>
             <router-link to='/photo' class="nav-item active">Hình Ảnh</router-link>
-            <router-link to='/edit'  class="nav-item">Chỉnh sửa trang cá nhân</router-link>
           </div>
         </div>
       </div>
@@ -31,15 +35,13 @@
       <div class="photos-content">
         <div class="photos-header">
           <h3>Hình ảnh của {{ user.name }}</h3>
-          
         </div>
+
+        
 
         <!-- All photos section -->
         <div class="photos-section">
-          <div class="section-header">
-            <h4>Tất cả hình ảnh</h4>
-            
-          </div>
+          
           <div class="photos-grid">
             <div class="photo-item" v-for="(photo, index) in photos" :key="'photo-'+index" @click="openPhotoViewer(index)">
               <div class="photo-img" :style="{ backgroundImage: `url(${photo.url})` }">
@@ -54,13 +56,11 @@
               </div>
             </div>
           </div>
-          <div class="load-more">
-            <button class="load-more-btn">Xem thêm</button>
-          </div>
         </div>
       </div>
     </div>
 
+    <!-- Photo viewer modal -->
     <div class="photo-viewer" v-if="showPhotoViewer">
       <div class="viewer-header">
         <div class="viewer-user-info">
@@ -101,10 +101,15 @@
       </div>
     </div>
   </div>
+  </layout>
 </template>
 
 <script>
+import layout from './Layout.vue';
 export default {
+        components: {
+    layout,
+  },
   name: 'LopetPhotosPage',
   data() {
     return {
@@ -280,7 +285,7 @@ export default {
   color: #ff6b01;
 }
 
-.search-box {
+.search-box-image {
   display: flex;
   align-items: center;
   background-color: #f0f2f5;
@@ -328,7 +333,7 @@ export default {
 }
 
 .profile-banner {
-  height: 180px;
+  height: 250px;
   overflow: hidden;
   background-color: #f0f2f5;
   background-image: linear-gradient(to bottom, #e6e6e6, #f0f2f5);
@@ -509,6 +514,33 @@ export default {
   font-size: 14px;
   font-weight: 500;
 }
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: #f0f2f5;
+  border-radius: 25px; 
+  padding: 8px 15px; 
+  flex: 0 1 300px; 
+  border: 1px solid #ddd;
+  margin: 0 20px; 
+  transition: box-shadow 0.3s ease; 
+  margin-bottom: 10px;
+  margin-left: 200px;
+  margin-right: 200px;
+}
+
+.search-box:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Hiệu ứng bóng khi hover */
+}
+
+.search-box input {
+  border: none;
+  background-color: transparent;
+  outline: none;
+  flex: 1;
+  padding: 8px 10px; /* Tăng padding input */
+  font-size: 15px; /* Tăng kích thước chữ */
+}
 
 .photos-grid {
   display: grid;
@@ -558,20 +590,7 @@ export default {
   font-size: 10px;
 }
 
-.load-more {
-  text-align: center;
-  margin-top: 20px;
-}
 
-.load-more-btn {
-  padding: 8px 20px;
-  background-color: #e4e6eb;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  color: #333;
-}
 
 /* Photo viewer styles */
 .photo-viewer {

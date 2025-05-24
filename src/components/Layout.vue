@@ -7,38 +7,63 @@
       </div>
       <div class="menu-container">
         <nav class="nav-menu">
-          <ul>
-            <li class="nav-item" @click="toggleNotifications">
-              <i class="fas fa-bell"></i>
-              <span>Thông báo</span>
-            </li>
-            <li class="nav-item">
-              <i class="fas fa-home"></i>
-              <span>Trang chủ</span>
-            </li>
-            <li class="nav-item">
-              <i class="fas fa-comment"></i>
-              <span>Nhắn tin</span>
-            </li>
-            <li class="nav-item">
-              <i class="fas fa-users"></i>
-              <span>Cộng đồng</span>
-            </li>
-            <li class="nav-item">
-              <i class="fas fa-user-friends"></i>
-              <span>Bạn bè</span>
-            </li>
-            <li class="nav-item">
-              <i class="fas fa-user"></i>
-              <span>Profile</span>
-            </li>
-          </ul>
+      <ul>
+        <li class="nav-item">
+          <router-link to="/home" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Trang chủ</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" @click.prevent="toggleNotifications">
+            <i class="fas fa-bell"></i>
+            <span>Thông báo</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <router-link to="/message" class="nav-link">
+            <i class="fas fa-comment"></i>
+            <span>Nhắn tin</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/community" class="nav-link">
+            <i class="fas fa-users"></i>
+            <span>Cộng đồng</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/friend" class="nav-link">
+            <i class="fas fa-user-friends"></i>
+            <span>Bạn bè</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/profile" class="nav-link">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </router-link>
+        </li>
+      </ul>
+          <hr>
+          <div class="user-panel">
+          <div class="user-panel" @click="showLogoutMenu = !showLogoutMenu">
+            <img class="avatar" src="/assets/quang.jpg" alt="User Avatar" />
+            <span class="username">Quang Đang</span>
+            <i class="fas fa-cog"></i>
+
+          <div v-if="showLogoutMenu" class="logout-menu">
+            <ul>
+              <li @click.stop="handleLogout" class="logout-option">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+              </li>
+            </ul>
+          </div>
+          </div>
+          </div>
         </nav>
       </div>
       <div class="sidebar-footer">
-        <img class="avatar" src="/assets/quang.jpg" alt="User Avatar" />
-        <span class="username">Quang Đang</span>
-        <i class="fas fa-cog" style="margin-left: 8px;"></i>
       </div>
     </aside>
 
@@ -133,7 +158,6 @@
         </div>
       </div>
     </transition>
-    <!-- Main content area -->
     <main class="main-content">
       <slot />
     </main>
@@ -142,10 +166,15 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { logoutUser } from '@/service/authService'
 
 const showNotifications = ref(false)
 const activeTab = ref('all')
+const router = useRouter()
 const openMenuIdx = ref(null)
+const showLogoutMenu = ref(false) // ✅ toggle menu logout
+
 const notifications = {
   new: [
     { name: 'Skibidi', text: 'đã chia sẻ bài viết của Conan', time: '5 phút trước', avatar: '/assets/trường.jpg' },
@@ -185,13 +214,18 @@ function reportIssue(idx) {
   console.log('Report issue', idx)
   openMenuIdx.value = null
 }
+function handleLogout() {
+  logoutUser()
+  router.push('/login')
+}
+
 </script>
 
 <style scoped>
 .layout-wrapper {
   display: flex;
   height: 100vh;
-  background: #FAEBD7;
+  background: #FFF8F0;
 }
 
 .sidebar {
@@ -245,42 +279,88 @@ function reportIssue(idx) {
 
 .nav-item i {
   width: 20px;
+  margin-right: 10px;
+}
+.user-panel {
+  margin-top:5px;
+  position: relative;
+  cursor: pointer;
+  display: flex;              
+  align-items: center;       
+  gap: 8px;                  
+}
+
+.logout-menu {
+  position: absolute;
+  display:flex;
+  right:-58px;
+  top: 105%;              /* ngay phía dưới avatar */
+  margin-top: 10px;        /* khoảng cách với avatar */
+  background: #FAEBD7;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px 12px;
+  z-index: 999;
+  min-width: 230px;
+}
+
+.logout-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  color: #000;
+}
+.logout-option:hover {
+  background-color: #f5f5f5;
+}
+.logout-option i {
   margin-right: 8px;
 }
 
-.sidebar-footer {
-  margin-top: auto;
+.user-panel .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.nav-link {
   display: flex;
   align-items: center;
-  padding: 6px 0;
-  border-top: 1px solid #FAEBD7;
+  color: inherit;
+  text-decoration: none;
+  gap: 8px;
 }
-
-.sidebar-footer .avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-
-.sidebar-footer .username {
+.user-panel .username {
+  margin-left: 8px;
+  font-size: 14px;
   font-weight: 500;
-  color: #000;
-  font-size: 0.85rem;
+  color: #141414;
+}
+
+.user-panel .fa-cog {
+  margin-left: 8px;
+  font-size: 18px;
+  color: #141414;
+  cursor: pointer;
 }
 
 .notification-popup {
   position: fixed;
   top: 0;
-  left: 260px;
+  right: 0;       /* ← thay left: 260px; thành right: 0 */
+  /* left: auto; */ /* có thể lược */
   width: 360px;
   height: 100vh;
   background: #FFF8F0;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+  box-shadow: -2px 0 8px rgba(0,0,0,0.1); /* shadow bên trái */
   padding: 16px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  z-index: 1000;  /* đảm bảo che lên trên */
 }
 
 .popup-header {
@@ -396,7 +476,6 @@ function reportIssue(idx) {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding: 15px;
   background: #FFF8F0;
   box-sizing: border-box;
 }
@@ -426,8 +505,8 @@ function reportIssue(idx) {
 .item-menu li i { margin-right: 8px; font-size: 1rem; }
 .item-menu li:hover { background: #00eaff; }
 
-.main-content { flex: 1; overflow-y: auto; padding: 15px; background: #FFF8F0; box-sizing: border-box; }
+.main-content { flex: 1; overflow-y: auto; background: #FFF8F0; box-sizing: border-box; }
 
 .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
-.slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+.slide-enter-from, .slide-leave-to { transform: translateX(100%); }
 </style>

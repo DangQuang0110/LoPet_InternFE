@@ -59,6 +59,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { createPost } from '@/service/postService'
 import { getAccountById } from '@/service/authService'
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 
 const emit = defineEmits(['close', 'post'])
 
@@ -96,9 +98,8 @@ async function submitPost() {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const userId = user.id
-
     if (!userId) {
-      alert('Không tìm thấy ID người dùng!')
+      alert('Bạn cần đăng nhập để đăng bài viết')
       return
     }
 
@@ -112,6 +113,11 @@ async function submitPost() {
 
     const res = await createPost(formData)
     emit('post', res.data)
+    toast.success('Đăng bài viết thành công', {
+          autoClose: 3000,
+          position: toast.POSITION.TOP_RIGHT,
+          theme:'colored'
+        });
     closeModal()
   } catch (err) {
     console.error('Lỗi khi tạo bài viết:', err)

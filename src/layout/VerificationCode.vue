@@ -17,7 +17,6 @@
           @input="(e) => handleOtpInput(e, index)"
         />
       </div>
-
       <a
         href="#"
         @click.prevent="resendOtp"
@@ -25,7 +24,6 @@
       >
         Gửi lại mã OTP {{ formatCountdown() }}
       </a>
-
       <!-- Nút cho xác minh -->
       <button class="btn" @click="sendLink">Xác nhận</button>
     </div>
@@ -43,13 +41,13 @@ const otp = ref(['', '', '', '', '', ''])
 const countdown = ref(120)
 let intervalId = null
 
-// ✅ Xác định đang ở luồng reset password hay đăng ký
+// Xác định đang ở luồng reset password hay đăng ký
 const isResetPasswordFlow = ref(localStorage.getItem('reset_flow') === 'true')
 
-// ✅ Lấy email phù hợp theo luồng
+// Lấy email phù hợp theo luồng
 const email = isResetPasswordFlow.value
-  ? localStorage.getItem('email_otp')              // reset password
-  : localStorage.getItem('register_email')     // đăng ký
+  ? localStorage.getItem('email_otp')             
+  : localStorage.getItem('register_email')    
 
 const username = localStorage.getItem('register_username')
 const password = localStorage.getItem('register_password')
@@ -95,14 +93,12 @@ const sendLink = async () => {
   if (otpString.length !== 6) return alert('Vui lòng nhập đủ 6 số!')
 
   try {
-    console.log('📤 Gửi verify OTP với:', { email, otp: otpString })
     await verifyOTP({ email, otp: otpString })
 
     if (isResetPasswordFlow.value) {
       localStorage.setItem('email_otp', email)
       router.push('/setNewPassword')
     } else {
-      // ✅ Đăng ký tài khoản
       await registerUser({ email, username, password, confirmPassword })
 
       // Dọn dẹp localStorage
@@ -116,7 +112,7 @@ const sendLink = async () => {
       router.push('/')
     }
   } catch (err) {
-    console.error('❌ Lỗi verifyOTP:', err)
+    console.error('Lỗi verifyOTP:', err)
     alert(err?.response?.data?.message || 'Xác minh OTP hoặc xử lý thất bại!')
   }
 }

@@ -2,12 +2,24 @@
   <div class="chat-app">
     <nav class="left-bar">
       <div class="nav-icons">
-        <img src="/image/home.png" class="icon-img" />
-        <img src="/image/bell.png" class="icon-img" />
-        <img src="/image/message.png" class="icon-img" />
-        <img src="/image/friend.png" class="icon-img" />
-        <img src="/image/group.png" class="icon-img" />
-        <img src="/image/profile.png" class="icon-img" />
+        <router-link to="/home">
+          <img src="/image/home.png" class="icon-img" />
+        </router-link>
+        <!-- <router-link to="/notification">
+          <img src="/image/bell.png" class="icon-img" />
+        </router-link> -->
+        <router-link to="/message">
+          <img src="/icon/chat.png" class="icon-img" />
+        </router-link>
+        <router-link to="/groups">
+          <img src="/image/group.png" class="icon-img" />
+        </router-link>
+        <router-link to="/friend">
+          <img src="/image/friend.png" class="icon-img" />
+        </router-link>
+        <router-link to="/profile">
+          <img src="/image/profile.png" class="icon-img" />
+        </router-link>
       </div>
       <img :src="currentUserAvatar" class="avatar-icon" />
     </nav>
@@ -185,7 +197,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 15px 0;
-  border-right: 1px solid #ddd;
+  border-right: 2px solid #ddd;
   height: 330px;
   margin-top:50px;
   position: relative;
@@ -249,7 +261,6 @@ onMounted(() => {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  border-right: 2px solid black;
 }
 .search-bar {
   position: relative;
@@ -365,6 +376,7 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  border-left: 2px solid black;
 }
 .chat-header {
   padding: 20px;

@@ -9,7 +9,6 @@ export const getFriendList = async (userId) => {
     throw error
   }
 }
-
 export const getListRequestF = async (userId) => {
   try {
     const response = await apiService.get(`/v1/friendships/receive/${userId}`)

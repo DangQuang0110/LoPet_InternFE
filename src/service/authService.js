@@ -60,5 +60,7 @@ export const getAccountById = async (id) => {
 export const logoutUser = () => {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
+  localStorage.removeItem('user')
+  
   delete apiService.defaults.headers.common['Authorization']
 }

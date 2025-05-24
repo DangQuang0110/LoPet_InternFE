@@ -1,5 +1,39 @@
 <template>
+  <layout>
   <div class="lopet-app">
+    <!-- Header with Search Bar -->
+    
+    <div class="search-box">
+            <input type="text" placeholder="Tìm kiếm" />
+            <button class="search-button">
+              <img src="/icon/search.png" alt="Search" class="nav-icon" />
+            </button>
+          </div>
+    <!-- Notification section -->
+    <div class="notification-container">
+      <div
+        v-for="notification in notifications"
+        :key="notification.id"
+        class="notification"
+        :class="notification.type"
+      >
+        <span>{{ notification.message }}</span>
+        <button class="close-notification" @click="removeNotification(notification.id)">×</button>
+      </div>
+    </div>
+
+    <!-- Report confirmation form -->
+    <div v-if="showReportConfirm" class="confirm-modal">
+      <div class="confirm-modal-content">
+        <h3>Xác nhận tố cáo</h3>
+        <p>Bạn có muốn tố cáo bài viết này?</p>
+        <div class="confirm-modal-actions">
+          <button class="confirm-button" @click="confirmReport">Xác nhận</button>
+          <button class="cancel-button" @click="cancelReport">Hủy</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Hidden file input for avatar change -->
     <input 
       type="file" 
@@ -29,10 +63,8 @@
           <p class="profile-stats">{{ user.friends }} Bạn bè</p>
           
           <div class="profile-nav">
-            <router-link to='/profile' class="nav-item active">Bài đăng</router-link>
-            <router-link to='/about' class="nav-item">Giới Thiệu</router-link>
+            <router-link to='/profile' class="nav-item active">Trang Cá Nhân</router-link>
             <router-link to='/photo' class="nav-item">Hình Ảnh</router-link>
-            <router-link to='/edit' class="nav-item">Chỉnh sửa trang cá nhân</router-link>
           </div>
         </div>
       </div>
@@ -40,40 +72,53 @@
       <!-- Profile content section -->
       <div class="profile-content">
         <!-- Sidebar - Fixed position -->
-        <div class="sidebar">
+        <div class="sidebar-profile">
           <div class="intro-section">
             <h3>Giới Thiệu</h3>
-            <ul class="intro-list">
-              <li>
-                <i class="fas fa-graduation-cap"></i>
-                <span>{{ user.education }}</span>
-              </li>
-              <li>
-                <i class="fas fa-home"></i>
-                <span>{{ user.location }}</span>
-              </li>
-              <li>
-                <i class="fas fa-dog"></i>
-                <span>{{ user.pets }}</span>
-              </li>
-              <li>
-                <i class="fas fa-heart"></i>
-                <span>{{ user.relationship }}</span>
-              </li>
-              <li>
-                <i class="fas fa-envelope"></i>
-                <span>{{ user.email }}</span>
-              </li>
-              <li>
-                <i class="fas fa-calendar"></i>
-                <span>{{ user.birthday }}</span>
-              </li>
-              <li>
-                <i class="fas fa-phone"></i>
-                <span>{{ user.phone }}</span>
-              </li>
-            </ul>
-            <button class="edit-button" @click="goToEdit">Chỉnh sửa chi tiết</button>
+            
+            <!-- Conditionally render intro details or edit form -->
+            <div v-if="!editMode">
+              <!-- Bio and Contact Info -->
+              <ul class="intro-list">
+                <li class="bio-item">
+                  <img src="/icon/resume.png" alt="Photo" class="nav-icon" />
+                  <span>{{ user.bio || 'Chưa có thông tin giới thiệu...' }}</span>
+                </li>
+                <li>
+                  <img src="/icon/telephone.png" alt="Photo" class="nav-icon" />
+                  <span>{{ user.phone }}</span>
+                </li>
+              </ul>
+              <button class="edit-button" @click="goToEdit">Chỉnh sửa chi tiết</button>
+            </div>
+            <div v-else>
+              <!-- Edit form -->
+              <form @submit.prevent="saveDetails" class="edit-form">
+                <div class="form-group">
+                  <label for="bio">Giới thiệu</label>
+                  <textarea
+                    id="bio"
+                    v-model="editForm.bio"
+                    placeholder="Nhập thông tin giới thiệu..."
+                    class="form-input"
+                  ></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="phone">Số điện thoại</label>
+                  <input
+                    id="phone"
+                    type="text"
+                    v-model="editForm.phone"
+                    placeholder="Nhập số điện thoại..."
+                    class="form-input"
+                  />
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="save-button">Lưu</button>
+                  <button type="button" class="cancel-button" @click="cancelEdit">Hủy</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
 
@@ -87,12 +132,12 @@
                 :style="{ 'background-image': 'url(' + user.avatar + ')' }"
               ></div>
               <div class="post-input">
-                <input type="text" placeholder="Bạn đang nghĩ gì, {{ user.name }}?" />
+                <input type="text" placeholder="Bạn đang nghĩ gì ?" />
               </div>
             </div>
             <div class="create-post-actions">
               <button class="create-action">
-                <img src="/icon/camera.png" alt="Home" class="nav-icon" />
+                <img src="/icon/camera.png" alt="Photo" class="nav-icon" />
                 <span>Ảnh</span>
               </button>
             </div>
@@ -112,8 +157,15 @@
                   <p class="post-time">{{ post.time }}</p>
                 </div>
               </div>
-              <div class="post-options">
-                <i class="fas fa-ellipsis-h"></i>
+              <div class="post-options" @click="toggleDropdown(post.id)">
+                <img src="/icon/dots.png" alt="Options" class="nav-icon" />
+                <!-- Dropdown Menu -->
+                <div v-if="activeDropdown === post.id" class="dropdown-menu">
+                  <div class="dropdown-item" @click.stop="reportPost(post.id)">
+                    <img src="/icon/exclamation.png" alt="Report" class="nav-icon" />
+                    <span>Tố cáo bài viết</span>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -124,19 +176,23 @@
               </div>
             </div>
             
-            <div class="post-actions">
-              <button class="post-action">
-                <img src="/icon/heart.png" alt="Home" class="nav-icon" />
-                <span></span>
-              </button>
-              <button class="post-action">
-                <img src="/icon/chat.png" alt="Home" class="nav-icon" />
-                <span></span>
-              </button>
-              <button class="post-action">
-                <img src="/icon/share.png" alt="Home" class="nav-icon" />
-                <span></span>
-              </button>
+            <div class="post-actions-wrapper">
+              <div class="post-actions">
+                <button class="post-action">
+                  <img src="/icon/heart.png" alt="Like" class="nav-icon" />
+                  <span></span>
+                </button>
+                <button class="post-action">
+                  <img src="/icon/chat.png" alt="Comment" class="nav-icon" />
+                  <span></span>
+                </button>
+              </div>
+              <div class="post-actions-new">
+                <button class="post-action">
+                  <img src="/icon/share.png" alt="Share" class="nav-icon" />
+                  <span></span>
+                </button>
+              </div>
             </div>
             
             <div class="post-stats" v-if="post.likes > 0">
@@ -165,7 +221,6 @@
               <div class="comment-box">
                 <input type="text" placeholder="Viết bình luận..." />
                 <div class="comment-actions">
-                  
                 </div>
               </div>
             </div>
@@ -173,17 +228,34 @@
         </div>
       </div>
     </div>
+
+    <!-- Overlay để đóng dropdown khi click bên ngoài -->
+    <div v-if="activeDropdown || showReportConfirm" class="dropdown-overlay" @click="closeDropdown(); cancelReport()"></div>
   </div>
+  </layout>
 </template>
 
 <script>
+import layout from '@/components/Layout.vue'
 export default {
+      components: {
+    layout,
+  },
   name: 'LopetProfile',
   data() {
     return {
+      activeDropdown: null,
+      editMode: false,
+      editForm: {
+        bio: '',
+        phone: ''
+      },
+      notifications: [],
+      showReportConfirm: false, // Control visibility of report confirmation form
+      reportPostId: null, // Store the ID of the post to report
       user: {
         name: 'Pham Cau',
-        avatar: 'https://i.pravatar.cc/150?img=3', // Avatar mặc định
+        avatar: 'https://i.pravatar.cc/150?img=3',
         friends: 500,
         education: 'Học tại Đại học Thành Phố Hồ Chí Minh',
         location: 'Hoài Nhơn, Bình Định, Việt Nam',
@@ -245,7 +317,18 @@ export default {
   },
   methods: {
     goToEdit() {
-      this.$router.push('/edit');
+      this.editForm.bio = this.user.bio || '';
+      this.editForm.phone = this.user.phone;
+      this.editMode = true;
+    },
+    saveDetails() {
+      this.user.bio = this.editForm.bio;
+      this.user.phone = this.editForm.phone;
+      this.editMode = false;
+      this.showNotification('Thông tin đã được cập nhật thành công!', 'success');
+    },
+    cancelEdit() {
+      this.editMode = false;
     },
     goBack() {
       this.$router.push('/friend');
@@ -253,17 +336,38 @@ export default {
     handleAvatarChange(e) {
       const file = e.target.files[0];
       if (!file) return;
-      
-      // Tạo URL tạm để xem trước
       this.user.avatar = URL.createObjectURL(file);
-      
-      // Ở đây bạn có thể thêm code để upload ảnh lên server
-      // Ví dụ:
-      // const formData = new FormData();
-      // formData.append('avatar', file);
-      // axios.post('/api/upload-avatar', formData).then(response => {
-      //   this.user.avatar = response.data.avatarUrl;
-      // });
+    },
+    toggleDropdown(postId) {
+      this.activeDropdown = this.activeDropdown === postId ? null : postId;
+    },
+    closeDropdown() {
+      this.activeDropdown = null;
+    },
+    showNotification(message, type = 'info') {
+      const id = Date.now();
+      this.notifications.push({ id, message, type });
+      setTimeout(() => {
+        this.removeNotification(id);
+      }, 5000);
+    },
+    removeNotification(id) {
+      this.notifications = this.notifications.filter(n => n.id !== id);
+    },
+    reportPost(postId) {
+      this.showReportConfirm = true; // Show confirmation form
+      this.reportPostId = postId; // Store post ID
+      this.closeDropdown(); // Close dropdown
+    },
+    confirmReport() {
+      console.log(`Reported post with ID: ${this.reportPostId}`);
+      this.showNotification('Đã gửi tố cáo bài viết thành công!', 'success');
+      this.showReportConfirm = false; // Hide confirmation form
+      this.reportPostId = null; // Clear post ID
+    },
+    cancelReport() {
+      this.showReportConfirm = false; // Hide confirmation form
+      this.reportPostId = null; // Clear post ID
     }
   },
   mounted() {
@@ -283,9 +387,10 @@ export default {
   box-sizing: border-box;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
 .nav-icon {
-  margin-right: 8px; /* Khoảng cách giữa icon và text */
-  width: 20px; /* Điều chỉnh kích thước icon */
+  margin-right: 8px;
+  width: 20px;
   height: 20px;
 }
 
@@ -299,12 +404,15 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 15px;
+  padding: 12px 20px; /* Tăng padding cho header */
   background-color: white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 100;
+  max-width: 1200px; /* Thêm max-width để căn giữa */
+  margin: 0 auto; /* Căn giữa header */
+  width: 100%;
 }
 
 .logo {
@@ -312,25 +420,29 @@ export default {
   align-items: center;
 }
 
-.pet-icon {
-  font-size: 18px;
-  margin-left: 2px;
-}
-
 .logo-text {
   font-weight: bold;
   font-size: 18px;
-  color: #ff6b01;
+  color: #ff6f61;
 }
 
-.search-box {
+.search-box{
   display: flex;
   align-items: center;
   background-color: #f0f2f5;
-  border-radius: 20px;
-  padding: 5px 15px;
-  flex: 0 1 250px;
+  border-radius: 25px; 
+  padding: 8px 15px; 
+  flex: 0 1 300px; 
   border: 1px solid #ddd;
+  margin: 0 20px; 
+  transition: box-shadow 0.3s ease; 
+  margin-bottom: 10px;
+  margin-left: 200px;
+  margin-right: 200px;
+}
+
+.search-box:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Hiệu ứng bóng khi hover */
 }
 
 .search-box input {
@@ -338,14 +450,20 @@ export default {
   background-color: transparent;
   outline: none;
   flex: 1;
-  padding: 5px;
-  font-size: 14px;
+  padding: 8px 10px; /* Tăng padding input */
+  font-size: 15px; /* Tăng kích thước chữ */
 }
 
 .search-button {
   background: none;
   border: none;
   cursor: pointer;
+  padding: 5px;
+}
+
+.search-button img {
+  width: 22px; /* Tăng kích thước icon tìm kiếm */
+  height: 22px;
 }
 
 .back-arrow {
@@ -370,8 +488,129 @@ export default {
   background-color: #FAEBD7;
 }
 
+.notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  width: 300px;
+}
+
+.notification {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  color: black;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease;
+}
+
+.notification.success {
+  background-color: #FAEBD7;
+}
+
+.notification.info {
+  background-color: #007bff;
+}
+
+.close-notification {
+  background: none;
+  border: none;
+  color: black;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.close-notification:hover {
+  opacity: 0.8;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.confirm-modal-content {
+  background-color: #FFF8F0;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.confirm-modal-content h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.confirm-modal-content p {
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: #65676b;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-button, .cancel-button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.confirm-button {
+  background-color: #f5ae52;
+  color: white;
+}
+
+.confirm-button:hover {
+  background-color: #FFD9AA;
+}
+
+.cancel-button {
+  background-color: #e4e6eb;
+  color: #333;
+}
+
+.cancel-button:hover {
+  background-color: #d8dade;
+}
+
 .profile-banner {
-  height: 180px;
+  height: 250px;
   overflow: hidden;
   background-color: #f0f2f5;
   background-image: linear-gradient(to bottom, #e6e6e6, #f0f2f5);
@@ -462,7 +701,7 @@ export default {
   position: relative;
 }
 
-.sidebar {
+.sidebar-profile {
   flex: 0 0 320px;
   margin-right: 15px;
   position: sticky;
@@ -520,6 +759,72 @@ export default {
   background-color: #f8d070;
 }
 
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  background-color: #f0f2f5;
+}
+
+.form-input:focus {
+  border-color: #ff6b01;
+  background-color: white;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.save-button, .cancel-button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.save-button {
+  background-color: #ff6b01;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #e55f01;
+}
+
+.cancel-button {
+  background-color: #e4e6eb;
+  color: #333;
+}
+
+.cancel-button:hover {
+  background-color: #d8dade;
+}
+
 .feed {
   flex: 1;
 }
@@ -568,6 +873,7 @@ export default {
   display: flex;
   justify-content: space-around;
   margin-top: 10px;
+  margin-right: 400px;
 }
 
 .create-action {
@@ -636,6 +942,7 @@ export default {
 }
 
 .post-options {
+  position: relative;
   display: flex;
   gap: 15px;
   align-items: center;
@@ -645,10 +952,78 @@ export default {
   cursor: pointer;
   color: #65676b;
   transition: color 0.3s;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .post-options i:hover {
+  background-color: #f0f2f5;
   color: #ff6b01;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 14px;
+  color: #333;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-item i {
+  margin-right: 12px;
+  width: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: #65676b;
+}
+
+.dropdown-item:first-child i {
+  color: #e74c3c;
+}
+
+.dropdown-item:last-child i {
+  color: #f39c12;
+}
+
+.dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  background-color: transparent;
 }
 
 .post-content {
@@ -678,26 +1053,33 @@ export default {
   background-size: cover;
 }
 
+.post-actions-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+}
+
 .post-actions {
   display: flex;
-  padding: 5px 0;
-  margin-bottom: 5px;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
+  gap: 8px;
+}
+
+.post-actions-new {
+  display: flex;
 }
 
 .post-action {
   background: none;
   border: none;
-  padding: 8px 10px;
+  padding: 0;
+  margin: 0;
   cursor: pointer;
-  color: #65676b;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  justify-content: center;
-  transition: color 0.3s;
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .post-action:hover {
@@ -794,6 +1176,22 @@ export default {
 
 /* Responsive styles */
 @media (max-width: 768px) {
+  .header {
+    padding: 10px 15px;
+    flex-wrap: wrap; /* Cho phép wrap khi màn hình nhỏ */
+    gap: 10px;
+  }
+
+  .search-box {
+    flex: 1 1 100%; /* Chiếm toàn bộ chiều rộng trên mobile */
+    margin: 10px 0; /* Thêm margin trên dưới */
+    max-width: 100%; /* Đảm bảo không vượt quá container */
+  }
+
+  .search-box input {
+    font-size: 14px;
+  }
+
   .profile-content {
     flex-direction: column;
   }
@@ -805,15 +1203,39 @@ export default {
     position: static;
   }
   
-  .create-post-actions {
-    flex-wrap: wrap;
-  }
-  
   .create-action {
     flex: 1;
     min-width: 33%;
     padding: 6px 2px;
     font-size: 12px;
+  }
+  
+  .dropdown-menu {
+    right: 10px;
+    min-width: 160px;
+  }
+  
+  .notification-container {
+    width: 100%;
+    padding: 0 10px;
+    right: 0;
+  }
+  
+  .notification {
+    max-width: 100%;
+  }
+
+  .confirm-modal-content {
+    width: 95%;
+    padding: 15px;
+  }
+
+  .confirm-modal-content h3 {
+    font-size: 16px;
+  }
+
+  .confirm-modal-content p {
+    font-size: 13px;
   }
 }
 </style>
