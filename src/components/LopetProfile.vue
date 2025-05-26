@@ -150,7 +150,7 @@
                 <div 
                   class="post-author-avatar" 
                   :class="{ 'user-avatar': post.author === user.name }"
-                  :style="{ 'background-image': post.author === user.name ? 'url(' + user.avatar + ')' : 'url(' + post.authorAvatar + ')' }"
+                  :style="{ 'background-image': 'url(' + (post.authorAvatar || '/image/avata.jpg') + ')' }"
                 ></div>
                 <div class="post-author-info">
                   <h4>{{ post.author }}</h4>
@@ -172,7 +172,7 @@
             <div class="post-content" v-if="post.content || post.image">
               <p v-if="post.content">{{ post.content }}</p>
               <div class="post-image" v-if="post.image" :class="post.imageClass">
-                <!-- Pet image placeholder -->
+                <img :src="post.image" alt="Ảnh bài viết" />
               </div>
             </div>
             
@@ -228,8 +228,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Overlay để đóng dropdown khi click bên ngoài -->
     <div v-if="activeDropdown || showReportConfirm" class="dropdown-overlay" @click="closeDropdown(); cancelReport()"></div>
   </div>
   </layout>
@@ -237,144 +235,162 @@
 
 <script>
 import layout from '@/components/Layout.vue'
+import { getPostsByAccountId } from '@/service/postService'
+import { getProfileByAccountId, updateProfile } from '@/service/profileService'
+
 export default {
-      components: {
-    layout,
-  },
+  components: { layout },
   name: 'LopetProfile',
   data() {
     return {
       activeDropdown: null,
       editMode: false,
-      editForm: {
-        bio: '',
-        phone: ''
-      },
+      editForm: { bio: '', phone: '' },
       notifications: [],
-      showReportConfirm: false, // Control visibility of report confirmation form
-      reportPostId: null, // Store the ID of the post to report
+      showReportConfirm: false,
+      reportPostId: null,
       user: {
-        name: 'Pham Cau',
-        avatar: 'https://i.pravatar.cc/150?img=3',
-        friends: 500,
-        education: 'Học tại Đại học Thành Phố Hồ Chí Minh',
-        location: 'Hoài Nhơn, Bình Định, Việt Nam',
-        pets: 'Đang nuôi chó',
-        relationship: 'Độc thân',
-        email: 'cauphpham25@gmail.com',
-        phone: '0123456789',
-        birthday: '02/11/2004'
+        name: '', avatar: '', cover: '', friends: 0,
+        bio: '', phone: '', profileId: null
       },
-      posts: [
-        {
-          id: 1,
-          author: 'Pham Cau',
-          authorAvatar: 'https://i.pravatar.cc/150?img=3',
-          time: '2 giờ trước',
-          content: 'Món cún lớn của gia đình chúng tôi',
-          image: true,
-          likes: 123,
-          comments: [
-            {
-              author: 'Panda',
-              authorAvatar: 'https://i.pravatar.cc/150?img=5',
-              content: 'Dễ thương quá bạn ơi!'
-            }
-          ]
-        },
-        {
-          id: 2,
-          author: 'Bouncy và Pham Cau',
-          authorAvatar: 'https://i.pravatar.cc/150?img=7',
-          time: '1 giờ trước',
-          content: 'Chuyến đi công viên hôm nay thật tuyệt vời!',
-          image: true,
-          likes: 45,
-          comments: [
-            {
-              author: 'Mèo Miu',
-              authorAvatar: 'https://i.pravatar.cc/150?img=9',
-              content: 'Trông vui quá!'
-            },
-            {
-              author: 'Luna',
-              authorAvatar: 'https://i.pravatar.cc/150?img=11',
-              content: 'Lần sau cho tôi đi cùng nhé!'
-            }
-          ]
-        },
-        {
-          id: 3,
-          author: 'Hội Yêu Thú Cưng',
-          authorAvatar: 'https://i.pravatar.cc/150?img=13',
-          time: '3 giờ trước',
-          content: 'Sự kiện quyên góp thức ăn cho thú cưng hoang sẽ diễn ra vào ngày mai tại công viên thành phố. Hãy cùng tham gia!',
-          likes: 210,
-          comments: []
-        }
-      ]
+      posts: []
     }
   },
   methods: {
-    goToEdit() {
-      this.editForm.bio = this.user.bio || '';
-      this.editForm.phone = this.user.phone;
-      this.editMode = true;
+    async loadUserProfile() {
+      try {
+        const localUser = JSON.parse(localStorage.getItem('user'))
+        if (!localUser?.id) return
+        const profile = await getProfileByAccountId(localUser.id)
+        this.user.name = profile.fullName
+        this.user.phone = profile.phoneNumber
+        this.user.bio = profile.bio
+        this.user.avatar = profile.avatarUrl || '/default-avatar.png'
+        this.user.cover = profile.coverUrl || '/default-cover.jpg'
+        this.user.profileId = profile.id
+        localUser.profileId = profile.id
+        localStorage.setItem('user', JSON.stringify(localUser))
+        await this.loadUserPosts()
+      } catch (err) {
+        console.error('Lỗi tải profile:', err)
+        this.showNotification('Không thể tải profile', 'error')
+      }
     },
-    saveDetails() {
-      this.user.bio = this.editForm.bio;
-      this.user.phone = this.editForm.phone;
-      this.editMode = false;
-      this.showNotification('Thông tin đã được cập nhật thành công!', 'success');
+    async loadUserPosts() {
+      try {
+        const localUser = JSON.parse(localStorage.getItem('user'))
+        if (!localUser?.id) return
+
+        const postsRes = await getPostsByAccountId(localUser.id)
+
+        this.posts = postsRes.map(post => ({
+          id: post.postId,
+          author: this.user.name,
+          authorAvatar: this.user.avatar?.trim() !== '' ? this.user.avatar : '/image/avata.jpg',
+          time: new Date(post.createdAt).toLocaleString(),
+          content: post.content,
+          image: post.postMedias?.[0]?.mediaUrl || null,
+          imageClass: post.postMedias?.[0] ? 'has-image' : '',
+          likes: post.likeAmount || 0,
+          comments: post.comments || []
+        }))
+      } catch (error) {
+        console.error('Lỗi khi tải bài viết:', error)
+        this.showNotification('Không thể tải bài viết', 'error')
+      }
+    },
+    async saveDetails() {
+      try {
+        const formData = new FormData()
+        formData.append('fullName', this.user.name)
+        formData.append('bio', this.editForm.bio)
+        formData.append('phoneNumber', this.editForm.phone)
+        formData.append('avatar', new Blob([], { type: 'image/png' }), 'empty.png')
+        formData.append('cover', new Blob([], { type: 'image/png' }), 'empty.png')
+        const updated = await updateProfile(this.user.profileId, formData)
+        this.user.bio = updated.bio
+        this.user.phone = updated.phoneNumber
+        this.editMode = false
+        this.showNotification('Thông tin đã được cập nhật', 'success')
+      } catch (err) {
+        console.error('Lỗi cập nhật profile:', err)
+        this.showNotification('Cập nhật thất bại', 'error')
+      }
     },
     cancelEdit() {
-      this.editMode = false;
+      this.editMode = false
     },
-    goBack() {
-      this.$router.push('/friend');
+    async handleAvatarChange(e) {
+      const file = e.target.files[0]
+      if (!file) return
+      const formData = new FormData()
+      formData.append('avatar', file)
+      formData.append('fullName', this.user.name)
+      formData.append('bio', this.user.bio)
+      formData.append('phoneNumber', this.user.phone)
+      formData.append('cover', new Blob([], { type: 'image/png' }), 'empty.png')
+      try {
+        const updated = await updateProfile(this.user.profileId, formData)
+        this.user.avatar = updated.avatarUrl
+        this.showNotification('Đổi ảnh đại diện thành công', 'success')
+      } catch (err) {
+        console.error('Lỗi đổi avatar:', err)
+        this.showNotification('Không thể đổi avatar', 'error')
+      }
     },
-    handleAvatarChange(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      this.user.avatar = URL.createObjectURL(file);
-    },
-    toggleDropdown(postId) {
-      this.activeDropdown = this.activeDropdown === postId ? null : postId;
-    },
-    closeDropdown() {
-      this.activeDropdown = null;
+    async handleCoverChange(e) {
+      const file = e.target.files[0]
+      if (!file) return
+      const formData = new FormData()
+      formData.append('cover', file)
+      formData.append('fullName', this.user.name)
+      formData.append('bio', this.user.bio)
+      formData.append('phoneNumber', this.user.phone)
+      formData.append('avatar', new Blob([], { type: 'image/png' }), 'empty.png')
+      try {
+        const updated = await updateProfile(this.user.profileId, formData)
+        this.user.cover = updated.coverUrl
+        this.showNotification('Đổi ảnh bìa thành công', 'success')
+      } catch (err) {
+        console.error('Lỗi đổi ảnh bìa:', err)
+        this.showNotification('Không thể đổi ảnh bìa', 'error')
+      }
     },
     showNotification(message, type = 'info') {
-      const id = Date.now();
-      this.notifications.push({ id, message, type });
-      setTimeout(() => {
-        this.removeNotification(id);
-      }, 5000);
+      const id = Date.now()
+      this.notifications.push({ id, message, type })
+      setTimeout(() => this.removeNotification(id), 5000)
     },
     removeNotification(id) {
-      this.notifications = this.notifications.filter(n => n.id !== id);
+      this.notifications = this.notifications.filter(n => n.id !== id)
+    },
+    toggleDropdown(postId) {
+      this.activeDropdown = this.activeDropdown === postId ? null : postId
+    },
+    closeDropdown() {
+      this.activeDropdown = null
     },
     reportPost(postId) {
-      this.showReportConfirm = true; // Show confirmation form
-      this.reportPostId = postId; // Store post ID
-      this.closeDropdown(); // Close dropdown
+      this.showReportConfirm = true
+      this.reportPostId = postId
+      this.closeDropdown()
     },
     confirmReport() {
-      console.log(`Reported post with ID: ${this.reportPostId}`);
-      this.showNotification('Đã gửi tố cáo bài viết thành công!', 'success');
-      this.showReportConfirm = false; // Hide confirmation form
-      this.reportPostId = null; // Clear post ID
+      this.showNotification('Đã gửi tố cáo bài viết', 'success')
+      this.showReportConfirm = false
+      this.reportPostId = null
     },
     cancelReport() {
-      this.showReportConfirm = false; // Hide confirmation form
-      this.reportPostId = null; // Clear post ID
+      this.showReportConfirm = false
+      this.reportPostId = null
     }
   },
   mounted() {
+    this.loadUserProfile()
     if (!document.querySelector('script[src*="font-awesome"]')) {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js';
-      document.head.appendChild(script);
+      const script = document.createElement('script')
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js'
+      document.head.appendChild(script)
     }
   }
 }
@@ -1039,9 +1055,21 @@ export default {
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 10px;
-  height: 240px;
   background-color: #e4e6eb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-height: 350px;
 }
+.post-image img {
+  max-height: 400px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
 
 .pets-image {
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240"><rect width="400" height="240" fill="%23eee"/><text x="50%" y="50%" fill="%23aaa" font-family="Arial" font-size="16" text-anchor="middle">Pet Image</text></svg>');

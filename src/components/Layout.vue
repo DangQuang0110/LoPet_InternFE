@@ -1,6 +1,5 @@
 <template>
   <div class="layout-wrapper">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="logo">
         <img src="/assets/logoPetGram.png" alt="LOPET Logo" class="logo-img" />

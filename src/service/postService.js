@@ -22,3 +22,12 @@ export const getPosts = async () => {
     throw error
   }
 }
+export const getPostsByAccountId = async (accountId) => {
+  try {
+    const response = await apiService.get(`/v1/posts/accounts/${accountId}`)
+    return response.data.data
+  } catch (error) {
+    console.error('Lỗi khi lấy bài viết theo accountId:', error)
+    throw error
+  }
+}

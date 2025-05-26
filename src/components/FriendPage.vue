@@ -89,7 +89,7 @@
 
 <script>
 import { getFriendList, getListRequestF, acceptFriendRequest, rejectFriendReq, getSuggestedFriends, sendFriendRequest, removeSuggestedFriend, deleteFriend } from '@/service/friendService';
-import { getProfileById } from '@/service/profileService';
+import { getProfileByAccountId } from '@/service/profileService';
 import Layout from '@/components/Layout.vue'
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -193,7 +193,7 @@ export default {
         if (!user?.id) return;
         await sendFriendRequest(user.id, receiverId);
         await this.fetchSuggestedFriends(user.id);
-        toast.success('Đã gửigửi lời mời kết bạn!', {
+        toast.success('Đã gửi lời mời kết bạn!', {
           autoClose: 3000,
           position: toast.POSITION.TOP_RIGHT,
           theme:'colored'
