@@ -6,6 +6,8 @@ import LopetProfile from "@/components/LopetProfile.vue";
 import LopetAbout from "@/components/LopetAbout.vue";
 import LopetPhotoGallery from "@/components/LopetPhotoGallery.vue";
 import LopetEditProfile from "@/components/LopetEditProfile.vue";
+import PetCommunity from "@/components/PetCommunity.vue";// mở rộng xem tất cả chủ gợi ý
+import PetCommunityy from "@/components/PetCommunityy.vue";// chủ
 
 import LoginView from '../layout/LoginView.vue'
 import RegisterView from '../layout/RegisterView.vue'
@@ -14,6 +16,8 @@ import SetNewPassword from '../layout/SetNewPassword.vue'
 import VerificationCode from '../layout/VerificationCode.vue'
 import Message from '@/components/comMessage.vue';
 import CreatePost from '@/components/CreatePost.vue'
+
+
 
 // Phần admin
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
@@ -43,6 +47,11 @@ const routes=[
         path: "/edit",
         name:LopetEditProfile,
         component:LopetEditProfile,
+    },
+    {
+      path: "/groups",
+      name: PetCommunityy,
+      component:PetCommunityy,
     },
     { path: '/home',    name: 'Home',       component: Home },
   { path: '/create-post',    name: 'CreatePost',       component: CreatePost },
