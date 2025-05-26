@@ -1,7 +1,6 @@
 <template>
   <layout>
   <div class="lopet-app">
-    <!-- Header with Search Bar -->
     
     <div class="search-box">
             <input type="text" placeholder="Tìm kiếm" />
@@ -300,16 +299,14 @@ export default {
   postsRes.map(async post => {
     const postId = post.postId
     this.newComments[postId] = { content: '', image: null, replyCommentId: null }
-
-    let comments = []
-    try {
-      const commentRes = await getCommentsByPostId(postId)
-      console.log(`🧪 Kết quả getCommentsByPostId cho postId=${postId}:`, commentRes)
-
-      const comments = Array.isArray(commentRes.comments) ? commentRes.comments : []
-    } catch (err) {
-      console.error(`❌ Không thể lấy bình luận cho bài ${postId}:`, err)
-    }
+      let comments = []
+      try {
+        const commentRes = await getCommentsByPostId(postId)
+        console.log(`🧪 Kết quả getCommentsByPostId cho postId=${postId}:`, commentRes)
+        comments = Array.isArray(commentRes.comments) ? commentRes.comments : []
+      } catch (err) {
+        console.error(`❌ Không thể lấy bình luận cho bài ${postId}:`, err)
+      }
     return {
       id: postId,
       author: this.user.name,
@@ -341,8 +338,9 @@ export default {
         formData.append('fullName', this.user.name)
         formData.append('bio', this.editForm.bio)
         formData.append('phoneNumber', this.editForm.phone)
-        formData.append('avatar', new Blob([], { type: 'image/png' }), 'empty.png')
-        formData.append('cover', new Blob([], { type: 'image/png' }), 'empty.png')
+        // Chỉ gửi avatarUrl và coverUrl nếu đã có (không tạo Blob rỗng)
+        if (this.user.avatar) formData.append('avatarUrl', this.user.avatar)
+        if (this.user.cover) formData.append('coverUrl', this.user.cover)
         const updated = await updateProfile(this.user.profileId, formData)
         this.user.bio = updated.bio
         this.user.phone = updated.phoneNumber
@@ -443,6 +441,11 @@ async submitComment(postId) {
     closeDropdown() {
       this.activeDropdown = null
     },
+    goToEdit() {
+      this.editForm.bio = this.user.bio
+      this.editForm.phone = this.user.phone
+      this.editMode = true
+    },
     reportPost(postId) {
       this.showReportConfirm = true
       this.reportPostId = postId
@@ -458,7 +461,6 @@ async submitComment(postId) {
       this.reportPostId = null
     }
   },
-  
   mounted() {
     this.loadUserProfile()
     if (!document.querySelector('script[src*="font-awesome"]')) {
