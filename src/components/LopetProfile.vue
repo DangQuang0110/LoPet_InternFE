@@ -32,7 +32,28 @@
         </div>
       </div>
     </div>
+          <div v-if="showDeleteConfirm" class="confirm-modal">
+        <div class="confirm-modal-content">
+          <h3>Xác nhận xóa bài viết</h3>
+          <p>Bạn có chắc chắn muốn xóa bài viết này?</p>
+          <div class="confirm-modal-actions">
+            <button class="confirm-button" @click="confirmDelete">Xác nhận</button>
+            <button class="cancel-button" @click="cancelDelete">Hủy</button>
+          </div>
+        </div>
+      </div>
 
+      <!-- Thêm modal chỉnh sửa bài viết -->
+      <div v-if="showEditPostModal" class="edit-post-modal">
+        <div class="edit-post-content">
+          <h3>Chỉnh sửa bài viết</h3>
+          <textarea v-model="editingPost.content" class="post-edit-textarea"></textarea>
+          <div class="edit-post-actions">
+            <button class="save-button" @click="saveEditedPost">Lưu thay đổi</button>
+            <button class="cancel-button" @click="cancelEditPost">Hủy</button>
+          </div>
+        </div>
+      </div>
     <!-- Hidden file input for avatar change -->
     <input 
       type="file" 
@@ -160,6 +181,14 @@
                 <img src="/icon/dots.png" alt="Options" class="nav-icon" />
                 <!-- Dropdown Menu -->
                 <div v-if="activeDropdown === post.id" class="dropdown-menu">
+                            <div v-if="post.author === user.name" class="dropdown-item" @click.stop="editPost(post)">
+            <img src="/icon/edit.png" alt="Edit" class="nav-icon" />
+            <span>Chỉnh sửa bài viết</span>
+          </div>
+          <div v-if="post.author === user.name" class="dropdown-item" @click.stop="deletePost(post.id)">
+            <img src="/icon/delete.png" alt="Delete" class="nav-icon" />
+            <span>Xóa bài viết</span>
+          </div>
                   <div class="dropdown-item" @click.stop="reportPost(post.id)">
                     <img src="/icon/exclamation.png" alt="Report" class="nav-icon" />
                     <span>Tố cáo bài viết</span>
