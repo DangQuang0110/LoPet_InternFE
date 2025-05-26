@@ -26,7 +26,7 @@
           </router-link>
         </li>
         <li class="nav-item">
-          <router-link to="/community" class="nav-link">
+          <router-link to="/groups" class="nav-link">
             <i class="fas fa-users"></i>
             <span>Cộng đồng</span>
           </router-link>
