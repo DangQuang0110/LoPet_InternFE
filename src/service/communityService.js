@@ -63,3 +63,43 @@ export const joinGroup = async (groupId, ownerId, inviteeId) => {
     }
 }
 
+//xóa nhóm đã tạo
+export const deleteGroupByOwner = async (ownerId, groupId) => {
+    try {
+        const response = await apiService.delete('/v1/groups', {
+            data: {
+                owner: ownerId,
+                groupId: groupId
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi xóa nhóm:', error);
+        throw error;
+    }
+}
+
+// Cập nhật thông tin nhóm
+export const updateGroup = async (groupId, ownerId, formData) => {
+    try {
+        // Tạo một FormData mới để thêm owner ID
+        const updatedFormData = new FormData();
+        // Copy tất cả các trường từ formData gốc
+        for (let [key, value] of formData.entries()) {
+            updatedFormData.append(key, value);
+        }
+        // Thêm owner ID
+        updatedFormData.append('owner', ownerId);
+
+        const response = await apiService.put(`/v1/groups/${groupId}/${ownerId}`, updatedFormData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi cập nhật nhóm:', error);
+        throw error;
+    }
+}
+
