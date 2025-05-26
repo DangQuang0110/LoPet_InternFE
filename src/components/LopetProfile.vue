@@ -219,9 +219,19 @@
                 :style="{ 'background-image': 'url(' + user.avatar + ')' }"
               ></div>
               <div class="comment-box">
-                <input type="text" placeholder="Viết bình luận..." />
-                <div class="comment-actions">
-                </div>
+                <input
+                  type="text"
+                  :placeholder="'Viết bình luận vào bài của ' + post.author"
+                  v-model="newComments[post.id].content"
+                  v-if="newComments[post.id]"
+                />
+                <input
+                  type="file"
+                  :ref="'commentImage_' + post.id"
+                  style="display: none"
+                  @change="handleCommentImage($event, post.id)"
+                />
+                <button @click="submitComment(post.id)">Gửi</button>
               </div>
             </div>
           </div>
@@ -237,12 +247,14 @@
 import layout from '@/components/Layout.vue'
 import { getPostsByAccountId } from '@/service/postService'
 import { getProfileByAccountId, updateProfile } from '@/service/profileService'
+import { createComment,getCommentsByPostId } from '@/service/commentService'
 
 export default {
   components: { layout },
   name: 'LopetProfile',
   data() {
     return {
+      newComments: {},
       activeDropdown: null,
       editMode: false,
       editForm: { bio: '', phone: '' },
@@ -277,28 +289,52 @@ export default {
       }
     },
     async loadUserPosts() {
-      try {
-        const localUser = JSON.parse(localStorage.getItem('user'))
-        if (!localUser?.id) return
+  try {
+    const localUser = JSON.parse(localStorage.getItem('user'))
+    if (!localUser?.id) return
 
-        const postsRes = await getPostsByAccountId(localUser.id)
+    const postsRes = await getPostsByAccountId(localUser.id)
+    this.newComments = {}
 
-        this.posts = postsRes.map(post => ({
-          id: post.postId,
-          author: this.user.name,
-          authorAvatar: this.user.avatar?.trim() !== '' ? this.user.avatar : '/image/avata.jpg',
-          time: new Date(post.createdAt).toLocaleString(),
-          content: post.content,
-          image: post.postMedias?.[0]?.mediaUrl || null,
-          imageClass: post.postMedias?.[0] ? 'has-image' : '',
-          likes: post.likeAmount || 0,
-          comments: post.comments || []
-        }))
-      } catch (error) {
-        console.error('Lỗi khi tải bài viết:', error)
-        this.showNotification('Không thể tải bài viết', 'error')
-      }
-    },
+    const postsWithComments = await Promise.all(
+  postsRes.map(async post => {
+    const postId = post.postId
+    this.newComments[postId] = { content: '', image: null, replyCommentId: null }
+
+    let comments = []
+    try {
+      const commentRes = await getCommentsByPostId(postId)
+      console.log(`🧪 Kết quả getCommentsByPostId cho postId=${postId}:`, commentRes)
+
+      const comments = Array.isArray(commentRes.comments) ? commentRes.comments : []
+    } catch (err) {
+      console.error(`❌ Không thể lấy bình luận cho bài ${postId}:`, err)
+    }
+    return {
+      id: postId,
+      author: this.user.name,
+      authorAvatar: this.user.avatar?.trim() !== '' ? this.user.avatar : '/image/avata.jpg',
+      time: new Date(post.createdAt).toLocaleString(),
+      content: post.content,
+      image: post.postMedias?.[0]?.mediaUrl || null,
+      imageClass: post.postMedias?.[0] ? 'has-image' : '',
+      likes: post.likeAmount || 0,
+      comments: Array.isArray(comments)
+        ? comments.map(c => ({
+            author: c.authorName,
+            authorAvatar: c.avatarUrl || '/image/avata.jpg',
+            content: c.content
+          }))
+        : []
+    }
+  })
+)
+    this.posts = postsWithComments
+  } catch (err) {
+    console.error('Lỗi tải bài viết:', err?.response?.data || err.message || err)
+    this.showNotification('Không thể tải bài viết', 'error')
+  }
+},
     async saveDetails() {
       try {
         const formData = new FormData()
@@ -338,6 +374,42 @@ export default {
         this.showNotification('Không thể đổi avatar', 'error')
       }
     },
+        handleCommentImage(e, postId) {
+      const file = e.target.files[0]
+      if (!file) return
+      if (!this.newComments[postId]) this.newComments[postId] = { content: '', image: null }
+      this.newComments[postId].image = file
+    },
+async submitComment(postId) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user'))
+    const commentData = this.newComments[postId]
+
+    if (!commentData || !commentData.content) {
+      this.showNotification('Vui lòng nhập nội dung bình luận', 'error')
+      return
+    }
+
+    const payload = {
+      accountId: user.id,
+      postId: postId,
+      content: commentData.content,
+      replyCommentId: commentData.replyCommentId || '',
+      image: commentData.image || null
+    }
+
+    console.log('🔥 Gửi vào createComment:', payload)
+    await createComment(payload)
+
+    this.showNotification('Bình luận thành công', 'success')
+    this.newComments[postId] = { content: '', image: null }
+
+    this.loadUserPosts()
+  } catch (err) {
+    console.error('Lỗi gửi bình luận:', err?.response?.data || err.message || err)
+    this.showNotification('Không thể gửi bình luận', 'error')
+  }
+},
     async handleCoverChange(e) {
       const file = e.target.files[0]
       if (!file) return
@@ -356,6 +428,7 @@ export default {
         this.showNotification('Không thể đổi ảnh bìa', 'error')
       }
     },
+    
     showNotification(message, type = 'info') {
       const id = Date.now()
       this.notifications.push({ id, message, type })
@@ -385,6 +458,7 @@ export default {
       this.reportPostId = null
     }
   },
+  
   mounted() {
     this.loadUserProfile()
     if (!document.querySelector('script[src*="font-awesome"]')) {
