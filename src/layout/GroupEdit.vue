@@ -2,123 +2,95 @@
   <div class="group-edit-container">
     <!-- Header -->
     <div class="header">
-      <div class="header-title">
-        <h1>Chỉnh Sửa thông tin nhóm</h1>
-      </div>
+      <div class="header-title">Chỉnh Sửa thông tin nhóm</div>
       <button class="close-btn" @click="cancelEdit">×</button>
     </div>
 
     <!-- Form chỉnh sửa -->
     <div class="edit-form">
       <form @submit.prevent="saveGroupInfo">
-        <!-- Thông tin cơ bản -->
-        <div class="form-section">
-          <!-- Ảnh nhóm -->
-          <div class="form-group">
-            <label>Ảnh nhóm</label>
-            <div class="group-image-container">
-              <div class="group-image">
-                <img :src="groupInfo.image || '/path/to/default-group-image.jpg'" alt="Ảnh nhóm" />
-              </div>
-              <div class="image-actions">
-                <button type="button" class="btn btn-light" @click="triggerImageUpload">
-                  <i class="icon-upload"></i> Thay đổi ảnh
-                </button>
-                <input 
-                  type="file" 
-                  ref="imageInput" 
-                  @change="handleImageUpload" 
-                  accept="image/*" 
-                  class="hidden-input" 
-                />
-              </div>
-            </div>
-          </div>
+        <!-- Tiêu đề hình bìa -->
+        <div class="section-title">
+          <span>Hình bìa</span>
+          <span class="edit-image-text" @click="triggerImageUpload">Chỉnh sửa</span>
+        </div>
 
-          <div class="form-group">
-            <label for="group-name">Tên nhóm <span class="required">*</span></label>
-            <input 
-              type="text" 
-              id="group-name" 
-              v-model="groupInfo.name" 
-              required
-              placeholder="Nhập tên nhóm"
-            />
+        <!-- Ảnh nhóm -->
+        <div class="form-group">
+          <div class="group-image">
+            <img :src="groupInfo.image" alt="Ảnh nhóm" />
           </div>
+          <input 
+            type="file" 
+            ref="imageInput" 
+            @change="handleImageUpload" 
+            accept="image/*" 
+            class="hidden-input" 
+          />
+        </div>
 
-          <div class="form-group">
-            <label for="group-intro">Giới thiệu</label>
-            <textarea 
-              id="group-intro" 
-              v-model="groupInfo.intro" 
-              rows="4"
-              placeholder="Giới thiệu về nhóm của bạn..."
-            ></textarea>
-          </div>
+        <!-- Tên nhóm -->
+        <div class="form-group">
+          <label for="group-name">Tên nhóm</label>
+          <input 
+            type="text" 
+            id="group-name" 
+            v-model="groupInfo.name" 
+            required
+          />
         </div>
 
         <!-- Quyền riêng tư -->
-        <div class="form-section">
-          <h2>Quyền riêng tư</h2>
-          <div class="form-group">
-            <label for="privacy">Chọn quyền thành viên</label>
-            <select id="privacy" v-model="groupInfo.privacy" class="form-select">
-              <option value="public">Công khai</option>
-              <option value="private">Riêng tư</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label for="privacy">Chọn quyền riêng tư</label>
+          <select id="privacy" v-model="groupInfo.privacy">
+            <option value="public">Công khai</option>
+            <option value="private">Riêng tư</option>
+          </select>
+        </div>
+
+        <!-- Giới thiệu -->
+        <div class="form-group">
+          <label for="group-intro">Giới thiệu</label>
+          <textarea 
+            id="group-intro" 
+            v-model="groupInfo.intro"
+            rows="4"
+          ></textarea>
         </div>
 
         <!-- Mời bạn bè -->
-        <div class="form-section">
-          <h2>Mời bạn bè (Không bắt buộc)</h2>
-          <div class="form-group">
-            <label for="invite">Chọn bạn bè</label>
-            <select id="invite" v-model="groupInfo.invite" class="form-select">
-              <option value="" disabled selected>Chọn bạn bè</option>
-              <option value="friend1">Cầu</option>
-              <option value="friend2">Vũ</option>
-              <option value="friend3">Trường</option>
-              <option value="friend4">Nhân</option>
-            </select>
+        <div class="form-group">
+          <button type="button" class="btn-invite" @click="inviteFriends">Mời bạn bè (Không bắt buộc)</button>
+          <div v-if="invitedFriends.length" class="invited-names">
+            Đã mời:
+            <span v-for="(name, index) in invitedFriends" :key="index">
+              {{ name }}<span v-if="index < invitedFriends.length - 1">, </span>
+            </span>
           </div>
         </div>
 
-        <!-- Liên hệ chúng tôi -->
-        <div class="form-section">
-          <h2>Liên hệ chúng tôi</h2>
-          <div class="form-group">
-            <label for="hotline">Hotline</label>
-            <input 
-              type="text" 
-              id="hotline" 
-              v-model="groupInfo.hotline" 
-              placeholder="Nhập số hotline"
-            />
-          </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input 
-              type="email" 
-              id="email" 
-              v-model="groupInfo.email" 
-              placeholder="Nhập email"
-            />
-          </div>
-          <div class="form-group">
-            <label for="address">Địa chỉ</label>
-            <input 
-              type="text" 
-              id="address" 
-              v-model="groupInfo.address" 
-              placeholder="Nhập địa chỉ"
-            />
-          </div>
+        <!-- Danh sách bạn bè -->
+        <div v-if="showFriendList" class="friend-list">
+          <label>Chọn bạn bè để mời:</label>
+          <ul>
+            <li v-for="friend in friends" :key="friend.id">
+              <label>
+                <input 
+                  type="checkbox" 
+                  :value="friend.id" 
+                  v-model="selectedFriends"
+                />
+                {{ friend.name }}
+              </label>
+            </li>
+          </ul>
+          <button class="btn-primary full-width" @click="confirmInvite">Xác nhận mời</button>
         </div>
 
-        <!-- Nút tác vụ -->
+        <!-- Nút lưu -->
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Lưu thông tin sửa</button>
+          <button type="submit" class="btn-primary full-width">Lưu thông tin chỉnh sửa</button>
         </div>
       </form>
     </div>
@@ -132,14 +104,21 @@ export default {
     return {
       groupInfo: {
         name: 'Hội cứu trợ động vật Việt Nam',
-        intro: 'Hội cứu trợ động vật Việt Nam hỗ trợ các hoạt động bảo vệ và chăm sóc động vật trên toàn quốc.',
+        intro: `Chào ae vào hội cứu trợ động vật Việt Nam\n📞 Hotline: 0369620631\n📧 Email: caupham25@gmail.com\n📍 Hoài Nhơn , Bình Định , Việt Nam`,
         image: '/path/to/group-cover.jpg',
-        privacy: 'public',
-        invite: '',
-        hotline: '0369620631',
-        email: 'caupham25@gmail.com',
-        address: 'Hoài Nhơn, Bình Định, Việt Nam'
-      }
+        privacy: 'private'
+      },
+      showFriendList: false,
+      friends: [
+        { id: 1, name: 'Vũ vú sữa' },
+        { id: 2, name: 'Cầu vồng' },
+        { id: 3, name: 'Quang' },
+        { id: 4, name: 'Phong' },
+        { id: 5, name: 'Nhân' },
+        { id: 6, name: 'Trường' },
+      ],
+      selectedFriends: [],
+      invitedFriends: [] // Thêm dòng này
     };
   },
   methods: {
@@ -160,98 +139,106 @@ export default {
       if (confirm('Bạn có chắc muốn hủy các thay đổi?')) {
         console.log('Đã hủy chỉnh sửa');
       }
+    },
+    inviteFriends() {
+      this.showFriendList = true;
+    },
+    confirmInvite() {
+      const invited = this.friends.filter(f => this.selectedFriends.includes(f.id));
+      this.invitedFriends = invited.map(f => f.name);
+      alert('Đã mời: ' + this.invitedFriends.join(', '));
+      this.showFriendList = false;
     }
   }
 };
 </script>
 
 <style scoped>
-/* Đảm bảo toàn màn hình */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden; /* Ngăn cuộn trên body */
-}
-
 .group-edit-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  margin: 0;
-  padding: 0;
-  background: #FFF5E1; /* Màu cam nhạt giống hình 1 */
-  border-radius: 0;
-  box-shadow: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #FFF5E1;
   overflow-y: auto;
-  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 15px 40px;
-  background: #FFF5E1; /* Màu cam nhạt giống hình 1 */
+  position: relative;
+  padding: 15px 20px;
+  background: #FFF5E1;
   border-bottom: 1px solid #E6E6E6;
-  margin-bottom: 30px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
-.header-title h1 {
-  font-size: 24px;
-  color: #333;
-  margin: 0;
+.header-title {
+  font-size: 18px;
   font-weight: 600;
+  color: #000;
 }
 
 .close-btn {
+  position: absolute;
+  right: 20px;
   background: none;
   border: none;
-  font-size: 30px;
+  font-size: 24px;
   cursor: pointer;
-  color: #666;
+  color: #000;
 }
 
 .edit-form {
-  background-color: #FFF;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  width: 90%; /* Giới hạn chiều rộng để dễ đọc */
-  max-width: 700px; /* Giới hạn tối đa để giống hình 1 */
-  margin: 0 auto 30px; /* Căn giữa và thêm khoảng cách dưới */
-  box-sizing: border-box;
+  width: 100%;
+  max-width: 500px;
+  margin: 20px auto;
+  background-color: #fff;
+  border: 2px solid #E0E0E0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.form-section {
-  padding: 30px;
-  border-bottom: 1px solid #E6E6E6;
-}
-
-.form-section:last-child {
-  border-bottom: none;
-}
-
-.form-section h2 {
-  font-size: 20px;
-  color: #333;
-  margin: 0 0 15px 0;
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.edit-image-text {
+  color: #F58220;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.group-image {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #F0F2F5;
+  margin-bottom: 20px;
+}
+
+.group-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hidden-input {
+  display: none;
 }
 
 .form-group {
-  margin-bottom: 25px;
-}
-
-.form-group:last-child {
-  margin-bottom: 0;
+  margin-bottom: 20px;
 }
 
 label {
@@ -262,78 +249,83 @@ label {
   color: #333;
 }
 
-.required {
-  color: #E41E3F;
-}
-
 input[type="text"],
-input[type="email"],
-textarea,
-.form-select {
+select {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid #E6E6E6;
   border-radius: 4px;
   font-size: 16px;
-  color: #333;
   background-color: #FFF5E1;
-}
-
-input[type="text"]:focus,
-input[type="email"]:focus,
-textarea:focus,
-.form-select:focus {
-  border-color: #F58220;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(245, 130, 32, 0.2);
+  color: #333;
 }
 
 textarea {
-  resize: vertical;
-}
-
-.group-image-container {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-
-.group-image {
   width: 100%;
-  height: 200px;
-  border-radius: 8px;
+  min-height: 80px;
+  resize: none;
   overflow: hidden;
-  background-color: #F0F2F5;
+  border: 1px solid #E6E6E6;
+  background-color: #FFF5E1;
+  border-radius: 4px;
+  font-size: 16px;
+  color: #333;
+  padding: 12px 14px;
+  line-height: 1.6;
 }
 
-.group-image img {
+.btn-invite {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  padding: 12px 14px;
+  background-color: #e0e0e0;
+  border: none;
+  border-radius: 4px;
+  color: #333;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-.image-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.btn-invite:hover {
+  background-color: #ccc;
 }
 
-.hidden-input {
-  display: none;
+.friend-list {
+  background: #fff;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.friend-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+.friend-list li {
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.invited-names {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #555;
 }
 
 .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 30px;
+  margin-top: 20px;
 }
 
 .btn-primary {
-  padding: 10px 20px;
+  padding: 12px 14px;
   border: none;
   border-radius: 4px;
   background-color: #F58220;
-  color: #FFF;
+  color: white;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
@@ -344,52 +336,7 @@ textarea {
   background-color: #E06B10;
 }
 
-.btn-light {
-  background-color: #E4E6EB;
-  color: #050505;
-  font-size: 14px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn-light:hover {
-  background-color: #D8DADF;
-}
-
-.icon-upload:before {
-  content: "↑";
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .group-edit-container {
-    padding: 0;
-  }
-  
-  .edit-form {
-    width: 100%;
-    padding: 15px;
-    margin: 0 auto 20px;
-  }
-  
-  .form-section {
-    padding: 20px;
-  }
-  
-  .group-image-container {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .group-image {
-    height: 150px;
-  }
-  
-  .form-actions {
-    padding: 20px;
-  }
+.full-width {
+  width: 100%;
 }
 </style>

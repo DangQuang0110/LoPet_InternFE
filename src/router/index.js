@@ -8,6 +8,8 @@ import VerificationCode from '../layout/VerificationCode.vue'
 import GroupJoinedView from '../layout/GroupJoinedView.vue'
 import GroupEdit from '../layout/GroupEdit.vue'
 import GroupPage from '../layout/GroupPage.vue'
+import PetCommunity from '../layout/PetCommunity.vue'
+import PetCommunityy from '../layout/PetCommunityy.vue'
 // import AboutView from '../components/AboutView.vue'
 
 const routes = [
@@ -56,6 +58,16 @@ const routes = [
     path: '/groupPage',
     name: 'groupPage',
     component: GroupPage,
+  },
+    {
+    path: '/petCommunity',
+    name: 'petCommunity',
+    component: PetCommunity,
+  },
+    {
+    path: '/petCommunityy',
+    name: 'petCommunityy',
+    component: PetCommunityy,
   },
   // {
   //   path: '/home',
