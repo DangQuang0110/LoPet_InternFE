@@ -16,6 +16,7 @@ import SetNewPassword from '../layout/SetNewPassword.vue'
 import VerificationCode from '../layout/VerificationCode.vue'
 import Message from '@/components/comMessage.vue';
 import CreatePost from '@/components/CreatePost.vue'
+import profiletest from '@/components/profiletest.vue';
 
 
 
@@ -23,6 +24,11 @@ import CreatePost from '@/components/CreatePost.vue'
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
 
 const routes=[
+  {
+    path: "/profiletest",
+    name: "profiletest",
+    component: profiletest,
+  },
     {
         path: "/friend",
         name:FriendPage,
