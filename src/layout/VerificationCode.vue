@@ -35,25 +35,26 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { verifyOTP } from '@/service/otpService'
 import { registerUser, resetPassword } from '@/service/authService'
+import { createProfile, setProfileToAccount } from '@/service/profileService'
 
 const router = useRouter()
 const otp = ref(['', '', '', '', '', ''])
 const countdown = ref(120)
 let intervalId = null
 
-// Xác định đang ở luồng reset password hay đăng ký
+// Xác định luồng
 const isResetPasswordFlow = ref(localStorage.getItem('reset_flow') === 'true')
 
-// Lấy email phù hợp theo luồng
+// Lấy dữ liệu đăng ký
 const email = isResetPasswordFlow.value
-  ? localStorage.getItem('email_otp')             
-  : localStorage.getItem('register_email')    
-
+  ? localStorage.getItem('email_otp')
+  : localStorage.getItem('register_email')
 const username = localStorage.getItem('register_username')
 const password = localStorage.getItem('register_password')
 const confirmPassword = localStorage.getItem('register_confirm')
+
 console.log('Luồng:', isResetPasswordFlow.value ? 'RESET' : 'REGISTER')
-console.log('Email lấy ra:', email)
+console.log('Email:', email)
 
 const handleOtpInput = async (event, index) => {
   const value = event.target.value
@@ -99,21 +100,39 @@ const sendLink = async () => {
       localStorage.setItem('email_otp', email)
       router.push('/setNewPassword')
     } else {
-      await registerUser({ email, username, password, confirmPassword })
+      // 1. Đăng ký tài khoản
+      const accountRes = await registerUser({
+        email,
+        username,
+        password,
+        confirmPassword
+      })
 
-      // Dọn dẹp localStorage
+      const accountId = accountRes?.data?.id || JSON.parse(localStorage.getItem('user'))?.id
+      if (!accountId) throw new Error('Không lấy được accountId')
+      // 2. Tạo profile
+        const profile = await createProfile({
+          fullName: username,
+          phoneNumber: '',
+          bio: ''
+          // Không cần avatarUrl, coverUrl nữa vì backend tự xử lý rỗng
+        })
+      // 3. Gán profile vào account
+      await setProfileToAccount(profile.id, accountId)
+
+      // 4. Dọn localStorage & điều hướng
       localStorage.removeItem('register_email')
       localStorage.removeItem('register_username')
       localStorage.removeItem('register_password')
       localStorage.removeItem('register_confirm')
       localStorage.removeItem('reset_flow')
 
-      alert('Đăng ký thành công!')
+      alert('Đăng ký và tạo hồ sơ thành công!')
       router.push('/')
     }
   } catch (err) {
-    console.error('Lỗi verifyOTP:', err)
-    alert(err?.response?.data?.message || 'Xác minh OTP hoặc xử lý thất bại!')
+    console.error('Lỗi verifyOTP hoặc đăng ký:', err)
+    alert(err?.response?.data?.message || 'Xác minh OTP hoặc đăng ký thất bại!')
   }
 }
 

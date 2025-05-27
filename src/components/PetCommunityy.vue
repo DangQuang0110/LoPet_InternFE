@@ -1032,7 +1032,6 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .group-actions {
   display: flex;
   justify-content: space-between;

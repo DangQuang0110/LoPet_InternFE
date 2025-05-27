@@ -13,7 +13,7 @@
           @blur="contactFocus = false"
           placeholder=" "
         />
-        <label :class="{ active: contactFocus || contact }">Số điện thoại hoặc email</label>
+        <label :class="{ active: contactFocus || contact }">email</label>
       </div>
 
       <div class="input-group">

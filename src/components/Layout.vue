@@ -1,6 +1,5 @@
 <template>
   <div class="layout-wrapper">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="logo">
         <img src="/assets/logoPetGram.png" alt="LOPET Logo" class="logo-img" />
@@ -225,12 +224,12 @@ function handleLogout() {
 .layout-wrapper {
   display: flex;
   height: 100vh;
-  background: #FFF8F0;
+  background: #F9F9F9;
 }
 
 .sidebar {
   width: 260px;
-  background: #FFF8F0;
+  background: #FFFFFF;
   border-right: 1px solid #FAEBD7;
   display: flex;
   flex-direction: column;
@@ -255,11 +254,12 @@ function handleLogout() {
 }
 
 .menu-container {
-  border: 5px solid #FAEBD7;
+  border: 5px solid #FFFFFF;
   border-radius: 5px;
   padding: 5px;
   margin-top: 80px;
-  background: #FAEBD7;
+  background: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .nav-menu ul {
@@ -476,7 +476,7 @@ function handleLogout() {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  background: #FFF8F0;
+  background: #F9F9F9;
   box-sizing: border-box;
 }
 
@@ -505,7 +505,7 @@ function handleLogout() {
 .item-menu li i { margin-right: 8px; font-size: 1rem; }
 .item-menu li:hover { background: #00eaff; }
 
-.main-content { flex: 1; overflow-y: auto; background: #FFF8F0; box-sizing: border-box; }
+.main-content { flex: 1; overflow-y: auto; background: #F9F9F9; box-sizing: border-box; }
 
 .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
 .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
