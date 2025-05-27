@@ -7,40 +7,14 @@ export const getCommentsByPostId = async (postId) => {
 }
 
 export const createComment = async (commentData) => {
-  console.log('📦 Dữ liệu truyền vào createComment:', commentData)
-  console.log('📌 typeof postId:', typeof commentData.postId)
-  console.log('📌 typeof accountId:', typeof commentData.accountId)
+  console.log('📦 JSON gửi lên:', commentData)
 
-  const formData = new FormData()
-  formData.append('postId', parseInt(commentData.postId))
-  formData.append('accountId', parseInt(commentData.accountId))
-  formData.append('content', commentData.content)
-
-  if (commentData.replyCommentId) {
-    formData.append('replyCommentId', commentData.replyCommentId)
-  } else {
-    formData.append('replyCommentId', '')
-  }
-
-  if (commentData.image) {
-    console.log('📷 Có ảnh kèm theo:', commentData.image.name)
-    formData.append('image', commentData.image, commentData.image.name)
-  } else {
-    console.log('📷 Không có ảnh')
-  }
-
-  for (const [key, value] of formData.entries()) {
-    console.log('🧾 FormData:', key, '=', value)
-  }
-
-  const response = await apiService.post('/v1/comments', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+  const response = await apiService.post('/v1/comments', {
+    postId: commentData.postId,
+    accountId: commentData.accountId,
+    content: commentData.content,
+    replyCommentId: commentData.replyCommentId || ''
   })
 
   return response.data.data
 }
-
-
-

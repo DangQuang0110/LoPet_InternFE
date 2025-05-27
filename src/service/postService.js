@@ -31,3 +31,12 @@ export const getPostsByAccountId = async (accountId) => {
     throw error
   }
 }
+export const likePost = (accountId, postId) =>
+  apiService.post('/v1/posts/like', { accountId, postId }
+
+)
+
+export const unlikePost = (accountId, postId) =>
+  apiService.post('/v1/posts/unlike', { accountId, postId }
+
+)

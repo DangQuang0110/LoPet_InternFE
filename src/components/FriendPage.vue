@@ -86,7 +86,6 @@
   </div>
   </layout>
 </template>
-
 <script>
 import { getFriendList, getListRequestF, acceptFriendRequest, rejectFriendReq, getSuggestedFriends, sendFriendRequest, removeSuggestedFriend, deleteFriend } from '@/service/friendService';
 import { getProfileByAccountId } from '@/service/profileService';
@@ -345,8 +344,6 @@ export default {
 .account-info i {
   margin-right: 10px;
 }
-
-/* Main Content Styles */
 .main-content {
   flex: 1;
   background-color: #FFF8F0;
