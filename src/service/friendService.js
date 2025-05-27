@@ -61,15 +61,15 @@ export const sendFriendRequest = async (senderId, receiverId) => {
   }
 }
 
-export const removeSuggestedFriend = async (receiverId, senderId) => {
-  try {
-    const response = await apiService.post(`/v1/friendships/reject`, { receiverId, senderId })
-    return response.data
-  } catch (error) {
-    console.error('Lỗi khi xóa gợi ý kết bạn:', error)
-    throw error
-  }
-}
+// export const removeSuggestedFriend = async (receiverId, senderId) => {
+//   try {
+//     const response = await apiService.post(`/v1/friendships/reject`, { receiverId, senderId })
+//     return response.data
+//   } catch (error) {
+//     console.error('Lỗi khi xóa gợi ý kết bạn:', error)
+//     throw error
+//   }
+// }
 
 
 

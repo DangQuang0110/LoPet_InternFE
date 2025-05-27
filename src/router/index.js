@@ -6,7 +6,7 @@ import LopetProfile from "@/components/LopetProfile.vue";
 import LopetAbout from "@/components/LopetAbout.vue";
 import LopetPhotoGallery from "@/components/LopetPhotoGallery.vue";
 import LopetEditProfile from "@/components/LopetEditProfile.vue";
-import PetCommunity from "@/components/PetCommunity.vue";// mở rộng xem tất cả chủ gợi ý
+
 import PetCommunityy from "@/components/PetCommunityy.vue";// chủ
 
 import LoginView from '../layout/LoginView.vue'
