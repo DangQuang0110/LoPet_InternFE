@@ -14,14 +14,14 @@
         <!-- User -->
         <div class="user-status-row">
           <img :src="avatar" class="avatar" alt="User Avatar" />
-          <span class="username">{{ acc.username || '...' }}</span>
+          <span class="username">{{ displayName }}</span>
         </div>
 
         <!-- Textarea -->
         <textarea
           v-model="content"
           class="post-textarea"
-          :placeholder="`${acc.username || 'Bạn'} ơi, bạn đang nghĩ gì ?`"
+          :placeholder="`${displayName || 'Bạn'} ơi, bạn đang nghĩ gì ?`"
         />
 
         <!-- Previews -->
@@ -59,6 +59,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { createPost } from '@/service/postService'
 import { getAccountById } from '@/service/authService'
+import { getProfileByAccountId } from '@/service/profileService'
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
@@ -67,8 +68,8 @@ const emit = defineEmits(['close', 'post'])
 const content = ref('')
 const mediaFiles = reactive([])
 const fileInput = ref(null)
-const avatar = ref('/image/avata.jpg ') 
-const acc = ref({}) 
+const avatar = ref('/image/avata.jpg') 
+const displayName = ref('')
 
 function closeModal() {
   emit('close')
@@ -114,10 +115,10 @@ async function submitPost() {
     const res = await createPost(formData)
     emit('post', res.data)
     toast.success('Đăng bài viết thành công', {
-          autoClose: 3000,
-          position: toast.POSITION.TOP_RIGHT,
-          theme:'colored'
-        });
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+      theme:'colored'
+    });
     closeModal()
   } catch (err) {
     console.error('Lỗi khi tạo bài viết:', err)
@@ -127,16 +128,22 @@ async function submitPost() {
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (user.id) {
-    const account = await getAccountById(user.id)
-    if (account) {
-      acc.value = account
-      if (account.avatar) {
-        avatar.value = account.avatar
-      }
+    const [account, profile] = await Promise.all([
+      getAccountById(user.id),
+      getProfileByAccountId(user.id)
+    ])
+
+    if (profile?.avatarUrl?.trim()) {
+      avatar.value = profile.avatarUrl
+    } else if (account?.avatar?.trim()) {
+      avatar.value = account.avatar
     }
+
+    displayName.value = profile?.fullName || account?.username || 'Ẩn danh'
   }
 })
 </script>
+
 
 <style scoped>
 .modal-overlay {
@@ -154,7 +161,7 @@ onMounted(async () => {
 .create-post-modal {
   width: 90%;
   max-width: 500px;
-  background: #FAEBD7;
+  background: #FFFFFF;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -163,7 +170,8 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #FFF8F0;
+  background: #F9F9F9;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
 }
 .close-btn {
   background: none;
@@ -208,7 +216,8 @@ onMounted(async () => {
   padding: 12px;
   resize: none;
   font-size: 14px;
-  background: #FAEBD7;
+  background: #F9F9F9;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
 }
 .media-previews {
   display: flex;
@@ -241,9 +250,10 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: #FFF8F0;
   border-radius: 8px;
-  cursor: pointer;
+  cursor: pointer;  
+  background: #F9F9F9;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
 }
 .submit-btn,
 .confirm-btn {

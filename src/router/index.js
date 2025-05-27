@@ -18,12 +18,20 @@ import CreatePost from '@/components/CreatePost.vue'
 import GroupPage from "@/layout/GroupPage.vue";
 import GroupJoinedView from "@/layout/GroupJoinedView.vue";
 
+import profiletest from '@/components/profiletest.vue';
+
+
 
 
 // Phần admin
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
 
 const routes=[
+  {
+    path: "/profiletest",
+    name: "profiletest",
+    component: profiletest,
+  },
     {
         path: "/friend",
         name: "FriendPage",

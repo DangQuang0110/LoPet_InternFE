@@ -30,26 +30,11 @@
           </transition>
         </header>
 
-        <!-- Stories -->
-        <!-- <div class="stories">
-        <div class="story" v-for="(u, index) in stories" :key="u.name">
-          <div class="story-wrapper">
-            <img
-              :src="u.src"
-              :alt="u.name"
-              :class="{ 'first-story': index === 0 }"
-            />
-            <span v-if="index === 0" class="add-story">+</span>
-          </div>
-          <span>{{ u.name }}</span>
-        </div>
-      </div> -->
-
         <!-- Composer -->
         <div class="composer" @click="showCreate = true">
-          <img class="composer-avatar" src="/assets/quang.jpg" alt="User Avatar" />
+          <img class="composer-avatar" :src="currentUserAvatar" alt="User Avatar" />
           <div class="composer-body">
-            <input v-model="composeText" type="text" placeholder="Hôm nay, bạn nghĩ gì thế Quang Dang?"
+            <input v-model="composeText" type="text" :placeholder="`Hôm nay, bạn nghĩ gì thế ${currentUserName}?`"
               class="composer-input" readonly />
             <i class="fas fa-camera composer-camera"></i>
           </div>
@@ -67,20 +52,12 @@
                   <small class="time">{{ post.time }}</small>
                 </div>
                 <div class="post-header-actions">
-                  <!-- Report button -->
-
-
-                  <!-- Kebab menu -->
                   <button class="btn-icon menu-btn" @click.stop="togglePostMenu(post.id)">
                     <i class="fas fa-ellipsis-v"></i>
                   </button>
-
-                  <!-- Popup menu của từng post -->
                   <div v-if="openedMenuPostId === post.id" class="post-menu" @click.stop>
                     <ul>
                       <li @click="showReport = true">Báo cáo bài viết</li>
-                      <!-- <li @click="confirmDelete(post.id)">Xóa bài viết</li> -->
-                      <!-- nếu cần thêm item khác thì cứ tiếp tục -->
                     </ul>
                   </div>
                 </div>
@@ -88,7 +65,24 @@
 
               <!-- Content -->
               <div class="post-content">
-                <p>{{ post.text }}</p>
+                <p>
+                  <!-- Nếu nội dung quá dài và chưa mở rộng thì cắt ngắn -->
+                  <span v-if="!expandedPosts[post.postId] && post.text.length > 200">
+                    {{ post.text.slice(0, 200) }}...
+                  </span>
+                  <!-- Nếu mở rộng hoặc nội dung ngắn thì hiển thị toàn bộ -->
+                  <span v-else>{{ post.text }}</span>
+                </p>
+
+                <!-- Nút xem thêm / thu gọn -->
+                <button
+                  v-if="post.text.length > 200"
+                  class="toggle-expand-btn"
+                  @click="toggleExpand(post.postId)"
+                >
+                  {{ expandedPosts[post.postId] ? 'Thu gọn' : 'Xem thêm' }}
+                </button>
+
                 <div class="post-image-wrapper" v-if="post.img">
                   <img :src="post.img" alt="" />
                 </div>
@@ -96,20 +90,17 @@
               <!-- Actions -->
               <div class="post-actions">
                 <button class="btn-icon like-btn" @click="toggleLike(post)">
-                <img
-                  :src="post.liked
-                    ? '/assets/liked.png'
-                    : '/assets/like.png'"
-                  alt="Like"
-                  class="icon-img-like"
-                />
+                  <img
+                    :src="post.liked ? '/assets/liked.png' : '/assets/like.png'"
+                    alt="Like"
+                    class="icon-img-like"
+                  />
                 </button>
                 <span class="count">{{ post.likes }}</span>
                 <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">
                   <img src="/assets/comment.png" alt="Comment" class="icon-img" />
                 </button>
                 <span class="count">{{ post.commentsList.length }}</span>
-
                 <button class="btn-icon share-btn" @click="toggleSharePopup">
                   <img src="/images/share.png" alt="Share" class="icon-img-share" />
                 </button>
@@ -347,20 +338,19 @@ import CreatePost from '@/components/CreatePost.vue'
 import ReportModal from '@/components/ReportModal.vue'
 import { getPosts ,likePost, unlikePost } from '@/service/postService'
 import { getAccountById } from '@/service/authService'
-import { getSuggestedFriends, sendFriendRequest, getFriendList } from '@/service/friendService'
+import { getSuggestedFriends, getFriendList } from '@/service/friendService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
+import { getProfileByAccountId } from '@/service/profileService'
 
 const search = ref('')
 const showCreate = ref(false)
 const showReport = ref(false)
 const composeText = ref('')
 const posts = ref([])
-const currentAvatar = ref('/image/avata.jpg')
 const suggestions = ref([])
 const openedMenuPostId = ref(null)
 const showDeleteConfirm = ref(false)
 const deleteTargetId = ref(null)
-const currentUserId = JSON.parse(localStorage.getItem('user') || '{}')?.id
 
 const showSharePopup = ref(false)
 const showPrivacy = ref(false)
@@ -374,43 +364,31 @@ const showCommentPopup = ref(false)
 const showCommentsModal = ref(false)
 const selectedPost = ref({ commentsList: [] })
 const newComment = ref('')
+const expandedPosts = ref({})
 
-const currentUserAvatar = '/assets/quang.jpg'
-const currentUserName = 'Quang Dang'
+const currentUserAvatar = ref('/image/avata.jpg')
+const currentUserName = ref('Ẩn danh')
+function toggleExpand(postId) {
+  expandedPosts.value[postId] = !expandedPosts.value[postId]
+}
+
 async function toggleLike(post) {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (!user.id || !post.postId) return
 
-    console.log('▶️ Like/Unlike bắt đầu:', {
-      postId: post.postId,
-      accountId: user.id,
-      đãLikeTrướcĐó: post.liked
-    })
-
     if (post.liked) {
       const res = await unlikePost(user.id, post.postId)
-      console.log('⬅️ Kết quả unlike trả về từ API:', res)
-
       post.likes -= 1
       post.liked = false
       post.postLikes = post.postLikes.filter(like => like.accountId !== user.id)
     } else {
       const res = await likePost(user.id, post.postId)
-      console.log('⬅️ Kết quả like trả về từ API:', res)
-
       post.likes += 1
       post.liked = true
       if (!Array.isArray(post.postLikes)) post.postLikes = []
       post.postLikes.push({ accountId: user.id })
     }
-
-    console.log('✅ Trạng thái bài viết sau khi xử lý:', {
-      liked: post.liked,
-      tổngLike: post.likes,
-      danhSáchLike: post.postLikes
-    })
-
   } catch (error) {
     console.error('❌ Lỗi khi xử lý like/unlike:', error)
   }
@@ -419,10 +397,13 @@ async function toggleLike(post) {
 function togglePostMenu(id) {
   openedMenuPostId.value = openedMenuPostId.value === id ? null : id
 }
-
-function confirmDelete(id) {
-  deleteTargetId.value = id
-  showDeleteConfirm.value = true
+function formatVietnameseTime(dateStr) {
+  const date = new Date(dateStr)
+  const day = date.getDate()
+  const month = date.getMonth() + 1
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  return `${day} tháng ${month} lúc ${hours}:${minutes}`
 }
 
 function cancelDelete() {
@@ -436,12 +417,12 @@ function performDelete() {
   showDeleteConfirm.value = false
   deleteTargetId.value = null
 }
+
 function toggleSharePopup() {
   showSharePopup.value = !showSharePopup.value
 }
 
 function shareNow() {
-  console.log('Chia sẻ:', shareText.value, 'Privacy:', privacySetting.value)
   toggleSharePopup()
 }
 
@@ -486,8 +467,8 @@ async function addComment(post) {
 
     target.commentsList.push({
       id: res.id,
-      user: currentUserName,
-      userSrc: currentUserAvatar,
+      user: currentUserName.value,
+      userSrc: currentUserAvatar.value,
       text: res.content,
       time: 'Vừa xong'
     })
@@ -508,38 +489,67 @@ async function fetchPosts() {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (!user.id) return
 
+    const [account, profile] = await Promise.all([
+      getAccountById(user.id),
+      getProfileByAccountId(user.id)
+    ])
+
+    currentUserAvatar.value = profile?.avatarUrl?.trim() ? profile.avatarUrl : (account?.avatar || '/image/avata.jpg')
+    currentUserName.value = profile?.fullName?.trim() ? profile.fullName : (account?.username || 'Ẩn danh')
+
     const friendList = await getFriendList(user.id)
     const friendIds = friendList.map(friend => friend.id)
     const res = await getPosts()
     const postResults = []
 
     for (const post of res) {
-      console.log('🧾 Dữ liệu bài viết:', post)
       const authorId = post.accountId
       let username = 'Ẩn danh'
+      let avatarUrl = '/image/avata.jpg'
 
       if (post.accounts?.username) {
         username = post.accounts.username
+        avatarUrl = post.accounts.avatar || '/image/avata.jpg'
       } else {
-        const acc = await getAccountById(authorId)
-        if (acc?.username) username = acc.username
+        const [acc, prof] = await Promise.all([
+          getAccountById(authorId),
+          getProfileByAccountId(authorId)
+        ])
+        username = prof?.fullName?.trim() ? prof.fullName : (acc?.username || 'Ẩn danh')
+        avatarUrl = prof?.avatarUrl?.trim() ? prof.avatarUrl : (acc?.avatar || '/image/avata.jpg')
       }
 
       if (authorId === user.id || friendIds.includes(authorId)) {
         const commentRes = await getCommentsByPostId(post.postId)
-        const comments = commentRes?.comments?.map(c => ({
-          id: c.id,
-          user: c.account?.username || 'Ẩn danh',
-          userSrc: '/image/avata.jpg',
-          text: c.content,
-          time: c.createdAt
-        })) || []
+        const comments = []
+
+        for (const c of commentRes?.comments || []) {
+          const commentAccountId = c.account?.id
+          if (!commentAccountId) continue
+
+          try {
+            const [acc, prof] = await Promise.all([
+              getAccountById(commentAccountId),
+              getProfileByAccountId(commentAccountId)
+            ])
+            comments.push({
+              id: c.id,
+              user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+              userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
+              text: c.content,
+              createdAt: c.createdAt
+            })
+          } catch (e) {
+            console.error('❌ Không thể load profile của người bình luận:', e)
+          }
+        }
         const isLiked = post.postLikes?.some(like => like.accountId === user.id)
+
         postResults.push({
           postId: post.postId,
           user: username,
-          userSrc: '/image/avata.jpg',
-          time: new Date(post.createdAt).toLocaleString(),
+          userSrc: avatarUrl,
+          time: formatVietnameseTime(post.createdAt),
           text: post.content,
           img: post.postMedias?.[0]?.mediaUrl || null,
           likes: post.likeAmount || 0,
@@ -549,42 +559,25 @@ async function fetchPosts() {
         })
       }
     }
-    posts.value = postResults
+
+    posts.value = postResults.reverse() // ← Đảo mảng để bài mới nhất lên đầu
   } catch (err) {
     console.error('Không thể load bài viết:', err)
   }
 }
 
+
+onMounted(fetchPosts)
+
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (user.id) {
-    const acc = await getAccountById(user.id)
-    if (acc?.avatar) currentAvatar.value = acc.avatar
-
     const suggest = await getSuggestedFriends(user.id, 4)
     suggestions.value = suggest
   }
 })
-
-onMounted(fetchPosts)
-
-function handleHideSuggestion(id) {
-  suggestions.value = suggestions.value.filter(s => s.id !== id)
-}
-
-async function handleAddFriend(receiverId) {
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    if (!user.id) return
-
-    await sendFriendRequest(user.id, receiverId)
-
-    suggestions.value = suggestions.value.filter(s => s.id !== receiverId)
-  } catch (error) {
-    console.error('Lỗi khi gửi lời mời:', error)
-  }
-}
 </script>
+
 <style scoped>
 :root {
   --bg-page: #FFF8F0;
@@ -645,7 +638,7 @@ html,
   padding: 8px 16px;
 }
 
-.search-box .material-icons {
+.material-icons {
   font-size: 20px;
   color: #888;
   margin-right: 6px;
@@ -731,8 +724,8 @@ html,
 /* COMPOSER */
 .composer {
   display: flex;
-  width: 98%;
-  margin-left: 8px;
+  width: 89%;
+  margin-left: 38px;
   align-items: flex-start;
   background: var(--bg-composer);
   /* #FAEBD7 */
@@ -929,9 +922,7 @@ html,
   display: block;
   object-fit: contain;
   /* Không cắt ảnh, giữ nguyên tỉ lệ */
-  margin-top: 8px;
-  margin-left: 0;
-  margin-right: 0;
+  margin:0;
   margin-inline: auto;
 }
 
@@ -944,6 +935,7 @@ html,
   max-height: 500px;
   overflow: hidden;
   border-radius: 10px;
+  margin:0;
 }
 
 .post-actions {
@@ -1003,6 +995,7 @@ html,
   height: 20px;
   object-fit: contain;
   margin-bottom: 8px;
+  margin-left:410px;
 }
 
 .post-stats {
@@ -1762,4 +1755,14 @@ html,
 .fade-leave-to {
   opacity: 0;
 }
+.toggle-expand-btn {
+  background: none;
+  border: none;
+  color: #A9A9A9;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 4px;
+  margin-left:20px;
+}
+
 </style>
