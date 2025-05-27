@@ -1,91 +1,82 @@
 <template>
-<layout>
-  <div class="app-container">
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Search Bar at the top -->
-      <div class="search-container">
-        <div class="search-box">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" placeholder="Tìm kiếm" />
-        </div>
-      </div>
-      <!-- Tab Navigation -->
-      <div class="tab-navigation">
-        <div class="tab-item" :class="{ active: activeTab === 'friend-requests' }" @click="activeTab = 'friend-requests'">
-          <i class="fas fa-plus-circle"></i>
-          <span>Lời mời kết bạn</span>
-        </div>
-        <div class="tab-item" :class="{ active: activeTab === 'friend-suggestions' }" @click="activeTab = 'friend-suggestions'">
-          <i class="fas fa-user-friends"></i>
-          <span>Gợi ý kết bạn</span>
-        </div>
-        <div class="tab-item" :class="{ active: activeTab === 'all-friends' }" @click="activeTab = 'all-friends'">
-          <i class="fas fa-users"></i>
-          <span>Tất cả bạn bè</span>
-        </div>
-      </div>
-
-      <!-- Pet Grid - Friend Requests -->
-      <div v-if="activeTab === 'friend-requests'" class="pet-grid">
-        <div v-for="(pet, index) in friendRequests" :key="index" class="pet-card">
-          <div class="pet-image">
-            <img :src="pet.avatarUrl ?? currentAvatar" :alt="pet.fullName || pet.username" />
+  <layout>
+    <div class="app-container">
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Search Bar -->
+        <div class="search-container">
+          <div class="search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" placeholder="Tìm kiếm" />
           </div>
-          <div class="pet-name">{{ pet.fullName || pet.username }}</div>
-          <button class="action-button accept" @click="acceptRequest(pet.id)">
-            <i class="fas fa-check"></i> Chấp nhận
-          </button>
-          <button class="action-button reject" @click="confirmDelReqFriend(pet.id)">
-            Xoá
-          </button>
         </div>
-      </div>
 
-      <!-- Pet Grid - Friend Suggestions -->
-      <div v-else-if="activeTab === 'friend-suggestions'" class="pet-grid">
-        <div v-for="pet in friendSuggestions" :key="pet.id" class="pet-card">
-          <div class="pet-image">
-            <img :src="pet.avatarUrl || currentAvatar" :alt="pet.fullName || pet.username || 'Người dùng'" />
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+          <div class="tab-item" :class="{ active: activeTab === 'all-friends' }" @click="activeTab = 'all-friends'">
+            <i class="fas fa-users"></i>
+            <span>Tất cả bạn bè</span>
           </div>
-          <div class="pet-name">{{ pet.fullName || pet.username || 'Ẩn danh' }}</div>
-          <button class="action-button accept" @click="sendRequestToFriend(pet.id)">
-            <i class="fas fa-user-plus"></i> Thêm bạn bè
-          </button>
-          <button class="action-button reject" @click="deleteSuggestedFriend(pet.id)">
-            Xoá
-          </button>
+          <div class="tab-item" :class="{ active: activeTab === 'friend-requests' }" @click="activeTab = 'friend-requests'">
+            <i class="fas fa-plus-circle"></i>
+            <span>Lời mời kết bạn</span>
+          </div>
+          <div class="tab-item" :class="{ active: activeTab === 'friend-suggestions' }" @click="activeTab = 'friend-suggestions'">
+            <i class="fas fa-user-friends"></i>
+            <span>Gợi ý kết bạn</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Pet Grid - All Friends -->
-      <div v-else class="pet-grid">
-        <div v-for="(pet, index) in allFriends" :key="index" class="pet-card">
-          <div class="pet-image">
-            <img :src="pet.avatarUrl ?? currentAvatar" :alt="pet.fullName || pet.username" />
+        <!-- All Friends -->
+        <div v-if="activeTab === 'all-friends'" class="pet-grid">
+          <div v-for="(pet, index) in allFriends" :key="index" class="pet-card">
+            <div class="pet-image">
+              <img :src="pet.avatarUrl ?? currentAvatar" :alt="pet.fullName || pet.username" />
+            </div>
+            <div class="pet-name">{{ pet.fullName || pet.username }}</div>
+            <button class="action-button profile">Xem trang cá nhân</button>
+            <button class="action-button reject" @click="isDeleteFriend(pet.id)">Xoá</button>
           </div>
-          <div class="pet-name">{{ pet.fullName || pet.username }}</div>
-          <button class="action-button profile">
-            Xem trang cá nhân
-          </button>
-          <button class="action-button reject" @click="isDeleteFriend(pet.id)">
-            Xoá
-          </button>
         </div>
-      </div>
-      <div class="pagination">
-        <button class="pagination-button">
-          <i class="fas fa-chevron-down"></i>
-        </button>
+
+        <!-- Friend Requests -->
+        <div v-else-if="activeTab === 'friend-requests'" class="pet-grid">
+          <div v-for="(pet, index) in friendRequests" :key="index" class="pet-card">
+            <div class="pet-image">
+              <img :src="pet.avatarUrl ?? currentAvatar" :alt="pet.fullName || pet.username" />
+            </div>
+            <div class="pet-name">{{ pet.fullName || pet.username }}</div>
+            <button class="action-button accept" @click="acceptRequest(pet.id)">
+              <i class="fas fa-check"></i> Chấp nhận
+            </button>
+            <button class="action-button reject" @click="confirmDelReqFriend(pet.id)">
+              Xoá
+            </button>
+          </div>
+        </div>
+
+        <!-- Friend Suggestions -->
+        <div v-else class="pet-grid">
+          <div v-for="pet in friendSuggestions" :key="pet.id" class="pet-card">
+            <div class="pet-image">
+              <img :src="pet.avatarUrl || currentAvatar" :alt="pet.fullName || pet.username || 'Người dùng'" />
+            </div>
+            <div class="pet-name">{{ pet.fullName || pet.username || 'Ẩn danh' }}</div>
+            <button class="action-button accept" @click="sendRequestToFriend(pet.id)">
+              <i class="fas fa-user-plus"></i> Thêm bạn bè
+            </button>
+            <!-- <button class="action-button reject" @click="deleteSuggestedFriend(pet.id)">Xoá</button> -->
+          </div>
+        </div>
       </div>
     </div>
-  </div>
   </layout>
 </template>
+
 
 <script>
 import { getFriendList, getListRequestF, acceptFriendRequest, rejectFriendReq, getSuggestedFriends, sendFriendRequest, removeSuggestedFriend, deleteFriend } from '@/service/friendService';
