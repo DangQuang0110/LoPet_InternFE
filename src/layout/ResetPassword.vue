@@ -4,7 +4,7 @@
       <img src="@/assets/logoPetGram.png" alt="LOPET Logo" class="logo" />
       <p>Gặp sự cố khi đăng nhập?</p>
       <p>
-        Nhập email hoặc số điện thoại được gửi cho bạn liên kết để đăng nhập vào tài khoản.
+        Nhập email đã liên kết để đăng nhập vào tài khoản.
       </p>
       <div class="input-group">
         <input
@@ -14,28 +14,40 @@
           @blur="contactFocus = false"
           placeholder=" "
         />
-        <label :class="{ active: contactFocus || contact }">Số điện thoại hoặc email</label>
+        <label :class="{ active: contactFocus || contact }">email</label>
       </div>
-      <button class="btn" @click="sendLink">Gửi liên kết đăng nhập</button>
-      <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
+      <button class="btn" @click="sendLink">Gửi mã OTP</button>
+      <router-link to="/login" class="back">← Trở về trang đăng nhập</router-link>
     </div>
   </div>
 </template>
-
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { sendOTP } from '@/service/otpService'
 
-const contact = ref('');
-const contactFocus = ref(false);
+const router = useRouter()
+const contact = ref('')
+const contactFocus = ref(false)
+// onMounted(()=>{
 
-const sendLink = () => {
-  if (!contact.value) {
-    alert('Vui lòng nhập số điện thoại hoặc email!');
-    return;
+// })
+const sendLink = async () => {
+  if (!contact.value) return alert('Vui lòng nhập email!')
+
+  try {
+    await sendOTP(contact.value)
+
+    localStorage.setItem('reset_flow', 'true')
+    localStorage.setItem('email_otp', contact.value)
+
+    router.push('/verificationCode')
+  } catch (err) {
+    alert(err.message || 'Lỗi gửi OTP!')
   }
-  // Ở đây bạn có thể thêm gọi API gửi link
-  alert(`Liên kết đăng nhập đã được gửi tới: ${contact.value}`);
-};
+}
+
+
 </script>
 
 <style scoped>
@@ -66,6 +78,8 @@ const sendLink = () => {
 .logo {
   width: 125px;
   margin: 0 auto 1rem;
+    margin: 0 auto 1rem; 
+  display: block;
 }
 
 .auth-box p {

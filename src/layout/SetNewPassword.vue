@@ -6,38 +6,134 @@
       <p class="sub-text">Vui lòng nhập mật khẩu mới để cập nhật tài khoản</p>
 
       <label>Mật khẩu mới</label>
-      <div class="input-group">
+      <div class="input-group password-group">
         <input
           :type="showPassword ? 'text' : 'password'"
+          v-model="password"
           placeholder="Nhập mật khẩu mới"
         />
-        <span @click="showPassword = !showPassword">
-          <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+        <span class="toggle-password" @click="showPassword = !showPassword">
+          <svg
+            v-if="!showPassword"
+            xmlns="http://www.w3.org/2000/svg"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#888"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M1 1l22 22" />
+            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.5 0-10-4.5-10-10 0-2.5 1-4.7 2.64-6.36" />
+            <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
+            <path d="M12 4c4.5 0 8.3 2.7 9.54 6.36" />
+          </svg>
+          <svg
+            v-else
+            xmlns="http://www.w3.org/2000/svg"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#888"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
         </span>
       </div>
 
       <label>Xác nhận mật khẩu mới</label>
-      <div class="input-group">
+      <div class="input-group password-group">
         <input
           :type="showConfirmPassword ? 'text' : 'password'"
+          v-model="confirmPassword"
           placeholder="Nhập lại mật khẩu"
         />
-        <span @click="showConfirmPassword = !showConfirmPassword">
-          <i :class="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+        <span class="toggle-password" @click="showConfirmPassword = !showConfirmPassword">
+          <svg
+            v-if="!showConfirmPassword"
+            xmlns="http://www.w3.org/2000/svg"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#888"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M1 1l22 22" />
+            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.5 0-10-4.5-10-10 0-2.5 1-4.7 2.64-6.36" />
+            <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
+            <path d="M12 4c4.5 0 8.3 2.7 9.54 6.36" />
+          </svg>
+          <svg
+            v-else
+            xmlns="http://www.w3.org/2000/svg"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#888"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
         </span>
       </div>
-
-      <button class="btn">Đặt lại mật khẩu</button>
+      <button class="btn" @click="handleReset">Đặt lại mật khẩu</button>
       <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { resetPassword } from '@/service/authService'
 
-const showPassword = ref(false);
-const showConfirmPassword = ref(false);
+const router = useRouter()
+
+const password = ref('')
+const confirmPassword = ref('')
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+
+const email = localStorage.getItem('email_otp')
+
+const handleReset = async () => {
+  if (!password.value || !confirmPassword.value) {
+    alert('Vui lòng nhập đầy đủ thông tin!')
+    return
+  }
+
+  if (password.value !== confirmPassword.value) {
+    alert('Mật khẩu không khớp!')
+    return
+  }
+
+  try {
+    await resetPassword({
+      email,
+      password: password.value,
+      confirmPassword: confirmPassword.value
+    })
+
+    alert('Đặt lại mật khẩu thành công!')
+    localStorage.removeItem('email_otp')
+    localStorage.removeItem('reset_flow')
+
+    router.push('/login')
+  } catch (err) {
+    console.error('Lỗi reset mật khẩu:', err)
+    alert(err?.response?.data?.message || 'Đặt lại mật khẩu thất bại!')
+  }
+}
 </script>
 
 <style scoped>
@@ -68,6 +164,8 @@ const showConfirmPassword = ref(false);
 .logo {
   width: 120px;
   margin-bottom: 1rem;
+    margin: 0 auto 1rem; 
+  display: block;
 }
 
 h1 {
@@ -92,20 +190,14 @@ label {
 }
 
 .input-group {
+  position: relative;
   width: 100%;
   margin-bottom: 1rem;
 }
 
-.input-group label {
-  display: block;
-  font-size: 0.9rem;
-  margin-bottom: 0.3rem;
-  color: #444;
-}
-
 .input-group input {
   width: 100%;
-  padding: 14px 10px;
+  padding: 14px 40px 14px 10px;
   font-size: 1rem;
   border: 1px solid #f4ae18;
   border-radius: 4px;
@@ -113,24 +205,17 @@ label {
   outline: none;
 }
 
-.input-group label {
-  position: absolute;
-  left: 10px;
-  top: 14px;
-  color: #999;
-  pointer-events: none;
-  transition: all 0.2s ease;
-  background-color: #fff9ef;
-  padding: 0 4px;
-  font-size: 1rem;
+.password-group {
+  position: relative;
 }
 
-.input-group label.active {
-  top: -8px;
-  left: 8px;
-  font-size: 0.75rem;
-  color: #ff9800;
-  font-weight: 500;
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  user-select: none;
 }
 
 .btn {
