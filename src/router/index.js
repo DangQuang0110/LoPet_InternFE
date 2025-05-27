@@ -1,4 +1,3 @@
-
 import { createWebHistory,createRouter } from "vue-router";
 import Home from '@/components/ComHome.vue';
 import FriendPage from "@/components/FriendPage.vue";
@@ -16,6 +15,8 @@ import SetNewPassword from '../layout/SetNewPassword.vue'
 import VerificationCode from '../layout/VerificationCode.vue'
 import Message from '@/components/comMessage.vue';
 import CreatePost from '@/components/CreatePost.vue'
+import GroupPage from "@/layout/GroupPage.vue";
+import GroupJoinedView from "@/layout/GroupJoinedView.vue";
 
 
 
@@ -25,36 +26,55 @@ import CreatePost from '@/components/CreatePost.vue'
 const routes=[
     {
         path: "/friend",
-        name:FriendPage,
-        component:FriendPage,
+        name: "FriendPage",
+        component: FriendPage,
     },
     {
         path: "/profile",
-        name:LopetProfile,
-        component:LopetProfile,
+        name: "LopetProfile",
+        component: LopetProfile,
     },
     {
         path: "/about",
-        name:LopetAbout,
-        component:LopetAbout,
+        name: "LopetAbout",
+        component: LopetAbout,
     },
     {
         path: "/photo",
-        name:LopetPhotoGallery,
-        component:LopetPhotoGallery,
+        name: "LopetPhotoGallery",
+        component: LopetPhotoGallery,
     },
     {
         path: "/edit",
-        name:LopetEditProfile,
-        component:LopetEditProfile,
+        name: "LopetEditProfile",
+        component: LopetEditProfile,
     },
     {
       path: "/groups",
-      name: PetCommunityy,
-      component:PetCommunityy,
+      name: "PetCommunityy",
+      component: PetCommunityy,
     },
-    { path: '/home',    name: 'Home',       component: Home },
-  { path: '/create-post',    name: 'CreatePost',       component: CreatePost },
+    {
+      path: "/groupjoin",
+      name: "GroupJoinedView",
+      component: GroupJoinedView,
+    },
+    {
+        path: "/groupjoins/:id",
+        name: "GroupPage",
+        component: GroupPage,
+        props: true
+    },
+    { 
+        path: '/home',    
+        name: 'Home',       
+        component: Home 
+    },
+    { 
+        path: '/create-post',    
+        name: 'CreatePost',       
+        component: CreatePost 
+    },
     // {
     //     path: "/admin",
     //     component: AdminLayout,
@@ -66,7 +86,7 @@ const routes=[
   {
     path:'/message',
     name:'message',
-    component:Message,
+    component: Message,
   },
   {
     path: '/',
