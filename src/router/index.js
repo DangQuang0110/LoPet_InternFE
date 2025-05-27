@@ -15,14 +15,59 @@ import ResetPassword from '../layout/ResetPassword.vue'
 import SetNewPassword from '../layout/SetNewPassword.vue'
 import VerificationCode from '../layout/VerificationCode.vue'
 import Message from '@/components/comMessage.vue';
-// import AboutView from '../components/AboutView.vue'
+import CreatePost from '@/components/CreatePost.vue'
 
-const routes = [
-  {
-      path:'/message',
-      name:'message',
-      component:Message,
+
+
+// Phần admin
+//import AdminLayout from '@/components/admin/AdminLayout.vue';
+
+const routes=[
+    {
+        path: "/friend",
+        name:FriendPage,
+        component:FriendPage,
     },
+    {
+        path: "/profile",
+        name:LopetProfile,
+        component:LopetProfile,
+    },
+    {
+        path: "/about",
+        name:LopetAbout,
+        component:LopetAbout,
+    },
+    {
+        path: "/photo",
+        name:LopetPhotoGallery,
+        component:LopetPhotoGallery,
+    },
+    {
+        path: "/edit",
+        name:LopetEditProfile,
+        component:LopetEditProfile,
+    },
+    {
+      path: "/groups",
+      name: PetCommunityy,
+      component:PetCommunityy,
+    },
+    { path: '/home',    name: 'Home',       component: Home },
+  { path: '/create-post',    name: 'CreatePost',       component: CreatePost },
+    // {
+    //     path: "/admin",
+    //     component: AdminLayout,
+    //     children: [
+        
+    //     ],
+    // }
+
+  {
+    path:'/message',
+    name:'message',
+    component:Message,
+  },
   {
     path: '/',
     redirect: '/login',
@@ -52,18 +97,7 @@ const routes = [
     name: 'verificationCode',
     component: VerificationCode,
   },
-  // {
-  //   path: '/home',
-  //   name: 'home',
-  //   component: HomeView,
-  // },
-  // {
-  //   path: '/about',
-  //   name: 'about',
-  //   component: AboutView,
-  // },
 ]
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
