@@ -1,7 +1,7 @@
 <template>
   <div class="admin-report">
     <h1>Quản lý tố cáo</h1>
-    <p class="section-title">Danh sách bị việt bị cáo</p>
+    <p class="section-title">Danh sách bị cáo</p>
     <div class="table-wrapper">
       <table class="report-table">
         <thead>

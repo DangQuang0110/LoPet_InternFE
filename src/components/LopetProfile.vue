@@ -696,7 +696,6 @@ export default {
 </script>
 
 <style>
-/* Existing styles remain unchanged */
 * {
   margin: 0;
   padding: 0;
