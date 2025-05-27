@@ -5,6 +5,9 @@ import RegisterView from '../layout/RegisterView.vue'
 import ResetPassword from '../layout/ResetPassword.vue'
 import SetNewPassword from '../layout/SetNewPassword.vue'
 import VerificationCode from '../layout/VerificationCode.vue'
+import GroupJoinedView from '../layout/GroupJoinedView.vue'
+import GroupEdit from '../layout/GroupEdit.vue'
+import GroupPage from '../layout/GroupPage.vue'
 // import AboutView from '../components/AboutView.vue'
 
 const routes = [
@@ -36,6 +39,23 @@ const routes = [
     path: '/verificationCode',
     name: 'verificationCode',
     component: VerificationCode,
+  },
+
+  {
+    path: '/groupJoined',
+    name: 'groupJoined',
+    component: GroupJoinedView,
+  },
+  {
+    path: '/groupEdit',
+    name: 'groupEdit',
+    component: GroupEdit,
+  },
+
+  {
+    path: '/groupPage',
+    name: 'groupPage',
+    component: GroupPage,
   },
   // {
   //   path: '/home',
