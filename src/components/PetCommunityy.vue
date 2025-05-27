@@ -3,7 +3,7 @@
     <div class="wrapper">
       <!-- Thanh tìm kiếm -->
       <div class="search-box-new">
-        <input type="text" placeholder="Tìm kiếm" />
+        <input type="text" placeholder="Tìm kiếm" v-model="searchTerm" />
         <button class="search-button">
           <img src="/icon/search.png" alt="Search" class="nav-icon" />
         </button>
@@ -287,19 +287,44 @@ const showAllSuggested = ref(false)
 const showAllJoined = ref(false)
 const showAllCreated = ref(false)
 
-// Computed properties để giới hạn số lượng nhóm hiển thị
+const searchTerm = ref('')
+
+// Thêm computed properties để lọc nhóm theo từ khóa tìm kiếm
+const filteredCreatedGroups = computed(() => {
+  if (!searchTerm.value) return createdGroups.value
+  const searchLower = searchTerm.value.toLowerCase()
+  return createdGroups.value.filter(group => 
+    group.name.toLowerCase().includes(searchLower)
+  )
+})
+
+const filteredJoinedGroups = computed(() => {
+  if (!searchTerm.value) return joinedGroups.value
+  const searchLower = searchTerm.value.toLowerCase()
+  return joinedGroups.value.filter(group => 
+    group.name.toLowerCase().includes(searchLower)
+  )
+})
+
+const searchFilteredSuggestedGroups = computed(() => {
+  if (!searchTerm.value) return filteredSuggestedGroups.value
+  const searchLower = searchTerm.value.toLowerCase()
+  return filteredSuggestedGroups.value.filter(group => 
+    group.name.toLowerCase().includes(searchLower)
+  )
+})
+
+// Cập nhật các computed properties hiện có
 const visibleCreatedGroups = computed(() => {
-  return showAllCreated.value ? createdGroups.value : createdGroups.value.slice(0, 3)
+  return showAllCreated.value ? filteredCreatedGroups.value : filteredCreatedGroups.value.slice(0, 3)
 })
 
 const visibleJoinedGroups = computed(() => {
-  return showAllJoined.value ? joinedGroups.value : joinedGroups.value.slice(0, 3)
+  return showAllJoined.value ? filteredJoinedGroups.value : filteredJoinedGroups.value.slice(0, 3)
 })
 
 const visibleSuggestedGroups = computed(() => {
-  return showAllSuggested.value
-    ? filteredSuggestedGroups.value
-    : filteredSuggestedGroups.value.slice(0, 3)
+  return showAllSuggested.value ? searchFilteredSuggestedGroups.value : searchFilteredSuggestedGroups.value.slice(0, 3)
 })
 
 // Lọc ra các nhóm chưa tham gia
@@ -634,7 +659,6 @@ const showUpdateConfirmation = () => {
     errorMessage.value = 'Vui lòng điền đầy đủ thông tin nhóm'
     return
   }
-
   updatedData.value = {
     name: editGroupName.value.trim(),
     type: editGroupPrivacy.value === 'Công khai' ? 'PUBLIC' : 'PRIVATE',
@@ -659,7 +683,6 @@ const handleUpdateGroup = async () => {
       })
       return
     }
-
     const formData = new FormData()
     formData.append('name', updatedData.value.name)
     formData.append('type', updatedData.value.type)

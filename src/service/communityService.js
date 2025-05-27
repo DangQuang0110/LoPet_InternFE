@@ -82,20 +82,10 @@ export const deleteGroupByOwner = async (ownerId, groupId) => {
 // Cập nhật thông tin nhóm
 export const updateGroup = async (groupId, ownerId, formData) => {
     try {
-        // Tạo một FormData mới để thêm owner ID
-        const updatedFormData = new FormData();
-        // Copy tất cả các trường từ formData gốc
-        for (let [key, value] of formData.entries()) {
-            updatedFormData.append(key, value);
-        }
-        // Thêm owner ID
-        updatedFormData.append('owner', ownerId);
-
-        const response = await apiService.put(`/v1/groups/${groupId}/${ownerId}`, updatedFormData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        });
+        // Thêm owner vào formData
+        formData.append('owner', ownerId);
+        
+        const response = await apiService.put(`/v1/groups/${groupId}`, formData);
         return response.data;
     } catch (error) {
         console.error('Lỗi khi cập nhật nhóm:', error);
