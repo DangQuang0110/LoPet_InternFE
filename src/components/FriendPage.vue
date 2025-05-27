@@ -79,7 +79,7 @@
 
 <script>
 import { getFriendList, getListRequestF, acceptFriendRequest, rejectFriendReq, getSuggestedFriends, sendFriendRequest, deleteFriend } from '@/service/friendService';
-import { getProfileById } from '@/service/profileService';
+// import { getProfileById } from '@/service/profileService';
 
 import Layout from '@/components/Layout.vue'
 import { toast } from 'vue3-toastify';

@@ -96,10 +96,13 @@
               <!-- Actions -->
               <div class="post-actions">
                 <button class="btn-icon like-btn" @click="toggleLike(post)">
-                  <img :src="post.liked
-                    ? '/assets/like.png'
-                    : '/assets/like.png'" alt="Like" class="icon-img-like" />
-
+                <img
+                  :src="post.liked
+                    ? '/assets/liked.png'
+                    : '/assets/like.png'"
+                  alt="Like"
+                  class="icon-img-like"
+                />
                 </button>
                 <span class="count">{{ post.likes }}</span>
                 <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">
@@ -357,6 +360,7 @@ const suggestions = ref([])
 const openedMenuPostId = ref(null)
 const showDeleteConfirm = ref(false)
 const deleteTargetId = ref(null)
+const currentUserId = JSON.parse(localStorage.getItem('user') || '{}')?.id
 
 const showSharePopup = ref(false)
 const showPrivacy = ref(false)
@@ -378,17 +382,37 @@ async function toggleLike(post) {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (!user.id || !post.postId) return
 
-    if (!post.liked) {
-      await likePost(user.id, post.postId)
-      post.liked = true
-      post.likes += 1
-    } else {
-      await unlikePost(user.id, post.postId)
-      post.liked = false
+    console.log('▶️ Like/Unlike bắt đầu:', {
+      postId: post.postId,
+      accountId: user.id,
+      đãLikeTrướcĐó: post.liked
+    })
+
+    if (post.liked) {
+      const res = await unlikePost(user.id, post.postId)
+      console.log('⬅️ Kết quả unlike trả về từ API:', res)
+
       post.likes -= 1
+      post.liked = false
+      post.postLikes = post.postLikes.filter(like => like.accountId !== user.id)
+    } else {
+      const res = await likePost(user.id, post.postId)
+      console.log('⬅️ Kết quả like trả về từ API:', res)
+
+      post.likes += 1
+      post.liked = true
+      if (!Array.isArray(post.postLikes)) post.postLikes = []
+      post.postLikes.push({ accountId: user.id })
     }
+
+    console.log('✅ Trạng thái bài viết sau khi xử lý:', {
+      liked: post.liked,
+      tổngLike: post.likes,
+      danhSáchLike: post.postLikes
+    })
+
   } catch (error) {
-    console.error('Lỗi khi like/unlike:', error)
+    console.error('❌ Lỗi khi xử lý like/unlike:', error)
   }
 }
 
@@ -490,6 +514,7 @@ async function fetchPosts() {
     const postResults = []
 
     for (const post of res) {
+      console.log('🧾 Dữ liệu bài viết:', post)
       const authorId = post.accountId
       let username = 'Ẩn danh'
 
@@ -509,6 +534,7 @@ async function fetchPosts() {
           text: c.content,
           time: c.createdAt
         })) || []
+        const isLiked = post.postLikes?.some(like => like.accountId === user.id)
         postResults.push({
           postId: post.postId,
           user: username,
@@ -518,12 +544,11 @@ async function fetchPosts() {
           img: post.postMedias?.[0]?.mediaUrl || null,
           likes: post.likeAmount || 0,
           commentsList: comments,
-          liked: false
+          postLikes: post.postLikes || [],
+          liked: isLiked
         })
-        /// choo nayysauohsd;lkfaslk;fdhaslf call them api get list COmment cho nayyy neeee
       }
     }
-
     posts.value = postResults
   } catch (err) {
     console.error('Không thể load bài viết:', err)
