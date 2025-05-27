@@ -1,23 +1,11 @@
 <template>
   <div class="lopet-app">
-    <!-- Header with logo and search -->
-    <header class="header">
-      <div class="logo">
-        <span class="logo-text">LOPET</span>
-        <span class="pet-icon">🐱</span>
-      </div>
-      <div class="search-box">
-        <input type="text" placeholder="Tìm kiếm..." />
-        <button class="search-button">
-          <i class="fa fa-search"></i>
-        </button>
-      </div>
-    </header>
-
-    <!-- Back arrow -->
-    <div class="back-arrow">
-      <i class="fas fa-arrow-left"></i>
-    </div>
+    <div class="search-box">
+            <input type="text" placeholder="Tìm kiếm" />
+            <button class="search-button">
+              <img src="/icon/search.png" alt="Search" class="nav-icon" />
+            </button>
+          </div>
 
     <!-- Profile section -->
     <div class="profile-container">
@@ -31,15 +19,13 @@
         <div class="profile-avatar">
           <!-- Profile avatar circle -->
         </div>
-        <div class="profile-info">
+        <div class="profile-info-new">
           <h1 class="profile-name">{{ user.name }}</h1>
           <p class="profile-stats">{{ user.friends }} Bạn bè</p>
           
           <div class="profile-nav">
-            <router-link to='/profile' class="nav-item">Bài đăng</router-link>
-            <router-link to='/about' class="nav-item">Giới Thiệu</router-link>
+            <router-link to='/profile' class="nav-item">Trang Cá Nhân</router-link>
             <router-link to='/photo' class="nav-item active">Hình Ảnh</router-link>
-            <router-link to='/edit'  class="nav-item">Chỉnh sửa trang cá nhân</router-link>
           </div>
         </div>
       </div>
@@ -48,39 +34,13 @@
       <div class="photos-content">
         <div class="photos-header">
           <h3>Hình ảnh của {{ user.name }}</h3>
-          <button class="upload-btn">
-            <i class="fas fa-plus"></i> Tải ảnh lên
-          </button>
         </div>
 
-        <!-- Photo albums section -->
-        <div class="albums-section">
-          <div class="section-header">
-            <h4>Albums</h4>
-            <button class="view-all-btn">Xem tất cả</button>
-          </div>
-          <div class="albums-grid">
-            <div class="album-item" v-for="(album, index) in albums" :key="'album-'+index">
-              <div class="album-cover" :style="{ backgroundImage: `url(${album.coverUrl})` }">
-                <div class="album-count">{{ album.photoCount }} ảnh</div>
-              </div>
-              <div class="album-title">{{ album.name }}</div>
-            </div>
-          </div>
-        </div>
+        
 
         <!-- All photos section -->
         <div class="photos-section">
-          <div class="section-header">
-            <h4>Tất cả hình ảnh</h4>
-            <div class="photos-filters">
-              <select class="filter-dropdown">
-                <option value="recent">Gần đây nhất</option>
-                <option value="oldest">Cũ nhất</option>
-                <option value="popular">Phổ biến nhất</option>
-              </select>
-            </div>
-          </div>
+          
           <div class="photos-grid">
             <div class="photo-item" v-for="(photo, index) in photos" :key="'photo-'+index" @click="openPhotoViewer(index)">
               <div class="photo-img" :style="{ backgroundImage: `url(${photo.url})` }">
@@ -94,9 +54,6 @@
                 </div>
               </div>
             </div>
-          </div>
-          <div class="load-more">
-            <button class="load-more-btn">Xem thêm</button>
           </div>
         </div>
       </div>
@@ -289,7 +246,7 @@ export default {
 }
 
 .lopet-app {
-  background-color: #f0f2f5;
+  background-color: #F9F9F9;
   min-height: 100vh;
   position: relative;
 }
@@ -370,7 +327,7 @@ export default {
 }
 
 .profile-banner {
-  height: 180px;
+  height: 250px;
   overflow: hidden;
   background-color: #f0f2f5;
   background-image: linear-gradient(to bottom, #e6e6e6, #f0f2f5);
@@ -380,10 +337,10 @@ export default {
 .profile-details {
   padding: 0 20px;
   position: relative;
-  margin-bottom: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background-color: #FFFFFF;
 }
 
 .profile-avatar {
@@ -399,7 +356,7 @@ export default {
   background-size: cover;
 }
 
-.profile-info {
+.profile-info-new {
   text-align: center;
   width: 100%;
   padding-top: 10px;
@@ -450,6 +407,7 @@ export default {
 /* Photos specific styles */
 .photos-content {
   padding: 15px;
+  background-color: #FFFFFF;
 }
 
 .photos-header {
@@ -509,7 +467,7 @@ export default {
 }
 
 .albums-section, .photos-section {
-  background-color: #faf8f0;
+  background-color: #FFFFFF;
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
@@ -549,6 +507,33 @@ export default {
   margin-top: 8px;
   font-size: 14px;
   font-weight: 500;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: #f0f2f5;
+  border-radius: 25px; 
+  padding: 8px 15px; 
+  flex: 0 1 300px; 
+  border: 1px solid #ddd;
+  margin: 0 20px; 
+  transition: box-shadow 0.3s ease; 
+  margin-bottom: 10px;
+  margin-left: 200px;
+  margin-right: 200px;
+}
+
+.search-box:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Hiệu ứng bóng khi hover */
+}
+
+.search-box input {
+  border: none;
+  background-color: transparent;
+  outline: none;
+  flex: 1;
+  padding: 8px 10px; /* Tăng padding input */
+  font-size: 15px; /* Tăng kích thước chữ */
 }
 
 .photos-grid {
@@ -599,20 +584,7 @@ export default {
   font-size: 10px;
 }
 
-.load-more {
-  text-align: center;
-  margin-top: 20px;
-}
 
-.load-more-btn {
-  padding: 8px 20px;
-  background-color: #e4e6eb;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  color: #333;
-}
 
 /* Photo viewer styles */
 .photo-viewer {

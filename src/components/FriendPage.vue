@@ -1,60 +1,10 @@
 <template>
   <div class="app-container">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="logo">
-        <!-- <img src="/pet-logo.png" alt="LOPET" /> -->
-        <span class="logo-text">LOPET</span>
-      </div>
-
-      <div class="search-container">
-        <div class="search-box">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" placeholder="Tìm kiếm" />
-        </div>
-      </div>
-
-      <!-- Navigation Menu -->
-      <div class="nav-menu">
-        <div class="nav-item active">
-          <i class="fas fa-home"></i>
-          <span>Trang chủ</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-bell"></i>
-          <span>Thông báo</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-user"></i>
-          <span>Người dùng</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-users"></i>
-          <span>Cộng đồng</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-paw"></i>
-          <span>Thú cưng</span>
-        </div>
-        <div class="nav-item">
-          <i class="fas fa-message"></i>
-          <span>Tin nhắn</span>
-        </div>
-      </div>
-
-      <div class="account-info">
-        <i class="fas fa-user-circle"></i>
-        <span>Đăng nhập</span>
-      </div>
-    </div>
 
     <!-- Main Content -->
     <div class="main-content">
       <!-- Search Bar at the top -->
+
       <div class="search-container" style="display: flex; justify-content: center; width: 100%;">
         <div class="search-box">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999"
@@ -65,6 +15,7 @@
           <input type="text" placeholder="Tìm kiếm" />
         </div>
       </div>
+      
       <!-- Tab Navigation -->
       <div class="tab-navigation">
         <div class="tab-item" :class="{ active: activeTab === 'friend-requests' }"
@@ -140,9 +91,9 @@
 </template>
 
 <script>
-import { getFriendList } from '@/service/friendService';
-import { getListRequestF } from '@/service/friendService';
-import {  acceptFriendRequest } from '@/service/friendService';
+// import { getFriendList } from '@/service/friendService';
+// import { getListRequestF } from '@/service/friendService';
+// import {  acceptFriendRequest } from '@/service/friendService';
 export default {
   name: 'PetSocialPlatform',
   data() {

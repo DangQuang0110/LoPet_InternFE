@@ -1,111 +1,93 @@
-
-import { createWebHistory,createRouter } from "vue-router";
-//import Home from '@/components/ComHome.vue';
+import { createWebHistory, createRouter } from "vue-router";
+import ComHome from '@/components/ComHome.vue';
 import FriendPage from "@/components/FriendPage.vue";
 import LopetProfile from "@/components/LopetProfile.vue";
-import LopetAbout from "@/components/LopetAbout.vue";
 import LopetPhotoGallery from "@/components/LopetPhotoGallery.vue";
-import LopetEditProfile from "@/components/LopetEditProfile.vue";
-
-import LoginView from '../layout/LoginView.vue'
-import RegisterView from '../layout/RegisterView.vue'
-import ResetPassword from '../layout/ResetPassword.vue'
-import SetNewPassword from '../layout/SetNewPassword.vue'
-import VerificationCode from '../layout/VerificationCode.vue'
-import Message from '@/components/comMessage.vue';
-import CreatePost from '@/components/CreatePost.vue'
-
+// import GroupPage from "@/components/GroupPage.vue";
+// import GroupJoinedView from "@/components/GroupJoinedView.vue";
+import PetCommunity from "@/components/PetCommunity.vue";
+import PetCommunityy from "@/components/PetCommunityy.vue";
+import ComCodelol from "@/components/ComCodelol.vue";
 // Phần admin
-//import AdminLayout from '@/components/admin/AdminLayout.vue';
-
-const routes=[
+import AdminLayout from "@/components/admin/AdminLayout.vue";
+import Admindenounce from "@/components/admin/Admindenounce.vue";
+import AdminLopetUser from "@/components/admin/AdminLopetUser.vue";
+import AdminLopetAdvertisement from "@/components/admin/AdminLopetAdvertisement.vue";
+const routes = [
+    {
+        path: "/home",
+        name: "ComHome", 
+        component: ComHome,
+    },
     {
         path: "/friend",
-        name:FriendPage,
-        component:FriendPage,
+        name: "FriendPage", 
+        component: FriendPage,
     },
     {
         path: "/profile",
-        name:LopetProfile,
-        component:LopetProfile,
+        name: "LopetProfile",
+        component: LopetProfile,
     },
-    {
-        path: "/about",
-        name:LopetAbout,
-        component:LopetAbout,
-    },
+    
     {
         path: "/photo",
-        name:LopetPhotoGallery,
-        component:LopetPhotoGallery,
+        name: "LopetPhotoGallery",
+        component: LopetPhotoGallery,
+    },
+    // {
+    //     path: "/group",
+    //     name: "GroupPage",
+    //     component: GroupPage,
+    // },
+    // {
+    //     path: "/groupjoined",
+    //     name: "GroupJoinedView",
+    //     component: GroupJoinedView,
+    // },
+    {
+        path: "/get",
+        name: "ComCodelol",
+        component: ComCodelol,
     },
     {
-        path: "/edit",
-        name:LopetEditProfile,
-        component:LopetEditProfile,
+        path: "/pet",
+        name: "PetCommunity",
+        component: PetCommunity,
     },
-    { path: '/home',    name: 'Home',       component: Home },
-  { path: '/create-post',    name: 'CreatePost',       component: CreatePost },
-    // {
-    //     path: "/admin",
-    //     component: AdminLayout,
-    //     children: [
+    {
+        path: "/pets",
+        name: "PetCommunityy",
+        component: PetCommunityy,
+    },
+    {
+        path: "/admin",
+        name: "AdminLayout",
+        component: AdminLayout,
+        children: [
             {
-
+                path: "denounce",
+                name: "Admindenounce", 
+                component: Admindenounce,
             },
-        
-    //     ],
-    // }
+            {
+                path: "user",
+                name: "AdminLopetUser",
+                component: AdminLopetUser,
+            },
+            {
+                path: "advertisement",
+                name: "AdminLopetAdvertisement",
+                component: AdminLopetAdvertisement,
+            },
+            
+        ],
+    }
+];
 
-  {
-    path:'/message',
-    name:'message',
-    component:Message,
-  },
-  {
-    path: '/',
-    redirect: '/login',
-  },
-  {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
-  },
-  {
-    path: '/register',
-    name: 'register',
-    component: RegisterView,
-  },
-  {
-    path: '/resetPassword',
-    name: 'resetPassword',
-    component: ResetPassword,
-  },
-  {
-    path: '/setNewPassword',
-    name: 'setNewPassword',
-    component: SetNewPassword,
-  },
-  {
-    path: '/verificationCode',
-    name: 'verificationCode',
-    component: VerificationCode,
-  },
-  // {
-  //   path: '/home',
-  //   name: 'home',
-  //   component: HomeView,
-  // },
-  // {
-  //   path: '/about',
-  //   name: 'about',
-  //   component: AboutView,
-  // },
-]
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
-})
-export default router
+    history: createWebHistory(),
+    routes,
+});
 
-
+export default router;
