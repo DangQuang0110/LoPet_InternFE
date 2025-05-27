@@ -228,8 +228,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Overlay để đóng dropdown khi click bên ngoài -->
     <div v-if="activeDropdown || showReportConfirm" class="dropdown-overlay" @click="closeDropdown(); cancelReport()"></div>
   </div>
   </layout>
