@@ -106,13 +106,12 @@ async function submitPost() {
 
     if (!content.value.trim() && mediaFiles.length === 0) {
       alert('Bạn chưa nhập nội dung hoặc chọn ảnh!')
-    
+      return
+    }
 
     const formData = new FormData()
     formData.append('accountId', userId)
     formData.append('content', content.value.trim())
-    formData.append('scope', 'PUBLIC')
-
     // 👇 Thêm scope mặc định là PUBLIC (có thể đổi thành FRIEND nếu muốn)
     formData.append('scope', 'PUBLIC')
 
@@ -122,16 +121,14 @@ async function submitPost() {
       formData.append('images', file)
     }
 
-
-
-    for (const [key, val] of formData.entries()) {
-      console.log('formData:', key, val)
-
-    
+    // Xoá vòng lặp log formData.entries() bị lỗi cú pháp
+    // for (const [key, val] of formData.entries()) {
+    //   console.log('formData:', key, val)
+    // }
 
     const res = await createPost(formData)
     console.log('Post created:', res)
-    
+
     emit('post', res.data)
     emit('refresh')
     toast.success('Đăng bài viết thành công', {
@@ -141,7 +138,6 @@ async function submitPost() {
     })
     closeModal()
   } catch (err) {
-
     console.error('Lỗi khi tạo bài viết:', err?.response?.data || err)
     toast.error('Đăng bài viết thất bại!', {
       autoClose: 3000,
@@ -150,7 +146,6 @@ async function submitPost() {
     })
   }
 }
-
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (user.id) {
