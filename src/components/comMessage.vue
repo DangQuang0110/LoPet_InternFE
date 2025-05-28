@@ -57,7 +57,6 @@
           </div>
         </div>
       </aside>
-
       <section class="main-chat" v-if="selectedFriend && (!isMobile || !showSidebar)">
         <header class="chat-header">
         <button v-if="isMobile" @click="showSidebar = true" class="back-btn">
@@ -72,24 +71,42 @@
             </div>
           </div>
         </header>
-
         <div class="chat-body" ref="chatBody">
           <div
-            v-for="msg in messages[selectedFriend.id]"
+            v-for="(msg, index) in messages[selectedFriend.id]"
             :key="msg.id"
             :class="['msg-wrapper', msg.fromMe ? 'align-right' : 'align-left']"
           >
-            <img v-if="!msg.fromMe" :src="selectedFriend.avatar" class="avatar-msg" />
-            <div v-if="msg.image" class="msg-image-wrapper">
-              <img :src="msg.image" class="msg-img" />
-            </div>
-            <div v-else :class="['msg', msg.fromMe ? 'from-me' : 'from-other']">
-              <p class="msg-text">{{ msg.text }}</p>
+            <!-- Avatar người nhận -->
+            <img
+              v-if="!msg.fromMe"
+              :src="selectedFriend.avatar"
+              class="avatar-msg"
+            />
+
+            <!-- Nội dung tin nhắn -->
+            <div class="msg-block">
+              <div :class="['msg', msg.fromMe ? 'from-me' : 'from-other']">
+                <p class="msg-text">{{ msg.text }}</p>
+              </div>
+
+              <!-- Trạng thái cuối cùng nếu là tin từ mình -->
+              <small
+                v-if="msg.fromMe && isLastSentByMe(index)"
+                class="msg-status-outside"
+              >
+              {{ 'Đã gửi' }}
+              </small>
             </div>
           </div>
         </div>
       <footer class="chat-input">
-        <input type="text" placeholder="Tin nhắn văn bản" />
+        <input
+          v-model="newMessage"
+          @keydown.enter.prevent="sendMessage"
+          type="text"
+          placeholder="Tin nhắn văn bản"
+        />
         <div class="chat-actions">
           <button type="button" class="icon-btn">
             <img src="/image/image.png" alt="Gửi ảnh" />
@@ -97,7 +114,7 @@
           <button type="button" class="icon-btn">
             <img src="/image/camera.png" alt="Camera" />
           </button>
-          <button type="button" class="icon-btn">
+          <button type="button" class="icon-btn" @click="sendMessage">
             <img src="/image/send.png" alt="Gửi" />
           </button>
         </div>
@@ -109,6 +126,12 @@
 
 <script setup>
 import { ref, onMounted, nextTick, computed, watch } from 'vue'
+import { getFriendList } from '@/service/friendService'
+import { getMessageList,createMessage  } from '@/service/messageService'
+import { getAccountById } from '@/service/authService'
+import { getProfileByAccountId } from '@/service/profileService'
+import socket from '@/socket'
+
 
 const currentUserAvatar = ref('/image/quang.png')
 const friends = ref([])
@@ -118,17 +141,24 @@ const chatBody = ref(null)
 const activeTab = ref('all')
 const isMobile = ref(window.innerWidth <= 426)
 const showSidebar = ref(true)
+const newMessage = ref('') 
+
+const currentUserId = JSON.parse(localStorage.getItem('user'))?.id
 
 const handleResize = () => {
   isMobile.value = window.innerWidth <= 432
   if (!isMobile.value) showSidebar.value = true
 }
-
 window.addEventListener('resize', handleResize)
 
-watch(selectedFriend, (newVal) => {
+watch(selectedFriend, async (newVal) => {
   if (isMobile.value && newVal) {
     showSidebar.value = false
+  }
+
+  if (newVal) {
+    await fetchMessages(newVal.id)
+    nextTick(() => scrollToBottom())
   }
 })
 
@@ -143,6 +173,31 @@ const indicatorStyle = computed(() => {
     width: '50%'
   }
 })
+const isLastSentByMe = (index) => {
+  const list = messages.value[selectedFriend.value.id]
+  if (!list || !list.length) return false
+
+  // Nếu tin hiện tại không phải từ mình thì bỏ qua
+  if (!list[index].fromMe) return false
+
+  // Tìm vị trí cuối cùng mà mình gửi
+  let lastIndexFromMe = -1
+  for (let i = list.length - 1; i >= 0; i--) {
+    if (list[i].fromMe) {
+      lastIndexFromMe = i
+      break
+    }
+  }
+
+  // Kiểm tra có tin nào của người kia gửi sau tin đó không
+  for (let i = lastIndexFromMe + 1; i < list.length; i++) {
+    if (!list[i].fromMe) {
+      return false
+    }
+  }
+
+  return index === lastIndexFromMe
+}
 
 const scrollToBottom = () => {
   if (chatBody.value) {
@@ -152,34 +207,154 @@ const scrollToBottom = () => {
 
 const selectFriend = (friend) => {
   selectedFriend.value = friend
-  nextTick(() => scrollToBottom())
+}
+const fetchMessages = async (friendId) => {
+  try {
+    if (!currentUserId || !friendId) {
+      console.warn('❌ senderId hoặc receiverId bị thiếu')
+      return
+    }
+
+    const msgList = await getMessageList(currentUserId, friendId)
+
+    // 🟡 Sắp xếp tin nhắn theo thời gian tăng dần
+    const sorted = msgList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+
+    messages.value[friendId] = sorted.map((msg) => ({
+      id: msg.id,
+      fromMe: msg.senderId === currentUserId,
+      text: msg.content,
+      image: msg.imageUrl || '',
+      createdAt: msg.createdAt
+    }))
+
+    await nextTick()
+    scrollToBottom()
+  } catch (err) {
+    console.error('❌ Lỗi khi lấy tin nhắn:', err)
+  }
 }
 
-onMounted(() => {
-  friends.value = [
-    { id: 1, name: 'Nhân', avatar: '/image/nhan.png', desc: 'Hello cậu', online: true },
-    { id: 2, name: 'Cầu', avatar: '/image/cau.png', desc: 'Hello cậu', online: false },
-    { id: 3, name: 'Trường', avatar: '/image/truong.png', desc: 'Chào bạn', online: true },
-    { id: 4, name: 'Phong', avatar: '/image/phong.png', desc: 'Phong thích quang', online: false },
-    { id: 5, name: 'Vũ', avatar: '/image/vu.png', desc: 'Bạn: Vậy chốt mình đặt bé này', online: true }
-  ]
+onMounted(async () => {
+  try {
+    const rawUser = localStorage.getItem('user')
+    if (!rawUser) return
+    const currentUserId = JSON.parse(rawUser)?.id
+    if (!currentUserId) return
 
-  messages.value = {
-    5: [
-      { id: 1, fromMe: true, text: 'Bạn ơi, mình muốn mua thú cưng' },
-      { id: 2, fromMe: false, text: 'Ok bạn, để mình nhắn chủ shop nhé' },
-      { id: 3, fromMe: true, text: 'Để mình gửi bạn xem hình thú cưng nhé' },
-      { id: 4, fromMe: true, text: 'Chó đây bạn, có dễ thương không??' },
-      { id: 5, fromMe: true, image: '/image/phong.png' },
-      { id: 6, fromMe: false, text: 'Chó dễ thương quá trời' },
-      { id: 7, fromMe: true, text: 'Vậy chốt mình đặt bé này' }
-    ]
+    const res = await getFriendList(currentUserId)
+
+    const friendInfoPromises = res.map(async (friend) => {
+      try {
+        const [account, profile] = await Promise.all([
+          getAccountById(friend.id),
+          getProfileByAccountId(friend.id)
+        ])
+
+        const name = profile?.fullName?.trim()
+          ? profile.fullName
+          : account?.username || 'Ẩn danh'
+
+        const avatar = profile?.avatarUrl?.trim()
+          ? profile.avatarUrl
+          : account?.avatar || '/image/avata.jpg'
+
+        return {
+          id: friend.id,
+          name,
+          avatar,
+          desc: 'Hãy bắt đầu trò chuyện!',
+          online: true
+        }
+      } catch (err) {
+        console.warn(`❌ Lỗi khi lấy thông tin người dùng ${friend.id}:`, err)
+        return {
+          id: friend.id,
+          name: 'Ẩn danh',
+          avatar: '/image/avata.jpg',
+          desc: 'Không thể hiển thị người dùng',
+          online: false
+        }
+      }
+    })
+
+    friends.value = await Promise.all(friendInfoPromises)
+  } catch (err) {
+    console.error('Không thể lấy danh sách bạn bè:', err)
   }
-
-  // if (friends.value.length > 0) {
-  //   selectedFriend.value = friends.value[0]
-  // }
 })
+const sendMessage = async () => {
+  if (!newMessage.value.trim() || !selectedFriend.value) return
+
+  const formData = new FormData()
+  formData.append('senderId', currentUserId)
+  formData.append('receiverId', selectedFriend.value.id)
+  formData.append('content', newMessage.value)
+
+  try {
+    const sent = await createMessage(formData)
+
+    // Nếu chưa có mảng tin nhắn cho bạn này, khởi tạo
+    if (!messages.value[selectedFriend.value.id]) {
+      messages.value[selectedFriend.value.id] = []
+    }
+
+    // Thêm tin nhắn mới vào cuối mảng
+    messages.value[selectedFriend.value.id].push({
+      id: sent.id,
+      fromMe: true,
+      text: sent.content,
+      image: sent.imageUrl || '',
+      status: sent.status || 'sent'
+    })
+    // Xoá nội dung input và cuộn xuống
+    newMessage.value = ''
+
+    await nextTick() // Đợi DOM cập nhật xong
+    setTimeout(() => {
+      scrollToBottom()
+    }, 50) // Trì hoãn nhẹ để đảm bảo scroll chính xác
+  } catch (err) {
+    console.error('❌ Lỗi khi gửi tin nhắn:', err)
+  }
+}
+onMounted(() => {
+  const userId = JSON.parse(localStorage.getItem('user'))?.id
+  if (userId) {
+    socket.emit('join room', `user_${userId}`)
+
+    socket.on('chat messsage', (data) => {
+      const { message, from } = data
+      console.log('📥 Tin nhắn realtime:', message)
+
+      if (!messages.value[from]) {
+        messages.value[from] = []
+      }
+
+      messages.value[from].push({
+        id: message.id,
+        fromMe: false,
+        text: message.content,
+        image: message.imageUrl || '',
+        createdAt: message.createdAt
+      })
+
+      if (selectedFriend.value?.id === from) {
+        nextTick(scrollToBottom)
+      }
+    })
+
+    // ✅ CHÈN Ở ĐÂY
+    socket.on('update-user-status', ({ userId, online }) => {
+      const index = friends.value.findIndex((f) => f.id === Number(userId));
+      if (index !== -1) {
+        friends.value[index].online = online;
+        friends.value = [...friends.value]; // ✅ Bắt buộc để force re-render
+      }
+    });
+  }
+})
+
 </script>
 
 <style scoped>
@@ -187,12 +362,12 @@ onMounted(() => {
   display: flex;
   height: 100vh;
   font-family: 'Segoe UI', roboto;
-  background: #FFF8F0;
+  background: #FFFFFF;
 
 }
 .left-bar {
   width: 60px;
-  background: #FAEBD7;
+  background: #F9F9F9;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -251,22 +426,24 @@ onMounted(() => {
 .right-main {
   display: flex;
   flex: 1;
-  background: #FAEBD7;
+  background: #F9F9F9;
   margin-left:10px;
 }
 .sidebar {
   width: 290px;
+  height:695px;
   margin-right:0;
-  background: #FAEBD7;
+  background: #F9F9F9;
   padding: 10px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
 }
 .search-bar {
   position: relative;
   display: flex;
   align-items: center;
-  background-color: #FAEBD7;
+  background-color: #FFFFFF;
   border: 1px solid #ccc;
   border-radius: 10px;
   padding: 6px 12px;
@@ -404,19 +581,21 @@ onMounted(() => {
 }
 .msg-wrapper {
   display: flex;
-  align-items: flex-end;
   margin-bottom: 10px;
+  gap: 8px;
 }
+
 .avatar-msg {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   margin: 0 8px 4px 8px;
+    flex-shrink: 0;
 }
-.align-right {
+/* .align-right {
   display: flex;
   justify-content: flex-end;
-}
+} */
 .align-left {
   display: flex;
   justify-content: flex-start;
@@ -521,6 +700,30 @@ onMounted(() => {
   height: 20px;
   opacity: 0.8;
   transition: opacity 0.2s, transform 0.2s;
+}
+.msg-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 60%;
+}
+.align-right .msg-block {
+  align-items: flex-end;
+}
+
+.align-right {
+  justify-content: flex-end;
+}
+.msg {
+  padding: 10px;
+  border-radius: 12px;
+  word-wrap: break-word;
+  max-width: 100%;
+}
+.msg-status-outside {
+  font-size: 12px;
+  color: gray;
+  margin-top: 2px;
 }
 @media (max-width: 432px) {
   .chat-app {

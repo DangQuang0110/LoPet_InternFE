@@ -21,8 +21,21 @@
     <!-- Socket.io -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-      const socket = io("http://localhost:8080")
-      socket.emit("register")
+      const socket = io('http://localhost:8080', {
+        auth: {
+          token: localStorage.getItem('accessToken'),
+        },
+      })
+      socket.on('connect', () => {
+        console.log('Connected socket id:', socket.id)
+        const userId = JSON.parse(localStorage.getItem('user')).id
+        socket.emit('join room', `user_${userId}`)
+
+      })
+      socket.on('chat messsage', (data) => {
+        console.log('Received message:', data)
+      })
+      // socket.emit("register")
     </script>
   </body>
 </html>

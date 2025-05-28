@@ -104,12 +104,27 @@ async function submitPost() {
       return
     }
 
+    if (!content.value.trim() && mediaFiles.length === 0) {
+      alert('Bạn chưa nhập nội dung hoặc chọn ảnh!')
+      return
+    }
+
     const formData = new FormData()
     formData.append('accountId', userId)
     formData.append('content', content.value)
 
+    // 👇 Thêm scope mặc định là PUBLIC (có thể đổi thành FRIEND nếu muốn)
+    formData.append('scope', 'PUBLIC')
+
+    // Nếu cần groupId thì thêm: formData.append('groupId', groupId)
+
     for (const file of mediaFiles.map(f => f.file)) {
       formData.append('images', file)
+    }
+
+    // Debug log
+    for (const [key, val] of formData.entries()) {
+      console.log('formData:', key, val)
     }
 
     const res = await createPost(formData)
@@ -117,11 +132,16 @@ async function submitPost() {
     toast.success('Đăng bài viết thành công', {
       autoClose: 3000,
       position: toast.POSITION.TOP_RIGHT,
-      theme:'colored'
-    });
+      theme: 'colored'
+    })
     closeModal()
   } catch (err) {
-    console.error('Lỗi khi tạo bài viết:', err)
+    console.error('Lỗi khi tạo bài viết:', err?.response?.data || err)
+    toast.error('Đăng bài viết thất bại!', {
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+      theme: 'colored'
+    })
   }
 }
 
