@@ -112,3 +112,40 @@ export const getGroupDetails = async (groupId) => {
     throw error
   }
 }
+
+//-----------------------------------------------------------
+//                 XỬ LÝ ĐĂNG BÀI Ở NHÓM
+
+
+// Tạo bài viết trong nhóm 
+export const createPostGroup = async (formData) => {
+  try {
+   
+    console.log('Data nè con lợn :', formData)
+    const response = await apiService.post('/v1/posts', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    console.log('API Response:', response)
+    return response.data
+  } catch (error) {
+    console.error('Lỗi khi đăng bài viết:', error)
+    if (error.response) {
+      console.error('Error response:', error.response.data)
+    }
+    throw error
+  }
+}
+
+
+// lấy bài viết 
+export const getPostsGroup = async (groupId) => {
+  try {
+    const response = await apiService.get(`/v1/posts?groupId=${groupId}`)
+    return response.data.data
+  } catch (error) {
+    console.error('Lỗi khi lấy bài viết:', error)
+    throw error
+  }
+}

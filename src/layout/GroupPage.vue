@@ -145,83 +145,88 @@
           <div class="left">
             <div class="new-post">
               <div class="status-box">
-                <img class="avatar" src="https://i.pravatar.cc/40?img=7" />
-                <input class="status-input" placeholder="Bạn nghĩ gì thế Phạm Cầu?" />
+                <img class="avatar" :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" />
+                <textarea 
+                  v-model="newPostContent"
+                  class="status-input" 
+                  placeholder="Bạn muốn chia sẻ điều gì?"
+                  :disabled="isPostLoading"
+                ></textarea>
               </div>
+              
+              <!-- Image preview -->
+              <div v-if="imagePreview" class="image-preview-container">
+                <img :src="imagePreview" alt="Preview" class="image-preview" />
+                <button class="remove-image" @click="removeImage">×</button>
+              </div>
+
               <div class="status-actions">
-                <img src="@/assets/camera.png" alt="Camera" class="inline-icon" />
+                <label class="image-upload-label">
+                  <img src="@/assets/camera.png" alt="Camera" class="inline-icon" />
+                  <input 
+                    type="file" 
+                    class="image-input" 
+                    @change="handleImageChange" 
+                    accept="image/*"
+                    :disabled="isPostLoading"
+                  />
+                </label>
+                <button 
+                  class="post-button" 
+                  @click="handleCreatePost"
+                  :disabled="isPostLoading || !newPostContent.trim()"
+                >
+                  {{ isPostLoading ? 'Đang đăng...' : 'Đăng' }}
+                </button>
               </div>
             </div>
 
-            <div class="post">
+            <!-- Danh sách bài viết -->
+            <div v-for="post in groupPosts" :key="post.id" class="post">
               <div class="post-header">
-                <img class="avatar" src="https://i.pravatar.cc/40?img=7" />
+                <img class="avatar" :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" />
                 <div class="info">
-                  <strong>Phạm Cầu</strong>
-                  <div class="time">7 tháng 5 lúc 15:48</div>
+                  <strong>{{ post.user?.fullName || 'Người dùng' }}</strong>
+                  <div class="time">{{ new Date(post.createdAt).toLocaleString('vi-VN') }}</div>
                 </div>
                 <div class="menu-container">
-                  <div class="menu" @click="toggleReportMenu(1)">⋮</div>
-                  <div v-if="showReportMenu === 1" class="report-dropdown">
-                    <button @click="openReport(1)">Báo cáo bài viết</button>
+                  <div class="menu" @click="toggleReportMenu(post.id)">⋮</div>
+                  <div v-if="showReportMenu === post.id" class="report-dropdown">
+                    <button @click="openReport(post.id)">Báo cáo bài viết</button>
                   </div>
                 </div>
               </div>
 
-              <p>Mình đang bị lạc mất con chó màu vàng ai thấy báo giúp mình</p>
-              <img src="@/assets/anhbia.jpg" alt="Post Image" class="post-image" />
+              <p>{{ post.content }}</p>
+              
+              <!-- Hiển thị ảnh từ postMedias -->
+              <div v-if="post.postMedias && post.postMedias.length > 0" class="post-media-container">
+                <template v-for="(media, index) in post.postMedias" :key="index">
+                  <img 
+                    v-if="media.mediaType === 'IMAGE'" 
+                    :src="media.mediaUrl" 
+                    :alt="'Post Image ' + (index + 1)"
+                    class="post-image"
+                    @click="openImagePreview(media.mediaUrl)"
+                  />
+                </template>
+              </div>
 
               <div class="interactions">
-                <img src="@/assets/traitim.png" alt="Like" class="inline-icon" /> 120 lượt thích –
-                <img src="@/assets/comment.png" alt="Bình luận" class="inline-icon" /> Bình luận –
+                <img src="@/assets/traitim.png" alt="Like" class="inline-icon" /> {{ post.likes || 0 }} lượt thích –
+                <img src="@/assets/comment.png" alt="Bình luận" class="inline-icon" /> {{ post.comments?.length || 0 }} bình luận –
                 <img src="@/assets/share.png" alt="Chia sẻ" class="inline-icon" /> Chia sẻ
               </div>
 
-              <div
-                class="comment"
-                style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px"
-              >
-                <img
-                  src="https://i.pravatar.cc/30?img=9"
-                  style="width: 28px; height: 28px; border-radius: 50%"
+              <!-- Hiển thị danh sách comment -->
+              <div v-for="comment in post.comments" :key="comment.id" class="comment">
+                <img 
+                  :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'" 
+                  class="comment-avatar"
                 />
-                <div style="background-color: #f2f2f2; padding: 6px 10px; border-radius: 12px">
-                  <strong>Phong:</strong> Chó này mình làm thịt rồi nha bạn
+                <div class="comment-content">
+                  <strong>{{ comment.user?.fullName || 'Người dùng' }}:</strong> {{ comment.content }}
                 </div>
-              </div>
-
-              <input class="comment-box" placeholder="Viết bình luận..." />
-            </div>
-
-            <!-- Thêm bài viết thứ 2 để test -->
-            <div class="post">
-              <div class="post-header">
-                <img class="avatar" src="https://i.pravatar.cc/40?img=8" />
-                <div class="info">
-                  <strong>Nguyễn Văn A</strong>
-                  <div class="time">6 tháng 5 lúc 10:30</div>
-                </div>
-                <div class="menu-container">
-                  <div class="menu" @click="toggleReportMenu(2)">⋮</div>
-                  <div v-if="showReportMenu === 2" class="report-dropdown">
-                    <button @click="openReport(2)">Báo cáo bài viết</button>
-                    <button @click="showReportMenu = null">Ẩn bài viết</button>
-                    <button @click="showReportMenu = null">Chặn người dùng</button>
-                  </div>
-                </div>
-              </div>
-
-              <p>Cần tìm nhà cho em mèo con này, ai có nhu cầu inbox mình nhé!</p>
-              <img
-                src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500"
-                alt="Cat Image"
-                class="post-image"
-              />
-
-              <div class="interactions">
-                <img src="@/assets/traitim.png" alt="Like" class="inline-icon" /> 85 lượt thích –
-                <img src="@/assets/comment.png" alt="Bình luận" class="inline-icon" /> Bình luận –
-                <img src="@/assets/share.png" alt="Chia sẻ" class="inline-icon" /> Chia sẻ
               </div>
 
               <input class="comment-box" placeholder="Viết bình luận..." />
@@ -269,13 +274,19 @@
       </main>
     </div>
   </Layout>
+
+  <!-- Thêm modal xem ảnh -->
+  <div v-if="selectedPreviewImage" class="image-preview-modal" @click="closeImagePreview">
+    <img :src="selectedPreviewImage" alt="Preview" @click.stop />
+    <div class="close-button" @click="closeImagePreview">×</div>
+  </div>
 </template>
 
 <script setup>
 import Layout from '@/components/Layout.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getGroupDetails, updateGroup } from '@/service/communityService'
+import { getGroupDetails, updateGroup, createPostGroup, getPostsGroup } from '@/service/communityService'
 import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 
@@ -290,6 +301,12 @@ const showReportMenu = ref(null)
 const isLoading = ref(true)
 const isUpdating = ref(false)
 const errorMessage = ref('')
+const newPostContent = ref('')
+const selectedImage = ref(null)
+const imagePreview = ref(null)
+const groupPosts = ref([])
+const isPostLoading = ref(false)
+const user = ref(null)
 const editForm = ref({
   name: '',
   privacy: '',
@@ -297,6 +314,7 @@ const editForm = ref({
 })
 const editImagePreview = ref(null)
 const editSelectedImage = ref(null)
+const selectedPreviewImage = ref(null)
 
 const reportOptions = [
   'Thông tin sai sự thật, lừa đảo hoặc gian lận',
@@ -316,6 +334,19 @@ const group = ref({
   coverUrl: '',
   totalMembers: 0,
 })
+
+// Hàm để lấy thông tin user
+const getCurrentUser = () => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      user.value = JSON.parse(userStr)
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error)
+      user.value = null
+    }
+  }
+}
 
 // Hàm lấy thông tin nhóm
 const fetchGroupDetails = async () => {
@@ -352,9 +383,127 @@ const fetchGroupDetails = async () => {
   }
 }
 
+// Hàm xử lý khi chọn ảnh cho bài viết mới
+const handleImageChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    if (!file.type.match('image.*')) {
+      toast.error('Vui lòng chọn file ảnh!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước ảnh không được vượt quá 5MB!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+    selectedImage.value = file
+    imagePreview.value = URL.createObjectURL(file)
+  }
+}
+
+// Hàm xóa ảnh đã chọn
+const removeImage = () => {
+  selectedImage.value = null
+  imagePreview.value = null
+  const input = document.querySelector('.image-input')
+  if (input) input.value = ''
+}
+
+// Hàm đăng bài viết mới
+const handleCreatePost = async () => {
+  try {
+    if (!newPostContent.value.trim()) {
+      toast.error('Vui lòng nhập nội dung bài viết!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    if (!user.value) {
+      toast.error('Vui lòng đăng nhập để thực hiện chức năng này!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    isPostLoading.value = true
+    const formData = new FormData()
+    formData.append('content', newPostContent.value.trim())
+    formData.append('groupId', route.params.id)
+    formData.append('userId', user.value.id)
+    formData.append('scope', 'PUBLIC')
+
+    if (selectedImage.value) {
+      formData.append('images', selectedImage.value)
+    }
+
+    // Log formData after all data has been appended
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value)
+    }
+
+    await createPostGroup(formData)
+
+    // Reset form
+    newPostContent.value = ''
+    selectedImage.value = null
+    imagePreview.value = null
+    const input = document.querySelector('.image-input')
+    if (input) input.value = ''
+
+    // Refresh posts
+    await fetchGroupPosts()
+
+    toast.success('Đăng bài viết thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+
+  } catch (error) {
+    console.error('Lỗi khi đăng bài viết:', error)
+    toast.error('Có lỗi xảy ra khi đăng bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  } finally {
+    isPostLoading.value = false
+  }
+}
+
+// Hàm lấy danh sách bài viết
+const fetchGroupPosts = async () => {
+  try {
+    const posts = await getPostsGroup(route.params.id)
+    
+    groupPosts.value = posts
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách bài viết:', error)
+    toast.error('Không thể tải danh sách bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  }
+}
+
 onMounted(() => {
   console.log('Component mounted, route params:', route.params)
+  getCurrentUser()
   fetchGroupDetails()
+  fetchGroupPosts()
 })
 
 function saveChanges() {
@@ -507,6 +656,16 @@ const handleUpdateGroup = async () => {
     isUpdating.value = false
   }
 }
+
+// Hàm mở modal xem ảnh
+const openImagePreview = (imageUrl) => {
+  selectedPreviewImage.value = imageUrl
+}
+
+// Hàm đóng modal xem ảnh
+const closeImagePreview = () => {
+  selectedPreviewImage.value = null
+}
 </script>
 
 <style scoped>
@@ -658,18 +817,59 @@ body {
 }
 .status-box {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 .status-input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 12px;
   border-radius: 16px;
   border: 1px solid #ccc;
+  min-height: 60px;
+  resize: vertical;
+  font-family: inherit;
 }
 .status-actions {
   margin-top: 10px;
-  font-size: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.image-upload-label {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.image-upload-label:hover {
+  background-color: #f5f5f5;
+}
+
+.image-input {
+  display: none;
+}
+
+.post-button {
+  background-color: #f9a825;
+  color: #fff;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.post-button:hover:not(:disabled) {
+  background-color: #f57c00;
+}
+
+.post-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* --- Bài viết --- */
@@ -1183,5 +1383,119 @@ body {
   border-radius: 8px;
   font-size: 14px;
   text-align: center;
+}
+
+/* Comment styles */
+.comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.comment-content {
+  background-color: #f2f2f2;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.comment-content strong {
+  margin-right: 4px;
+}
+
+/* Image preview in new post */
+.image-preview-container {
+  margin: 12px 0;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.image-preview {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.remove-image:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.post-media-container {
+  margin: 10px 0;
+  display: grid;
+  grid-gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.post-media-container img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.post-media-container img:hover {
+  transform: scale(1.02);
+}
+
+/* Nếu chỉ có 1 ảnh thì hiển thị full width */
+.post-media-container:has(img:only-child) img {
+  grid-column: 1 / -1;
+}
+
+/* Thêm style cho modal xem ảnh nếu cần */
+.image-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.image-preview-modal img {
+  max-width: 90%;
+  max-height: 90vh;
+  object-fit: contain;
+}
+
+.image-preview-modal .close-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
 }
 </style>

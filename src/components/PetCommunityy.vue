@@ -153,7 +153,10 @@
       </div>
       <div v-if="isLoadingJoined" class="loading-state">Đang tải danh sách nhóm đã tham gia...</div>
       <div class="group-grid" v-else-if="visibleJoinedGroups.length > 0">
-        <div v-for="group in visibleJoinedGroups" :key="group.id" class="group-card">
+        <div v-for="group in visibleJoinedGroups" 
+             :key="group.id" 
+             class="group-card"
+             @click="navigateToGroup(group)">
           <img :src="group.image" alt="Group Image" />
           <div class="content">
             <div class="info">

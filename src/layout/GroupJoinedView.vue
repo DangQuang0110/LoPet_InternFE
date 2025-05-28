@@ -1,4 +1,5 @@
 <template>
+  <Layout>
   <div class="app-container">
     <!-- Overlay popup xác nhận thoát nhóm -->
     <div v-if="confirmLeave" class="overlay">
@@ -167,11 +168,6 @@
         <div class="right">
           <div class="introduction">
             <h3 class="intro-title">Giới thiệu</h3>
-            <p class="intro-desc">Chào ae vào hội cứu trợ động vật Việt Nam</p>
-            <p class="contact-title">Liên hệ với chúng tôi</p>
-            <p><img class="icon" src="@/assets/sdt.png" alt="Hotline"> Hotline: 0369620631</p>
-            <p><img class="icon" src="@/assets/email.png" alt="Email"> Email: caupham25@gmail.com</p>
-            <p><img class="icon" src="@/assets/diachi.png" alt="Địa chỉ"> Hoài Nhơn, Bình Định, Việt Nam</p>
           </div>
 
           <div class="sidebar-box">
@@ -182,11 +178,14 @@
         </div>
       </div>
     </main>
-  </div>
+    </div>
+  </layout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import Layout from '@/components/Layout.vue'
+
 
 const confirmLeave = ref(false)
 const leftGroup = ref(false)

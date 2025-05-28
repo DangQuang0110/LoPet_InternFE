@@ -56,4 +56,3 @@ export async function unlikePost(accountId, postId) {
   return res.data
 }
 
-

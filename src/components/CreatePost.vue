@@ -63,7 +63,7 @@ import { getProfileByAccountId } from '@/service/profileService'
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
-const emit = defineEmits(['close', 'post'])
+const emit = defineEmits(['close', 'post', 'refresh'])
 
 const content = ref('')
 const mediaFiles = reactive([])
@@ -104,16 +104,29 @@ async function submitPost() {
       return
     }
 
+    if (!content.value.trim()) {
+      alert('Vui lòng nhập nội dung bài viết')
+      return
+    }
+
     const formData = new FormData()
     formData.append('accountId', userId)
-    formData.append('content', content.value)
+    formData.append('content', content.value.trim())
+    formData.append('scope', 'PUBLIC')
 
     for (const file of mediaFiles.map(f => f.file)) {
       formData.append('images', file)
     }
 
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value)
+    }
+
     const res = await createPost(formData)
+    console.log('Post created:', res)
+    
     emit('post', res.data)
+    emit('refresh')
     toast.success('Đăng bài viết thành công', {
       autoClose: 3000,
       position: toast.POSITION.TOP_RIGHT,
@@ -122,6 +135,14 @@ async function submitPost() {
     closeModal()
   } catch (err) {
     console.error('Lỗi khi tạo bài viết:', err)
+    if (err.response) {
+      console.error('API Error:', err.response.data)
+    }
+    toast.error('Không thể đăng bài viết. Vui lòng thử lại.', {
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+      theme:'colored'
+    });
   }
 }
 
