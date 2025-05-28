@@ -230,7 +230,7 @@
             <div class="post-comments" v-if="post.comments && post.comments.length > 0">
               <div v-for="(comment, index) in post.comments" :key="index" class="comment">
                 <div 
-                  class="comment-avatar"
+                  class="comment-avatar-profile"
                   :style="{ 'background-image': 'url(' + comment.authorAvatar + ')' }"
                 ></div>
                 <div class="comment-content">
@@ -243,7 +243,7 @@
             <!-- Comment input -->
             <div class="comment-input">
               <div 
-                class="comment-avatar user-avatar"
+                class="comment-avatar-profile user-avatar"
                 :style="{ 'background-image': 'url(' + user.avatar + ')' }"
               ></div>
               <div class="comment-box">
@@ -1238,7 +1238,7 @@ async submitComment(postId) {
   margin-bottom: 10px;
 }
 
-.comment-avatar {
+.comment-avatar-profile {
   width: 28px;
   height: 28px;
   border-radius: 50%;

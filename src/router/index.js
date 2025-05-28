@@ -18,8 +18,6 @@ import CreatePost from '@/components/CreatePost.vue'
 import GroupPage from "@/layout/GroupPage.vue";
 import GroupJoinedView from "@/layout/GroupJoinedView.vue";
 
-import profiletest from '@/components/profiletest.vue';
-
 
 
 import AdminLayout from '@/components/admin/AdminLayout.vue';
@@ -30,11 +28,6 @@ import AdminLopetAdvertisement from "@/components/admin/AdminLopetAdvertisement.
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
 
 const routes=[
-  {
-    path: "/profiletest",
-    name: "profiletest",
-    component: profiletest,
-  },
     {
         path: "/friend",
         name: "FriendPage",
