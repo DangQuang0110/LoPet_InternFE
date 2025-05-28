@@ -1,19 +1,13 @@
 import apiService from '@/api/apiService'
 
 export const createProfile = async (data) => {
-  const formData = new FormData()
-  formData.append('fullName', data.fullName || '')
-  formData.append('phoneNumber', data.phoneNumber || '')
-  formData.append('bio', data.bio || '')
-  formData.append('avatarUrl', '') // Không cần link nữa, backend lo ảnh
-  formData.append('coverUrl', '')
-
-  // Gửi file rỗng nếu không có file thật (để tránh multer lỗi)
-  const emptyFile = new Blob([], { type: 'image/png' })
-  formData.append('avatar', emptyFile, 'empty.png')
-  formData.append('cover', emptyFile, 'empty.png')
-
-  const response = await apiService.post('/v1/profiles', formData)
+  const response = await apiService.post('/v1/profiles', {
+    fullName: data.fullName,
+    phoneNumber: data.phoneNumber,
+    bio: data.bio,
+    avatarUrl: '', // hoặc null nếu backend hỗ trợ
+    coverUrl: ''
+  })
   return response.data.data
 }
 

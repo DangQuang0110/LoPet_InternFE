@@ -104,23 +104,30 @@ async function submitPost() {
       return
     }
 
-    if (!content.value.trim()) {
-      alert('Vui lòng nhập nội dung bài viết')
-      return
-    }
+    if (!content.value.trim() && mediaFiles.length === 0) {
+      alert('Bạn chưa nhập nội dung hoặc chọn ảnh!')
+    
 
     const formData = new FormData()
     formData.append('accountId', userId)
     formData.append('content', content.value.trim())
     formData.append('scope', 'PUBLIC')
 
+    // 👇 Thêm scope mặc định là PUBLIC (có thể đổi thành FRIEND nếu muốn)
+    formData.append('scope', 'PUBLIC')
+
+    // Nếu cần groupId thì thêm: formData.append('groupId', groupId)
+
     for (const file of mediaFiles.map(f => f.file)) {
       formData.append('images', file)
     }
 
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value)
-    }
+
+
+    for (const [key, val] of formData.entries()) {
+      console.log('formData:', key, val)
+
+    
 
     const res = await createPost(formData)
     console.log('Post created:', res)
@@ -130,19 +137,17 @@ async function submitPost() {
     toast.success('Đăng bài viết thành công', {
       autoClose: 3000,
       position: toast.POSITION.TOP_RIGHT,
-      theme:'colored'
-    });
+      theme: 'colored'
+    })
     closeModal()
   } catch (err) {
-    console.error('Lỗi khi tạo bài viết:', err)
-    if (err.response) {
-      console.error('API Error:', err.response.data)
-    }
-    toast.error('Không thể đăng bài viết. Vui lòng thử lại.', {
+
+    console.error('Lỗi khi tạo bài viết:', err?.response?.data || err)
+    toast.error('Đăng bài viết thất bại!', {
       autoClose: 3000,
       position: toast.POSITION.TOP_RIGHT,
-      theme:'colored'
-    });
+      theme: 'colored'
+    })
   }
 }
 
