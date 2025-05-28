@@ -18,11 +18,8 @@
         </div>
 
         <!-- Textarea -->
-        <textarea
-          v-model="content"
-          class="post-textarea"
-          :placeholder="`${displayName || 'Bạn'} ơi, bạn đang nghĩ gì ?`"
-        />
+        <textarea v-model="content" class="post-textarea"
+          :placeholder="`${displayName || 'Bạn'} ơi, bạn đang nghĩ gì ?`" />
 
         <!-- Previews -->
         <div v-if="mediaFiles.length" class="media-previews">
@@ -33,14 +30,8 @@
         </div>
 
         <!-- File Input -->
-        <input
-          type="file"
-          ref="fileInput"
-          accept="image/*"
-          multiple
-          @change="handleMediaChange"
-          style="display: none;"
-        />
+        <input type="file" ref="fileInput" accept="image/*" multiple @change="handleMediaChange"
+          style="display: none;" />
         <div class="media-picker" @click="pickMedia">
           <i class="far fa-image"></i>
           <span>Thêm ảnh</span>
@@ -68,7 +59,7 @@ const emit = defineEmits(['close', 'post', 'refresh'])
 const content = ref('')
 const mediaFiles = reactive([])
 const fileInput = ref(null)
-const avatar = ref('/image/avata.jpg') 
+const avatar = ref('/image/avata.jpg')
 const displayName = ref('')
 
 function closeModal() {
@@ -112,8 +103,6 @@ async function submitPost() {
     const formData = new FormData()
     formData.append('accountId', userId)
     formData.append('content', content.value.trim())
-    formData.append('scope', 'PUBLIC')
-
     // 👇 Thêm scope mặc định là PUBLIC (có thể đổi thành FRIEND nếu muốn)
     formData.append('scope', 'PUBLIC')
 
@@ -127,11 +116,11 @@ async function submitPost() {
 
     for (const [key, val] of formData.entries()) {
       console.log('formData:', key, val)
-    
+
     }
     const res = await createPost(formData)
     console.log('Post created:', res)
-    
+
     emit('post', res.data)
     emit('refresh')
     toast.success('Đăng bài viết thành công', {
@@ -150,9 +139,9 @@ async function submitPost() {
       theme: 'colored'
     })
   }
-  }
+}
 onMounted(async () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const user = JSON.parse(localStorage.getItem('user'))
   if (user.id) {
     const [account, profile] = await Promise.all([
       getAccountById(user.id),
@@ -182,6 +171,7 @@ onMounted(async () => {
   justify-content: center;
   z-index: 1000;
 }
+
 .create-post-modal {
   width: 90%;
   max-width: 500px;
@@ -189,6 +179,7 @@ onMounted(async () => {
   border-radius: 12px;
   overflow: hidden;
 }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -197,33 +188,39 @@ onMounted(async () => {
   background: #F9F9F9;
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
 }
+
 .close-btn {
   background: none;
   border: none;
   font-size: 20px;
   cursor: pointer;
 }
+
 .modal-body {
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
 .user-status-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
 }
+
 .username {
   font-weight: 500;
   font-size: 16px;
 }
+
 .status-btn {
   margin-left: auto;
   background: #FFD699;
@@ -232,6 +229,7 @@ onMounted(async () => {
   padding: 6px 12px;
   cursor: pointer;
 }
+
 .post-textarea {
   width: 100%;
   min-height: 80px;
@@ -243,20 +241,24 @@ onMounted(async () => {
   background: #F9F9F9;
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
 }
+
 .media-previews {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
+
 .preview-item {
   position: relative;
 }
+
 .preview-item img {
   width: 80px;
   height: 80px;
   object-fit: cover;
   border-radius: 8px;
 }
+
 .remove-preview {
   position: absolute;
   top: -6px;
@@ -269,16 +271,18 @@ onMounted(async () => {
   color: #fff;
   cursor: pointer;
 }
+
 .media-picker {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px;
   border-radius: 8px;
-  cursor: pointer;  
+  cursor: pointer;
   background: #F9F9F9;
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
 }
+
 .submit-btn,
 .confirm-btn {
   width: 100%;
@@ -289,6 +293,7 @@ onMounted(async () => {
   font-size: 16px;
   cursor: pointer;
 }
+
 /* Status modal styles unchanged */
 .status-overlay {
   position: absolute;
@@ -301,6 +306,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
 }
+
 .status-modal {
   width: 90%;
   max-width: 400px;
@@ -311,23 +317,28 @@ onMounted(async () => {
   flex-direction: column;
   gap: 16px;
 }
+
 .status-desc {
   font-size: 14px;
   color: #555;
 }
+
 .status-option {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
 }
+
 .status-option i {
   font-size: 20px;
   color: #333;
 }
+
 .status-option input {
   margin: 0;
 }
+
 .status-option span {
   font-size: 14px;
   color: #141414;
