@@ -108,6 +108,30 @@
         </div>
       </div>
 
+      <!-- Share Link Popup -->
+      <div v-if="showSharePopup" class="overlay">
+        <div class="share-popup">
+          <div class="popup-header">
+            <h3>Chia sẻ bài viết</h3>
+            <span class="close-btn" @click="toggleSharePopup">×</span>
+          </div>
+
+          <div class="share-link-container">
+            <input 
+              type="text" 
+              :value="shareUrl" 
+              class="share-link-input" 
+              readonly 
+              ref="shareUrlInput"
+            />
+            <button class="copy-link-btn" @click="copyShareLink">
+              <span v-if="!copied">Sao chép</span>
+              <span v-else>Đã sao chép ✓</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <header class="header">
         <input class="search" placeholder="Tìm kiếm..." />
       </header>
@@ -150,35 +174,38 @@
         <div class="layout">
           <div class="left">
             <div class="new-post">
-              <div class="status-box">
-                <img class="avatar" :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" />
+              <div class="new-post-header">
+                <img :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" class="avatar" />
                 <textarea 
                   v-model="newPostContent"
-                  class="status-input" 
+                  class="post-input" 
                   placeholder="Bạn muốn chia sẻ điều gì?"
                   :disabled="isPostLoading"
                 ></textarea>
               </div>
               
               <!-- Image preview -->
-              <div v-if="imagePreview" class="image-preview-container">
-                <img :src="imagePreview" alt="Preview" class="image-preview" />
-                <button class="remove-image" @click="removeImage">×</button>
+              <div v-if="imagePreview" class="preview-container">
+                <img :src="imagePreview" alt="Preview" class="preview-image" />
+                <button class="remove-preview" @click="removeImage">×</button>
               </div>
 
-              <div class="status-actions">
-                <label class="image-upload-label">
-                  <img src="@/assets/camera.png" alt="Camera" class="inline-icon" />
-                  <input 
-                    type="file" 
-                    class="image-input" 
-                    @change="handleImageChange" 
-                    accept="image/*"
-                    :disabled="isPostLoading"
-                  />
-                </label>
+              <div class="new-post-actions">
+                <div class="left-actions">
+                  <label class="upload-button">
+                    <img src="@/assets/camera.png" alt="Upload" class="upload-icon" />
+                    <span>Ảnh</span>
+                    <input 
+                      type="file" 
+                      class="file-input" 
+                      @change="handleImageChange" 
+                      accept="image/*"
+                      :disabled="isPostLoading"
+                    />
+                  </label>
+                </div>
                 <button 
-                  class="post-button" 
+                  class="share-button" 
                   @click="handleCreatePost"
                   :disabled="isPostLoading || !newPostContent.trim()"
                 >
@@ -188,11 +215,11 @@
             </div>
 
             <!-- Danh sách bài viết -->
-            <div v-for="post in groupPosts" :key="post.id" class="post">
+            <div v-for="post in groupPosts" :key="post.id" class="post-card">
               <div class="post-header">
-                <img class="avatar" :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" />
-                <div class="info">
-                  <strong>{{ post.user?.fullName || 'Người dùng' }}</strong>
+                <img :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" class="avatar" />
+                <div class="post-info">
+                  <span class="username">{{ post.user?.fullName || 'Người dùng' }}</span>
                   <div class="time">{{ new Date(post.createdAt).toLocaleString('vi-VN') }}</div>
                 </div>
                 <div class="menu-container">
@@ -203,7 +230,16 @@
                 </div>
               </div>
 
-              <p>{{ post.content }}</p>
+              <div class="post-content" :class="{ 'expanded': expandedPosts[post.id] }">
+                <p>{{ post.content }}</p>
+                <button 
+                  v-if="post.content && post.content.length > 100" 
+                  class="see-more-btn"
+                  @click="toggleExpand(post.id)"
+                >
+                  {{ expandedPosts[post.id] ? 'Thu gọn' : 'Xem thêm' }}
+                </button>
+              </div>
               
               <!-- Hiển thị ảnh từ postMedias -->
               <div v-if="post.postMedias && post.postMedias.length > 0" class="post-media-container">
@@ -218,24 +254,85 @@
                 </template>
               </div>
 
-              <div class="interactions">
-                <img src="@/assets/traitim.png" alt="Like" class="inline-icon" /> {{ post.likes || 0 }} lượt thích –
-                <img src="@/assets/comment.png" alt="Bình luận" class="inline-icon" /> {{ post.comments?.length || 0 }} bình luận –
-                <img src="@/assets/share.png" alt="Chia sẻ" class="inline-icon" /> Chia sẻ
-              </div>
-
-              <!-- Hiển thị danh sách comment -->
-              <div v-for="comment in post.comments" :key="comment.id" class="comment">
-                <img 
-                  :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'" 
-                  class="comment-avatar"
-                />
-                <div class="comment-content">
-                  <strong>{{ comment.user?.fullName || 'Người dùng' }}:</strong> {{ comment.content }}
+              <div class="post-actions">
+                <div class="action-item" @click="toggleLike(post)">
+                  <img 
+                    :src="post.liked ? '@/assets/liked.png' : '@/assets/like.png'" 
+                    :alt="post.liked ? 'Unlike' : 'Like'" 
+                    class="action-icon"
+                  />
+                  <span class="action-count">{{ post.likes || 0 }}</span>
+                </div>
+                <div class="action-item" @click="toggleCommentPopup(post)">
+                  <img src="@/assets/comment.png" alt="Comment" class="action-icon" />
+                  <span class="action-count">{{ post.comments?.length || 0 }}</span>
+                </div>
+                <div class="action-item" @click="toggleSharePopup(post)">
+                  <img src="@/assets/share.png" alt="Share" class="action-icon" />
+                  <span>Chia sẻ</span>
                 </div>
               </div>
 
-              <input class="comment-box" placeholder="Viết bình luận..." />
+              <!-- Comments list -->
+              <div class="comment-list">
+                <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
+                  <img 
+                    :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'" 
+                    class="comment-avatar"
+                  />
+                  <div class="comment-bubble">
+                    <span class="comment-username">{{ comment.user?.fullName || 'Người dùng' }}</span>
+                    <span class="comment-text">{{ comment.content }}</span>
+                    <div class="comment-time">{{ new Date(comment.createdAt).toLocaleString('vi-VN') }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Comment Input -->
+              <div class="comment-input">
+                <input 
+                  type="text" 
+                  class="comment-box" 
+                  placeholder="Viết bình luận..." 
+                  v-model="newComment"
+                  @keyup.enter="addComment(post)"
+                />
+                <button class="btn-send" @click="addComment(post)">Gửi</button>
+              </div>
+
+              <!-- Comment Popup -->
+              <transition name="fade">
+                <div v-if="showCommentPopup && activePost?.postId === post.postId" class="comments-overlay" @click.self="toggleCommentPopup">
+                  <div class="comments-modal">
+                    <div class="comments-header">
+                      <h3>Bình luận</h3>
+                      <button class="close-comments" @click="toggleCommentPopup">×</button>
+                    </div>
+                    <div class="comments-body">
+                      <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
+                        <img 
+                          :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'" 
+                          class="comment-avatar" 
+                        />
+                        <div class="comment-content">
+                          <span class="comment-username">{{ comment.user?.fullName || 'Người dùng' }}</span>
+                          <span class="comment-text">{{ comment.content }}</span>
+                          <div class="comment-time">{{ new Date(comment.createdAt).toLocaleString('vi-VN') }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="comments-footer">
+                      <input 
+                        v-model="newComment" 
+                        type="text" 
+                        placeholder="Viết bình luận..."
+                        @keyup.enter="addComment(post)"
+                      />
+                      <button class="btn-send" @click="addComment(post)">Gửi</button>
+                    </div>
+                  </div>
+                </div>
+              </transition>
             </div>
           </div>
 
@@ -278,6 +375,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { getGroupDetails, updateGroup, createPostGroup, getPostsGroup, deleteGroupByOwner, leaveGroup } from '@/service/communityService'
 import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
+import { likePost, unlikePost } from '@/service/postService'
+import { getCommentsByPostId, createComment } from '@/service/commentService'
 
 const route = useRoute()
 const router = useRouter()
@@ -305,6 +404,14 @@ const editForm = ref({
 const editImagePreview = ref(null)
 const editSelectedImage = ref(null)
 const selectedPreviewImage = ref(null)
+const expandedPosts = ref({})
+const showCommentPopup = ref(false)
+const activePost = ref(null)
+const newComment = ref('')
+const showSharePopup = ref(false)
+const selectedPost = ref(null)
+const copied = ref(false)
+const shareUrlInput = ref(null)
 
 const reportOptions = [
   'Thông tin sai sự thật, lừa đảo hoặc gian lận',
@@ -411,7 +518,7 @@ const handleImageChange = (event) => {
 const removeImage = () => {
   selectedImage.value = null
   imagePreview.value = null
-  const input = document.querySelector('.image-input')
+  const input = document.querySelector('.file-input')
   if (input) input.value = ''
 }
 
@@ -458,7 +565,7 @@ const handleCreatePost = async () => {
     newPostContent.value = ''
     selectedImage.value = null
     imagePreview.value = null
-    const input = document.querySelector('.image-input')
+    const input = document.querySelector('.file-input')
     if (input) input.value = ''
 
     // Refresh posts
@@ -483,11 +590,45 @@ const handleCreatePost = async () => {
 }
 
 // Hàm lấy danh sách bài viết
-const fetchGroupPosts = async () => {
+async function fetchGroupPosts() {
   try {
     const posts = await getPostsGroup(route.params.id)
+    const user = JSON.parse(localStorage.getItem('user'))
     
-    groupPosts.value = posts
+    if (!Array.isArray(posts)) {
+      console.error('Invalid posts response:', posts)
+      return
+    }
+
+    const processedPosts = []
+    
+    for (const post of posts) {
+      try {
+        // Lấy thông tin comments
+        const commentsData = await getCommentsByPostId(post.postId)
+        const comments = commentsData?.comments || []
+
+        // Kiểm tra xem user hiện tại đã like bài viết chưa
+        const isLiked = post.postLikes?.some(like => like.accountId === user?.id)
+
+        processedPosts.push({
+          ...post,
+          postId: post.postId,
+          user: post.accounts?.username || 'Người dùng',
+          userSrc: post.accounts?.avatar || 'https://i.pravatar.cc/40?img=7',
+          content: post.content,
+          createdAt: post.createdAt,
+          likes: post.likeAmount || 0,
+          comments: comments,
+          liked: isLiked,
+          postLikes: post.postLikes || []
+        })
+      } catch (error) {
+        console.error('Error processing post:', error)
+      }
+    }
+
+    groupPosts.value = processedPosts
   } catch (error) {
     console.error('Lỗi khi lấy danh sách bài viết:', error)
     toast.error('Không thể tải danh sách bài viết!', {
@@ -750,6 +891,174 @@ async function handleDeleteGroup() {
     })
   }
 }
+
+function toggleExpand(postId) {
+  expandedPosts.value[postId] = !expandedPosts.value[postId]
+}
+
+// Thêm hàm xử lý like/unlike
+async function toggleLike(post) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user'))
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập để thực hiện chức năng này!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    if (post.liked) {
+      await unlikePost(user.id, post.postId)
+      post.likes--
+      post.liked = false
+    } else {
+      await likePost(user.id, post.postId)
+      post.likes++
+      post.liked = true
+    }
+
+    // Cập nhật UI ngay lập tức
+    const postIndex = groupPosts.value.findIndex(p => p.postId === post.postId)
+    if (postIndex !== -1) {
+      groupPosts.value[postIndex] = { ...post }
+    }
+
+    toast.success(post.liked ? 'Đã thích bài viết!' : 'Đã bỏ thích bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  } catch (error) {
+    console.error('Lỗi khi thực hiện like/unlike:', error)
+    toast.error('Có lỗi xảy ra!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  }
+}
+
+// Thêm hàm xử lý comment popup
+function toggleCommentPopup(post = null) {
+  if (showCommentPopup.value) {
+    showCommentPopup.value = false
+    activePost.value = null
+  } else {
+    activePost.value = post
+    showCommentPopup.value = true
+  }
+}
+
+// Thêm hàm xử lý thêm comment
+async function addComment(post) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user'))
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập để bình luận!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    if (!newComment.value.trim()) return
+
+    const commentData = {
+      postId: post.postId,
+      accountId: user.id,
+      content: newComment.value.trim(),
+      replyCommentId: null
+    }
+
+    const response = await createComment(commentData)
+
+    // Thêm comment mới vào UI ngay lập tức
+    const newCommentObj = {
+      id: response.id || Date.now(),
+      content: newComment.value.trim(),
+      createdAt: new Date().toISOString(),
+      user: {
+        fullName: user.username || 'Người dùng',
+        avatar: user.avatar || 'https://i.pravatar.cc/30?img=9'
+      }
+    }
+
+    if (!Array.isArray(post.comments)) {
+      post.comments = []
+    }
+    post.comments.push(newCommentObj)
+
+    // Reset input
+    newComment.value = ''
+
+    // Cập nhật UI
+    const postIndex = groupPosts.value.findIndex(p => p.postId === post.postId)
+    if (postIndex !== -1) {
+      groupPosts.value[postIndex] = { ...post }
+    }
+
+    toast.success('Đã thêm bình luận!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  } catch (error) {
+    console.error('Lỗi khi thêm bình luận:', error)
+    toast.error('Có lỗi xảy ra khi thêm bình luận!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  }
+}
+
+// Tạo URL chia sẻ
+const shareUrl = computed(() => {
+  if (!selectedPost.value) return ''
+  return `${window.location.origin}/post/${selectedPost.value.postId}`
+})
+
+// Hàm xử lý copy link
+async function copyShareLink() {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    copied.value = true
+    setTimeout(() => {
+      copied.value = false
+    }, 2000)
+
+    toast.success('Đã sao chép liên kết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 2000,
+      theme: 'colored'
+    })
+  } catch (error) {
+    console.error('Lỗi khi sao chép:', error)
+    // Fallback cho trường hợp không hỗ trợ Clipboard API
+    const input = shareUrlInput.value
+    input.select()
+    document.execCommand('copy')
+    copied.value = true
+    setTimeout(() => {
+      copied.value = false
+    }, 2000)
+  }
+}
+
+// Hàm toggle popup
+function toggleSharePopup(post = null) {
+  if (showSharePopup.value) {
+    showSharePopup.value = false
+    selectedPost.value = null
+  } else {
+    selectedPost.value = post
+    showSharePopup.value = true
+    copied.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -892,152 +1201,332 @@ body {
 
 /* --- Ô đăng trạng thái --- */
 .new-post {
-  background: #fff;
-  padding: 16px;
-  margin-bottom: 20px;
-  width: 120%;
+  background: #FFFFFF;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);  
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  margin-bottom: 24px;
+  width: 100%;
 }
-.status-box {
+
+.new-post-header {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
-.status-input {
+
+.post-input {
   flex: 1;
+  min-height: 100px;
   padding: 12px;
-  border-radius: 16px;
-  border: 1px solid #ccc;
-  min-height: 60px;
-  resize: vertical;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  resize: none;
   font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  transition: border-color 0.2s;
 }
-.status-actions {
-  margin-top: 10px;
+
+.post-input:focus {
+  outline: none;
+  border-color: #f9a825;
+}
+
+.post-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.preview-container {
+  position: relative;
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.remove-preview {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background-color 0.2s;
+}
+
+.remove-preview:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.new-post-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
 }
 
-.image-upload-label {
-  cursor: pointer;
-  padding: 8px;
+.left-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.upload-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
   border-radius: 8px;
+  cursor: pointer;
   transition: background-color 0.2s;
+  color: #666;
 }
 
-.image-upload-label:hover {
+.upload-button:hover {
   background-color: #f5f5f5;
 }
 
-.image-input {
+.upload-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.file-input {
   display: none;
 }
 
-.post-button {
+.share-button {
   background-color: #f9a825;
-  color: #fff;
+  color: white;
   border: none;
-  padding: 8px 24px;
+  padding: 10px 24px;
   border-radius: 8px;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.post-button:hover:not(:disabled) {
+.share-button:hover:not(:disabled) {
   background-color: #f57c00;
 }
 
-.post-button:disabled {
+.share-button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
   opacity: 0.7;
 }
 
 /* --- Bài viết --- */
-.post {
-  background: #fff;
+.post-card {
+  background: #FFFFFF;
+  border-radius: 10px;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
   padding: 16px;
-  width: 120%;
   margin-bottom: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  width: 100%;
 }
 .post-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.post-header .info {
-  flex-grow: 1;
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #000000;
+  object-fit: cover;
 }
-
-/* --- Menu container và dropdown --- */
+.post-info {
+  flex: 1;
+}
+.username {
+  font-size: 16px;
+  font-weight: 600;
+  color: #141414;
+  display: block;
+  margin-bottom: 4px;
+}
+.time {
+  font-size: 13px;
+  color: #888;
+}
 .menu-container {
   position: relative;
 }
 .menu {
-  cursor: pointer;
-  padding: 5px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  width: 30px;
-  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
   transition: background-color 0.2s;
 }
 .menu:hover {
   background-color: #f5f5f5;
 }
-
 .report-dropdown {
   position: absolute;
-  top: 35px;
+  top: 100%;
   right: 0;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 100;
   min-width: 180px;
+  padding: 8px 0;
 }
 .report-dropdown button {
-  display: block;
   width: 100%;
-  padding: 12px 16px;
+  padding: 8px 16px;
   border: none;
   background: none;
   text-align: left;
-  cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
+  cursor: pointer;
 }
 .report-dropdown button:hover {
   background-color: #f5f5f5;
 }
+.post-content {
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  color: #1a1a1a;
+  position: relative;
+}
 
+.post-content p {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.post-content.expanded p {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
+.see-more-btn {
+  background: none;
+  border: none;
+  color: #65676b;
+  font-size: 14px;
+  padding: 4px 0;
+  cursor: pointer;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.see-more-btn:hover {
+  text-decoration: underline;
+}
+
+.post-media-container {
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
 .post-image {
-  margin-top: 10px;
   width: 100%;
-  border-radius: 10px;
   max-height: 400px;
   object-fit: cover;
+  cursor: pointer;
 }
-.interactions {
-  margin: 10px 0;
+.post-actions {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  margin: 12px 0;
+}
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 24px;
+  cursor: pointer;
+}
+.action-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.action-count {
   font-size: 14px;
   color: #666;
 }
+.comment-list {
+  margin: 16px 0;
+}
+.comment-item {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.comment-bubble {
+  background: #f0f2f5;
+  padding: 8px 12px;
+  border-radius: 18px;
+  flex: 1;
+}
+.comment-username {
+  font-weight: 600;
+  margin-right: 6px;
+}
+.comment-text {
+  color: #1a1a1a;
+}
+.comment-time {
+  font-size: 12px;
+  color: #65676b;
+  margin-top: 4px;
+}
+.comment-input {
+  margin-top: 12px;
+}
 .comment-box {
   width: 100%;
-  padding: 6px;
-  border-radius: 8px;
-  background-color: #f5f5f5;
-  border: none;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  font-size: 14px;
   outline: none;
+}
+.comment-box:focus {
+  border-color: #1a73e8;
 }
 
 /* --- Giới thiệu nhóm --- */
@@ -1188,26 +1677,30 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
 }
 
 .popup-header h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 600;
   color: #333;
+  margin: 0;
 }
 
 .close-btn {
+  background: none;
+  border: none;
   font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
   color: #666;
-  width: 30px;
-  height: 30px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   transition: background-color 0.2s;
 }
 
@@ -1596,5 +2089,118 @@ body {
 
 .delete-group:hover {
   background-color: #c82333;
+}
+
+/* Share Link Popup Styles */
+.share-popup {
+  background: #FFFFFF;
+  width: 500px;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.popup-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background-color: #f5f5f5;
+}
+
+.share-link-container {
+  display: flex;
+  gap: 10px;
+}
+
+.share-link-input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: #f8f9fa;
+  cursor: text;
+}
+
+.copy-link-btn {
+  padding: 0 20px;
+  background-color: #f9a825;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.copy-link-btn:hover {
+  background-color: #f57c00;
+}
+
+.share-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.social-share-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.social-share-btn:hover {
+  opacity: 0.9;
+}
+
+.social-share-btn img {
+  width: 24px;
+  height: 24px;
+}
+
+.social-share-btn.facebook {
+  background-color: #1877f2;
+  color: white;
+}
+
+.social-share-btn.twitter {
+  background-color: #1da1f2;
+  color: white;
 }
 </style>
