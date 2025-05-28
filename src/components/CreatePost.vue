@@ -63,7 +63,7 @@ import { getProfileByAccountId } from '@/service/profileService'
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
-const emit = defineEmits(['close', 'post'])
+const emit = defineEmits(['close', 'post', 'refresh'])
 
 const content = ref('')
 const mediaFiles = reactive([])
@@ -106,12 +106,12 @@ async function submitPost() {
 
     if (!content.value.trim() && mediaFiles.length === 0) {
       alert('Bạn chưa nhập nội dung hoặc chọn ảnh!')
-      return
-    }
+    
 
     const formData = new FormData()
     formData.append('accountId', userId)
-    formData.append('content', content.value)
+    formData.append('content', content.value.trim())
+    formData.append('scope', 'PUBLIC')
 
     // 👇 Thêm scope mặc định là PUBLIC (có thể đổi thành FRIEND nếu muốn)
     formData.append('scope', 'PUBLIC')
@@ -122,13 +122,18 @@ async function submitPost() {
       formData.append('images', file)
     }
 
-    // Debug log
+
+
     for (const [key, val] of formData.entries()) {
       console.log('formData:', key, val)
-    }
+
+    
 
     const res = await createPost(formData)
+    console.log('Post created:', res)
+    
     emit('post', res.data)
+    emit('refresh')
     toast.success('Đăng bài viết thành công', {
       autoClose: 3000,
       position: toast.POSITION.TOP_RIGHT,
@@ -136,6 +141,7 @@ async function submitPost() {
     })
     closeModal()
   } catch (err) {
+
     console.error('Lỗi khi tạo bài viết:', err?.response?.data || err)
     toast.error('Đăng bài viết thất bại!', {
       autoClose: 3000,
