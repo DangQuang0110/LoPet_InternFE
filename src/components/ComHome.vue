@@ -219,7 +219,7 @@
 
 
       <!-- CreatePost Modal -->
-      <CreatePost v-if="showCreate" @close="showCreate = false" />
+      <CreatePost v-if="showCreate" @close="handleCreatePostClose" @refresh="refreshData" />
       <!-- ReportModal -->
       <ReportModal v-if="showReport" @close="showReport = false" @report="onReport" />
 
@@ -368,6 +368,21 @@ const expandedPosts = ref({})
 
 const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
+
+async function refreshData() {
+  try {
+    await fetchPosts()
+    console.log('🔄 Data refreshed successfully')
+  } catch (error) {
+    console.error('❌ Error refreshing data:', error)
+  }
+}
+
+function handleCreatePostClose() {
+  showCreate.value = false
+  refreshData()
+}
+
 function toggleExpand(postId) {
   expandedPosts.value[postId] = !expandedPosts.value[postId]
 }
@@ -389,6 +404,8 @@ async function toggleLike(post) {
       if (!Array.isArray(post.postLikes)) post.postLikes = []
       post.postLikes.push({ accountId: user.id })
     }
+    
+    await refreshData() // Refresh after toggling like
   } catch (error) {
     console.error('❌ Lỗi khi xử lý like/unlike:', error)
   }
@@ -397,6 +414,7 @@ async function toggleLike(post) {
 function togglePostMenu(id) {
   openedMenuPostId.value = openedMenuPostId.value === id ? null : id
 }
+
 function formatVietnameseTime(dateStr) {
   const date = new Date(dateStr)
   const day = date.getDate()
@@ -473,6 +491,7 @@ async function addComment(post) {
     })
 
     newComment.value = ''
+    await refreshData() // Refresh after adding comment
   } catch (error) {
     console.error('❌ Lỗi khi thêm bình luận:', error)
     alert('Không thể gửi bình luận. Vui lòng thử lại.')
@@ -486,87 +505,120 @@ function onReport(reason) {
 async function fetchPosts() {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
-    if (!user.id) return
+    if (!user.id) {
+      console.error('❌ User not found in localStorage')
+      return
+    }
+    console.log('📤 Fetching posts for user:', user.id)
 
     const [account, profile] = await Promise.all([
       getAccountById(user.id),
       getProfileByAccountId(user.id)
     ])
+    console.log('📥 User data:', { account, profile })
 
     currentUserAvatar.value = profile?.avatarUrl?.trim() ? profile.avatarUrl : (account?.avatar || '/image/avata.jpg')
     currentUserName.value = profile?.fullName?.trim() ? profile.fullName : (account?.username || 'Ẩn danh')
 
     const friendList = await getFriendList(user.id)
+    console.log('📥 Friend list:', friendList)
     const friendIds = friendList.map(friend => friend.id)
+
     const res = await getPosts()
+    console.log(' Raw posts:', res)
+
+    if (!Array.isArray(res)) {
+      console.error('❌ Invalid posts response:', res)
+      return
+    }
+
     const postResults = []
 
     for (const post of res) {
-      const authorId = post.accountId
-      let username = 'Ẩn danh'
-      let avatarUrl = '/image/avata.jpg'
-
-      if (post.accounts?.username) {
-        username = post.accounts.username
-        avatarUrl = post.accounts.avatar || '/image/avata.jpg'
-      } else {
-        const [acc, prof] = await Promise.all([
-          getAccountById(authorId),
-          getProfileByAccountId(authorId)
-        ])
-        username = prof?.fullName?.trim() ? prof.fullName : (acc?.username || 'Ẩn danh')
-        avatarUrl = prof?.avatarUrl?.trim() ? prof.avatarUrl : (acc?.avatar || '/image/avata.jpg')
-      }
-
-      if (authorId === user.id || friendIds.includes(authorId)) {
-        const commentRes = await getCommentsByPostId(post.postId)
-        const comments = []
-
-        for (const c of commentRes?.comments || []) {
-          const commentAccountId = c.account?.id
-          if (!commentAccountId) continue
-
-          try {
-            const [acc, prof] = await Promise.all([
-              getAccountById(commentAccountId),
-              getProfileByAccountId(commentAccountId)
-            ])
-            comments.push({
-              id: c.id,
-              user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
-              userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
-              text: c.content,
-              createdAt: c.createdAt
-            })
-          } catch (e) {
-            console.error('❌ Không thể load profile của người bình luận:', e)
-          }
+      try {
+        if (!post.postId || !post.accountId) {
+          console.error('❌ Invalid post data:', post)
+          continue
         }
-        const isLiked = post.postLikes?.some(like => like.accountId === user.id)
 
-        postResults.push({
-          postId: post.postId,
-          user: username,
-          userSrc: avatarUrl,
-          time: formatVietnameseTime(post.createdAt),
-          text: post.content,
-          img: post.postMedias?.[0]?.mediaUrl || null,
-          likes: post.likeAmount || 0,
-          commentsList: comments,
-          postLikes: post.postLikes || [],
-          liked: isLiked
-        })
+        const authorId = post.accountId
+        let username = 'Ẩn danh'
+        let avatarUrl = '/image/avata.jpg'
+
+        if (post.accounts?.username) {
+          username = post.accounts.username
+          avatarUrl = post.accounts.avatar || '/image/avata.jpg'
+        } else {
+          const [acc, prof] = await Promise.all([
+            getAccountById(authorId),
+            getProfileByAccountId(authorId)
+          ])
+          username = prof?.fullName?.trim() ? prof.fullName : (acc?.username || 'Ẩn danh')
+          avatarUrl = prof?.avatarUrl?.trim() ? prof.avatarUrl : (acc?.avatar || '/image/avata.jpg')
+        }
+
+        if (authorId === user.id || friendIds.includes(authorId)) {
+          const commentRes = await getCommentsByPostId(post.postId)
+          console.log('📥 Comments for post', post.postId, ':', commentRes)
+          const comments = []
+
+          if (commentRes?.comments) {
+            for (const c of commentRes.comments) {
+              const commentAccountId = c.account?.id
+              if (!commentAccountId) continue
+
+              try {
+                const [acc, prof] = await Promise.all([
+                  getAccountById(commentAccountId),
+                  getProfileByAccountId(commentAccountId)
+                ])
+                comments.push({
+                  id: c.id,
+                  user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+                  userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
+                  text: c.content,
+                  createdAt: c.createdAt
+                })
+              } catch (e) {
+                console.error('❌ Error loading comment profile:', e)
+              }
+            }
+          }
+
+          const isLiked = post.postLikes?.some(like => like.accountId === user.id)
+
+          postResults.push({
+            postId: post.postId,
+            user: username,
+            userSrc: avatarUrl,
+            time: formatVietnameseTime(post.createdAt),
+            text: post.content,
+            img: post.postMedias?.[0]?.mediaUrl || null,
+            likes: post.likeAmount || 0,
+            commentsList: comments,
+            postLikes: post.postLikes || [],
+            liked: isLiked
+          })
+        }
+      } catch (postError) {
+        console.error('❌ Error processing post:', post.postId, postError)
       }
     }
 
-    posts.value = postResults.reverse() // ← Đảo mảng để bài mới nhất lên đầu
+    posts.value = postResults.reverse()
+    console.log('📥 Final processed posts:', posts.value)
   } catch (err) {
-    console.error('Không thể load bài viết:', err)
+    console.error('❌ Error fetching posts:', err)
+    if (err.response) {
+      console.error('❌ API Error:', err.response.data)
+    }
   }
 }
 
-
-onMounted(fetchPosts)
+onMounted(async () => {
+  await refreshData()
+  setInterval(refreshData, 60000)
+})
 
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -696,7 +748,7 @@ html,
 
 }
 
-/* chiếc nút “+” nhỏ ở góc */
+/* chiếc nút "+" nhỏ ở góc */
 .add-story {
   position: absolute;
   bottom: 0;
@@ -713,7 +765,7 @@ html,
   justify-content: center;
   color: #fff;
   font-size: 16px;
-  /* size dấu “+” */
+  /* size dấu "+" */
   box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -753,7 +805,7 @@ html,
   /* khoảng cách giữa input & icon */
 }
 
-/* input “bong bóng” */
+/* input "bong bóng" */
 .composer-input {
   width: 100%;
   height: 36px;
