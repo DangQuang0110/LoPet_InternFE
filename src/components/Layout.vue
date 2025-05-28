@@ -6,64 +6,60 @@
       </div>
       <div class="menu-container">
         <nav class="nav-menu">
-      <ul>
-        <li class="nav-item">
-          <router-link to="/home" class="nav-link">
-            <i class="fas fa-home"></i>
-            <span>Trang chủ</span>
-          </router-link>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" @click.prevent="toggleNotifications">
-            <i class="fas fa-bell"></i>
-            <span>Thông báo</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <router-link to="/message" class="nav-link">
-            <i class="fas fa-comment"></i>
-            <span>Nhắn tin</span>
-          </router-link>
-        </li>
-        <li class="nav-item">
-          <router-link to="/groups" class="nav-link">
-            <i class="fas fa-users"></i>
-            <span>Cộng đồng</span>
-          </router-link>
-        </li>
-        <li class="nav-item">
-          <router-link to="/friend" class="nav-link">
-            <i class="fas fa-user-friends"></i>
-            <span>Bạn bè</span>
-          </router-link>
-        </li>
-        <li class="nav-item">
-          <router-link to="/profile" class="nav-link">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-          </router-link>
-        </li>
-      </ul>
+          <ul>
+            <li class="nav-item">
+              <router-link to="/home" class="nav-link">
+                <i class="fas fa-home"></i>
+                <span>Trang chủ</span>
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" @click.prevent="toggleNotifications">
+                <i class="fas fa-bell"></i>
+                <span>Thông báo</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <router-link to="/message" class="nav-link">
+                <i class="fas fa-comment"></i>
+                <span>Nhắn tin</span>
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link to="/groups" class="nav-link">
+                <i class="fas fa-users"></i>
+                <span>Cộng đồng</span>
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link to="/friend" class="nav-link">
+                <i class="fas fa-user-friends"></i>
+                <span>Bạn bè</span>
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link to="/profile" class="nav-link">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+              </router-link>
+            </li>
+          </ul>
           <hr>
-          <div class="user-panel">
           <div class="user-panel" @click="showLogoutMenu = !showLogoutMenu">
-            <img class="avatar" src="/assets/quang.jpg" alt="User Avatar" />
-            <span class="username">Quang Đang</span>
+            <img class="avatar" :src="currentUser.avatar || '/image/avata.jpg'" alt="User Avatar" />
+            <span class="username">{{ currentUser.name || 'Ẩn danh' }}</span>
             <i class="fas fa-cog"></i>
-
-          <div v-if="showLogoutMenu" class="logout-menu">
-            <ul>
-              <li @click.stop="handleLogout" class="logout-option">
-                <i class="fas fa-sign-out-alt"></i> Đăng xuất
-              </li>
-            </ul>
-          </div>
-          </div>
+            <div v-if="showLogoutMenu" class="logout-menu">
+              <ul>
+                <li @click.stop="handleLogout" class="logout-option">
+                  <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </li>
+              </ul>
+            </div>
           </div>
         </nav>
       </div>
-      <div class="sidebar-footer">
-      </div>
+      <div class="sidebar-footer"></div>
     </aside>
 
     <!-- Notification Popup -->
@@ -164,15 +160,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { logoutUser } from '@/service/authService'
+import { logoutUser, getAccountById } from '@/service/authService'
+import { getProfileByAccountId } from '@/service/profileService'
 
 const showNotifications = ref(false)
 const activeTab = ref('all')
 const router = useRouter()
 const openMenuIdx = ref(null)
-const showLogoutMenu = ref(false) // ✅ toggle menu logout
+const showLogoutMenu = ref(false)
+const currentUser = ref({ name: '', avatar: '' })
 
 const notifications = {
   new: [
@@ -180,7 +178,7 @@ const notifications = {
     { name: 'Conan', text: 'đã đăng một bài viết mới', time: '25 phút trước', avatar: '/assets/trường.jpg' }
   ],
   old: [
-    { name: 'Shinichi', text: 'đã chia sẻ bài viết của \"Thế Giới Động Vật\"', time: '2 ngày trước', avatar: '/assets/trường.jpg' },
+    { name: 'Shinichi', text: 'đã chia sẻ bài viết của "Thế Giới Động Vật"', time: '2 ngày trước', avatar: '/assets/trường.jpg' },
     { name: 'Sakura', text: 'đã gửi cho bạn một lời kết bạn', time: '5 ngày trước', avatar: '/assets/trường.jpg' }
   ],
   unread: [
@@ -192,11 +190,9 @@ function toggleNotifications() {
   showNotifications.value = !showNotifications.value
   openMenuIdx.value = null
 }
-
 function toggleMenu(idx) {
   openMenuIdx.value = openMenuIdx.value === idx ? null : idx
 }
-
 function markAsRead(idx) {
   console.log('Marked read', idx)
   openMenuIdx.value = null
@@ -218,7 +214,19 @@ function handleLogout() {
   router.push('/login')
 }
 
+onMounted(async () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (user.id) {
+    const profile = await getProfileByAccountId(user.id)
+    const account = await getAccountById(user.id)
+    currentUser.value = {
+      name: profile.fullName || account.username || 'Ẩn danh',
+      avatar: profile.avatarUrl || account.avatar || '/image/avata.jpg'
+    }
+  }
+})
 </script>
+
 
 <style scoped>
 .layout-wrapper {
@@ -235,6 +243,7 @@ function handleLogout() {
   flex-direction: column;
   padding: 15px;
   box-sizing: border-box;
+  height:680px;
 }
 
 .logo {
@@ -354,7 +363,7 @@ function handleLogout() {
   /* left: auto; */ /* có thể lược */
   width: 360px;
   height: 100vh;
-  background: #FFF8F0;
+  background: #F9F9F9;
   box-shadow: -2px 0 8px rgba(0,0,0,0.1); /* shadow bên trái */
   padding: 16px;
   box-sizing: border-box;
