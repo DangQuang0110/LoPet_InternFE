@@ -1,6 +1,12 @@
 <template>
   <Layout>
   <div class="app-container">
+    <!-- Loading state -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p>Đang tải thông tin nhóm...</p>
+    </div>
+
     <!-- Overlay popup xác nhận thoát nhóm -->
     <div v-if="confirmLeave" class="overlay">
       <div class="popup">
@@ -18,7 +24,7 @@
         <div class="edit-header">Chỉnh sửa thông tin nhóm</div>
 
         <div class="cover-section">
-          <img src="@/assets/anhbia.jpg" class="cover-image" />
+          <img :src="group.coverUrl" class="cover-image" />
           <button class="edit-cover-btn">Chỉnh sửa ảnh bìa</button>
         </div>
 
@@ -71,19 +77,23 @@
       <input class="search" placeholder="Tìm kiếm..." />
     </header>
 
-    <div class="cover"></div>
+    <div class="cover" :style="{ backgroundImage: `url(${group.coverUrl})` }"></div>
 
     <section class="group-info full-width-group">
-      <h1>Hội cứu trợ động vật Việt Nam</h1>
+      <h1>{{ group.name }}</h1>
       <p class="members">
         <img src="@/assets/diacau.png" alt="Địa cầu" class="inline-icon" />
-        3.2 Triệu thành viên
+        {{ group.totalMembers }} thành viên
       </p>
       <div class="avatars">
         <img v-for="i in 6" :key="i" class="avatar" :src="`https://i.pravatar.cc/40?img=${i}`" />
       </div>
       <div class="group-actions">
         <template v-if="!leftGroup">
+          <button class="joined" @click="toggleConfirmLeave">Đã tham gia ✓</button>
+          <button class="invite">Mời</button>
+        </template>
+        <template v-else>
           <button class="join" @click="handleJoin">Tham gia nhóm</button>
         </template>
       </div>
@@ -92,76 +102,91 @@
     <main class="main">
       <div class="layout">
         <div class="left">
-          <div class="new-post">
-            <div class="status-box"></div>
+          <!-- Show new post section only if user has joined the group -->
+          <div v-if="!leftGroup" class="new-post">
+            <div class="status-box">
+              <img class="avatar" :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" />
+              <textarea 
+                v-model="newPostContent"
+                class="status-input" 
+                placeholder="Bạn muốn chia sẻ điều gì?"
+                :disabled="isPostLoading"
+              ></textarea>
+            </div>
+            
+            <!-- Image preview -->
+            <div v-if="imagePreview" class="image-preview-container">
+              <img :src="imagePreview" alt="Preview" class="image-preview" />
+              <button class="remove-image" @click="removeImage">×</button>
+            </div>
+
+            <div class="status-actions">
+              <label class="image-upload-label">
+                <img src="@/assets/camera.png" alt="Camera" class="inline-icon" />
+                <input 
+                  type="file" 
+                  class="image-input" 
+                  @change="handleImageChange" 
+                  accept="image/*"
+                  :disabled="isPostLoading"
+                />
+              </label>
+              <button 
+                class="post-button" 
+                @click="handleCreatePost"
+                :disabled="isPostLoading || !newPostContent.trim()"
+              >
+                {{ isPostLoading ? 'Đang đăng...' : 'Đăng' }}
+              </button>
+            </div>
           </div>
 
-          <div class="post">
+          <!-- Show message for non-members -->
+          <div v-else class="join-message">
+            <p>Tham gia nhóm để đăng bài viết và tương tác với các thành viên khác</p>
+          </div>
+
+          <!-- Posts list - visible to all -->
+          <div v-for="post in groupPosts" :key="post.id" class="post">
             <div class="post-header">
-              <img class="avatar" src="https://i.pravatar.cc/40?img=7" />
+              <img class="avatar" :src="post.user?.avatar || 'https://i.pravatar.cc/40?img=7'" />
               <div class="info">
-                <strong>Phạm Cầu</strong>
-                <div class="time">7 tháng 5 lúc 15:48</div>
+                <strong>{{ post.user?.fullName || 'Người dùng' }}</strong>
+                <div class="time">{{ new Date(post.createdAt).toLocaleString('vi-VN') }}</div>
               </div>
               <div class="menu-wrapper" style="position: relative; margin-left: auto;">
-                <div class="menu" @click="toggleReportMenu(1)">⋮</div>
+                <div class="menu" @click="toggleReportMenu(post.id)">⋮</div>
                 <div
-                  v-if="showReportMenu === 1"
+                  v-if="showReportMenu === post.id"
                   class="report-dropdown"
-                  @click="openReport(1)"
+                  @click="openReport(post.id)"
                 >
                   Báo cáo bài viết
                 </div>
               </div>
             </div>
-            <p>Mình đang bị lạc mất con chó màu vàng ai thấy báo giúp mình</p>
-            <img src="@/assets/anhbia.jpg" alt="Post Image" class="post-image" />
+            <p>{{ post.content }}</p>
+            <img v-if="post.postMedias && post.postMedias.length > 0" 
+                 :src="post.postMedias[0].mediaUrl" 
+                 alt="Post Image" 
+                 class="post-image" />
 
             <div class="interactions">
-              <img src="@/assets/traitim.png" alt="Like" class="inline-icon" /> 120 lượt thích –
-              <img src="@/assets/comment.png" alt="Bình luận" class="inline-icon" /> Bình luận –
+              <img src="@/assets/traitim.png" alt="Like" class="inline-icon" /> {{ post.likes || 0 }} lượt thích –
+              <img src="@/assets/comment.png" alt="Bình luận" class="inline-icon" /> {{ post.comments?.length || 0 }} bình luận –
               <img src="@/assets/share.png" alt="Chia sẻ" class="inline-icon" /> Chia sẻ
             </div>
 
-            <div class="comment" style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
-              <img src="https://i.pravatar.cc/30?img=9" style="width: 28px; height: 28px; border-radius: 50%;" />
-              <div style="background-color: #f2f2f2; padding: 6px 10px; border-radius: 12px;">
-                <strong>Phong:</strong> Chó này mình làm thịt rồi nha bạn
-              </div>
-            </div>
-
-            <input class="comment-box" placeholder="Viết bình luận..." />
-          </div>
-
-          <!-- Bài viết thứ 2 -->
-          <div class="post">
-            <div class="post-header">
-              <img class="avatar" src="https://i.pravatar.cc/40?img=8" />
-              <div class="info">
-                <strong>Nguyễn Minh</strong>
-                <div class="time">6 tháng 5 lúc 10:30</div>
-              </div>
-              <div class="menu-wrapper" style="position: relative; margin-left: auto;">
-                <div class="menu" @click="toggleReportMenu(2)">⋮</div>
-                <div
-                  v-if="showReportMenu === 2"
-                  class="report-dropdown"
-                  @click="openReport(2)"
-                >
-                  Báo cáo bài viết
+            <!-- Show comment box only for members -->
+            <div v-if="!leftGroup">
+              <div v-for="comment in post.comments" :key="comment.id" class="comment">
+                <img class="comment-avatar" :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'" />
+                <div class="comment-content">
+                  <strong>{{ comment.user?.fullName || 'Người dùng' }}:</strong> {{ comment.content }}
                 </div>
               </div>
+              <input class="comment-box" placeholder="Viết bình luận..." />
             </div>
-            <p>Các bạn ơi, mình cần tìm nhà mới cho 3 con mèo con này. Ai có nhu cầu nhận nuôi liên hệ mình nhé!</p>
-            <img src="@/assets/anhbia.jpg" alt="Post Image" class="post-image" />
-
-            <div class="interactions">
-              <img src="@/assets/traitim.png" alt="Like" class="inline-icon" /> 85 lượt thích –
-              <img src="@/assets/comment.png" alt="Bình luận" class="inline-icon" /> Bình luận –
-              <img src="@/assets/share.png" alt="Chia sẻ" class="inline-icon" /> Chia sẻ
-            </div>
-
-            <input class="comment-box" placeholder="Viết bình luận..." />
           </div>
         </div>
 
@@ -183,17 +208,41 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getGroupDetails, joinGroup, getListGroupJoin, createPostGroup, getPostsGroup } from '@/service/communityService'
+import { toast } from 'vue3-toastify'
+import 'vue3-toastify/dist/index.css'
 
-
+const route = useRoute()
+const router = useRouter()
 const confirmLeave = ref(false)
-const leftGroup = ref(false)
+const leftGroup = ref(true) // Start with not joined state
 const showEditPopup = ref(false)
 const showReportPopup = ref(false)
 const selectedPostId = ref(null)
 const selectedReason = ref('')
 const showReportMenu = ref(null)
+const isLoading = ref(true)
+const user = ref(null)
+const newPostContent = ref('')
+const selectedImage = ref(null)
+const imagePreview = ref(null)
+const isPostLoading = ref(false)
+const groupPosts = ref([])
+
+const group = ref({
+  name: '',
+  description: '',
+  email: '',
+  phone: '',
+  address: '',
+  privacy: 'public',
+  coverUrl: '',
+  totalMembers: 0,
+  ownerId: null
+})
 
 const reportOptions = [
   'Thông tin sai sự thật, lừa đảo hoặc gian lận',
@@ -203,18 +252,105 @@ const reportOptions = [
   'Bắt nạt, quấy rối hoặc lăng mạ / lạm dụng / ngược đãi'
 ]
 
-const group = ref({
-  name: 'Hội cứu trợ động vật Việt Nam',
-  description: 'Chào ae vào hội cứu trợ động vật Việt Nam',
-  email: 'caupham25@gmail.com',
-  phone: '0369620631',
-  address: 'Hoài Nhơn , Bình Định , Việt Nam',
-  privacy: 'public'
-})
+// Hàm lấy thông tin nhóm
+const fetchGroupDetails = async () => {
+  try {
+    isLoading.value = true
+    const groupId = route.params.id
+    console.log('Fetching group details for ID:', groupId)
 
-function saveChanges() {
-  console.log('Thông tin nhóm đã lưu:', group.value)
-  showEditPopup.value = false
+    const response = await getGroupDetails(groupId)
+    console.log('Group details response:', response)
+
+    if (response && response.data) {
+      const data = response.data
+      group.value = {
+        name: data.name || '',
+        description: data.bio || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        address: data.address || '',
+        privacy: data.type === 'PUBLIC' ? 'public' : 'private',
+        coverUrl: data.coverUrl || '/src/assets/anhbia.jpg',
+        totalMembers: data.members?.length || 0,
+        ownerId: data.owner?.id || null
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin nhóm:', error)
+    toast.error('Không thể tải thông tin nhóm!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Get current user info
+const getCurrentUser = () => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      user.value = JSON.parse(userStr)
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error)
+      user.value = null
+    }
+  }
+}
+
+// Check if user has joined the group
+const checkGroupMembership = async () => {
+  try {
+    if (!user.value) return
+
+    const response = await getListGroupJoin(user.value.id)
+    if (response && response.data) {
+      const joinedGroups = response.data
+      leftGroup.value = !joinedGroups.some(g => g.id === parseInt(route.params.id))
+    }
+  } catch (error) {
+    console.error('Error checking group membership:', error)
+  }
+}
+
+// Handle joining group
+async function handleJoin() {
+  try {
+    if (!user.value) {
+      toast.error('Vui lòng đăng nhập để tham gia nhóm!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    // Call API to join group
+    await joinGroup(route.params.id, group.value.ownerId, user.value.id)
+    
+    // Update UI state
+    leftGroup.value = false
+    
+    toast.success('Đã tham gia nhóm thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+
+    // Refresh group details
+    await fetchGroupDetails()
+
+  } catch (error) {
+    console.error('Lỗi khi tham gia nhóm:', error)
+    toast.error('Có lỗi xảy ra khi tham gia nhóm!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  }
 }
 
 function toggleConfirmLeave() {
@@ -224,18 +360,18 @@ function toggleConfirmLeave() {
 function handleLeaveGroup() {
   leftGroup.value = true
   confirmLeave.value = false
-}
-
-function handleJoin() {
-  leftGroup.value = false
-  confirmLeave.value = false
+  toast.success('Đã rời khỏi nhóm thành công!', {
+    position: toast.POSITION.TOP_RIGHT,
+    autoClose: 3000,
+    theme: 'colored'
+  })
 }
 
 function openReport(postId) {
   selectedPostId.value = postId
   selectedReason.value = ''
   showReportPopup.value = true
-  showReportMenu.value = null // Đóng menu khi mở popup
+  showReportMenu.value = null
 }
 
 function closeReport() {
@@ -246,16 +382,146 @@ function closeReport() {
 
 function submitReport() {
   if (!selectedReason.value) {
-    alert('Vui lòng chọn lý do báo cáo!')
+    toast.error('Vui lòng chọn lý do báo cáo!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
     return
   }
   console.log('Báo cáo bài viết ID:', selectedPostId.value, 'Lý do:', selectedReason.value)
-  alert('Báo cáo của bạn đã được gửi.')
+  toast.success('Báo cáo của bạn đã được gửi thành công!', {
+    position: toast.POSITION.TOP_RIGHT,
+    autoClose: 3000,
+    theme: 'colored'
+  })
   closeReport()
 }
 
 function toggleReportMenu(postId) {
   showReportMenu.value = showReportMenu.value === postId ? null : postId
+}
+
+// Handle image selection for new post
+const handleImageChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    if (!file.type.match('image.*')) {
+      toast.error('Vui lòng chọn file ảnh!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước ảnh không được vượt quá 5MB!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+    selectedImage.value = file
+    imagePreview.value = URL.createObjectURL(file)
+  }
+}
+
+// Remove selected image
+const removeImage = () => {
+  selectedImage.value = null
+  imagePreview.value = null
+  const input = document.querySelector('.image-input')
+  if (input) input.value = ''
+}
+
+// Create new post
+const handleCreatePost = async () => {
+  try {
+    if (!newPostContent.value.trim()) {
+      toast.error('Vui lòng nhập nội dung bài viết!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    if (!user.value) {
+      toast.error('Vui lòng đăng nhập để thực hiện chức năng này!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    isPostLoading.value = true
+    const formData = new FormData()
+    formData.append('content', newPostContent.value.trim())
+    formData.append('groupId', route.params.id)
+    formData.append('userId', user.value.id)
+    formData.append('scope', 'PUBLIC')
+
+    if (selectedImage.value) {
+      formData.append('images', selectedImage.value)
+    }
+
+    await createPostGroup(formData)
+
+    // Reset form
+    newPostContent.value = ''
+    selectedImage.value = null
+    imagePreview.value = null
+    const input = document.querySelector('.image-input')
+    if (input) input.value = ''
+
+    // Refresh posts
+    await fetchGroupPosts()
+
+    toast.success('Đăng bài viết thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+
+  } catch (error) {
+    console.error('Lỗi khi đăng bài viết:', error)
+    toast.error('Có lỗi xảy ra khi đăng bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  } finally {
+    isPostLoading.value = false
+  }
+}
+
+// Fetch group posts
+const fetchGroupPosts = async () => {
+  try {
+    const posts = await getPostsGroup(route.params.id)
+    groupPosts.value = posts
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách bài viết:', error)
+    toast.error('Không thể tải danh sách bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  }
+}
+
+onMounted(() => {
+  getCurrentUser()
+  fetchGroupDetails()
+  checkGroupMembership()
+  fetchGroupPosts()
+})
+
+function saveChanges() {
+  console.log('Thông tin nhóm đã lưu:', group.value)
+  showEditPopup.value = false
 }
 </script>
 
@@ -335,18 +601,21 @@ html, body {
   cursor: pointer;
 }
 
-.invite {
-  background-color: orange;
-  color: #fff;
-}
-
 .joined {
   background-color: #eee;
+  color: #333;
+  font-weight: bold;
+}
+
+.invite {
+  background-color: orange;
+  color: white;
 }
 
 .join {
   background-color: #2196f3;
   color: white;
+  font-weight: bold;
 }
 
 .main {
@@ -725,5 +994,147 @@ html, body {
 
 .report-dropdown:hover {
   background-color: #f5f5f5;
+}
+
+/* Thêm style cho loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #f9a825;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.join-message {
+  background: #fff;
+  padding: 20px;
+  text-align: center;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.join-message p {
+  color: #666;
+  font-size: 15px;
+  margin: 0;
+}
+
+.status-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+}
+
+.status-input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #ccc;
+  min-height: 60px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.status-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px 16px;
+}
+
+.image-upload-label {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.image-upload-label:hover {
+  background-color: #f5f5f5;
+}
+
+.image-input {
+  display: none;
+}
+
+.post-button {
+  background-color: #f9a825;
+  color: #fff;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.post-button:hover:not(:disabled) {
+  background-color: #f57c00;
+}
+
+.post-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.image-preview-container {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.image-preview {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.remove-image {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.remove-image:hover {
+  background: rgba(0, 0, 0, 0.8);
 }
 </style>

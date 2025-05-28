@@ -130,12 +130,18 @@
           <img v-for="i in 6" :key="i" class="avatar" :src="`https://i.pravatar.cc/40?img=${i}`" />
         </div>
         <div class="group-actions">
-          <template v-if="!leftGroup">
-            <button class="joined" @click="toggleConfirmLeave">Đã tham gia ✓</button>
-            <button class="invite">Mời</button>
+          <template v-if="isOwner">
+            <button class="delete-group" @click="handleDeleteGroup">Xóa nhóm</button>
+            <button class="edit-group-btn" @click="openEditForm">Chỉnh sửa nhóm</button>
           </template>
           <template v-else>
-            <button class="join" @click="handleJoin">Tham gia nhóm</button>
+            <template v-if="!leftGroup">
+              <button class="joined" @click="toggleConfirmLeave">Đã tham gia ✓</button>
+              
+            </template>
+            <template v-else>
+              <button class="join" @click="handleJoin">Tham gia nhóm</button>
+            </template>
           </template>
         </div>
       </section>
@@ -237,23 +243,6 @@
             <div class="introduction">
               <h3 class="intro-title">Giới thiệu</h3>
               <p class="intro-desc">{{ group.description }}</p>
-              
-              <p v-if="group.phone">
-                <img class="icon" src="@/assets/sdt.png" alt="Hotline" />
-                Hotline: {{ group.phone }}
-              </p>
-              <p v-if="group.email">
-                <img class="icon" src="@/assets/email.png" alt="Email" />
-                Email: {{ group.email }}
-              </p>
-              <p v-if="group.address">
-                <img class="icon" src="@/assets/diachi.png" alt="Địa chỉ" />
-                {{ group.address }}
-              </p>
-
-              <button class="edit-group-btn" @click="openEditForm">
-                Sửa thông tin nhóm
-              </button>
             </div>
 
             <div class="sidebar-box">
@@ -284,13 +273,14 @@
 
 <script setup>
 import Layout from '@/components/Layout.vue'
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { getGroupDetails, updateGroup, createPostGroup, getPostsGroup } from '@/service/communityService'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getGroupDetails, updateGroup, createPostGroup, getPostsGroup, deleteGroupByOwner, leaveGroup } from '@/service/communityService'
 import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 
 const route = useRoute()
+const router = useRouter()
 const confirmLeave = ref(false)
 const leftGroup = ref(false)
 const showEditPopup = ref(false)
@@ -333,6 +323,11 @@ const group = ref({
   privacy: '',
   coverUrl: '',
   totalMembers: 0,
+  ownerId: null,
+})
+
+const isOwner = computed(() => {
+  return user.value?.id === group.value?.ownerId
 })
 
 // Hàm để lấy thông tin user
@@ -368,8 +363,12 @@ const fetchGroupDetails = async () => {
         address: data.address || '',
         privacy: data.type === 'PUBLIC' ? 'public' : 'private',
         coverUrl: data.coverUrl || '/src/assets/anhbia.jpg',
-        totalMembers: data.members.length || 0,
+        totalMembers: data.members?.length || 0,
+        ownerId: data.owner?.id || null,
       }
+      
+      console.log('Current user ID:', user.value?.id)
+      console.log('Group owner ID:', group.value.ownerId)
     }
   } catch (error) {
     console.error('Lỗi khi lấy thông tin nhóm:', error)
@@ -515,9 +514,52 @@ function toggleConfirmLeave() {
   confirmLeave.value = true
 }
 
-function handleLeaveGroup() {
-  leftGroup.value = true
-  confirmLeave.value = false
+async function handleLeaveGroup() {
+  try {
+    if (!user.value?.id || !route.params.id || !group.value?.ownerId) {
+      toast.error('Không thể thoát khỏi nhóm!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    // Hiển thị toast loading
+    toast.loading('Đang xử lý yêu cầu...', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 1000,
+      theme: 'colored'
+    })
+
+    await leaveGroup(route.params.id, group.value.ownerId, user.value.id)
+    
+    leftGroup.value = true
+    confirmLeave.value = false
+
+    // Refresh group data
+    await fetchGroupDetails()
+    
+    toast.success('Đã thoát khỏi nhóm thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+
+    // Chờ 1 giây để người dùng thấy thông báo thành công
+    setTimeout(() => {
+      router.push('/groups')
+    }, 1000)
+
+  } catch (error) {
+    console.error('Lỗi khi thoát khỏi nhóm:', error)
+    toast.error('Có lỗi xảy ra khi thoát khỏi nhóm!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+    confirmLeave.value = false
+  }
 }
 
 function handleJoin() {
@@ -665,6 +707,48 @@ const openImagePreview = (imageUrl) => {
 // Hàm đóng modal xem ảnh
 const closeImagePreview = () => {
   selectedPreviewImage.value = null
+}
+
+async function handleDeleteGroup() {
+  try {
+    if (!user.value?.id || !route.params.id) {
+      toast.error('Không thể xóa nhóm!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored'
+      })
+      return
+    }
+
+    // Hiển thị toast loading
+    toast.loading('Đang xóa nhóm...', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 1000,
+      theme: 'colored'
+    })
+
+    await deleteGroupByOwner(user.value.id, route.params.id)
+    
+    // Hiển thị toast success
+    toast.success('Xóa nhóm thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+    
+    // Chờ 1 giây trước khi chuyển hướng để người dùng thấy thông báo
+    setTimeout(() => {
+      router.push('/groups')
+    }, 1000)
+
+  } catch (error) {
+    console.error('Lỗi khi xóa nhóm:', error)
+    toast.error('Có lỗi xảy ra khi xóa nhóm!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored'
+    })
+  }
 }
 </script>
 
@@ -1497,5 +1581,20 @@ body {
   color: white;
   font-size: 30px;
   cursor: pointer;
+}
+
+.delete-group {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.delete-group:hover {
+  background-color: #c82333;
 }
 </style>

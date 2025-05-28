@@ -66,15 +66,16 @@ const routes=[
       component: PetCommunityy,
     },
     {
-      path: "/groupjoin",
+      path: "/groupjoin/:id",
       name: "GroupJoinedView",
       component: GroupJoinedView,
+      props: true
     },
     {
-        path: "/groupjoins/:id",
-        name: "GroupPage",
-        component: GroupPage,
-        props: true
+      path: "/groupjoins/:id",
+      name: "GroupPage",
+      component: GroupPage,
+      props: true
     },
     { 
         path: '/home',    

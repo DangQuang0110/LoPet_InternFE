@@ -186,7 +186,12 @@
         <p>Không có nhóm gợi ý nào mới</p>
       </div>
       <div v-else class="group-grid">
-        <div v-for="group in visibleSuggestedGroups" :key="group.id" class="group-card">
+        <div 
+          v-for="group in visibleSuggestedGroups" 
+          :key="group.id" 
+          class="group-card"
+          @click="navigateToGroupJoined(group.id)"
+        >
           <img :src="group.image" alt="Group Image" />
           <div class="content">
             <div class="info">
@@ -199,7 +204,7 @@
                 group.status === 'joining' ? 'joining' : group.status === 'joined' ? 'joined' : '',
               ]"
               :disabled="group.status !== 'idle'"
-              @click="handleJoin(group)"
+              @click.stop="handleJoin(group)"
             >
               <span v-if="group.status === 'joining'" class="loading-spinner"></span>
               {{
@@ -359,19 +364,17 @@ async function handleJoin(group) {
     // Gọi API tham gia nhóm
     await joinGroup(group.id, group.ownerId, user.id)
     toast.success('Đã tham gia nhóm thành công!', {
-          autoClose: 3000,
-          position: toast.POSITION.TOP_RIGHT,
-          theme: "colored"
-        });
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+      theme: "colored"
+    });
 
-    // Cập nhật UI sau khi tham gia thành công
-    group.status = 'joined'
+    // Chuyển hướng đến trang GroupJoinedView
+    router.push({
+      name: 'GroupJoinedView',
+      params: { id: group.id }
+    })
 
-    // Refresh danh sách nhóm đã tham gia
-    await fetchJoinedGroups()
-
-    // Xóa nhóm khỏi danh sách gợi ý
-    petGroups.value = petGroups.value.filter((g) => g.id !== group.id)
   } catch (error) {
     // Khôi phục trạng thái nếu có lỗi
     group.status = 'idle'
@@ -745,6 +748,14 @@ const navigateToGroup = (group) => {
   router.push({
     name: 'GroupPage',
     params: { id: group.id }
+  })
+}
+
+// Thêm hàm navigateToGroupJoined
+const navigateToGroupJoined = (groupId) => {
+  router.push({
+    name: 'GroupJoinedView',
+    params: { id: groupId }
   })
 }
 </script>

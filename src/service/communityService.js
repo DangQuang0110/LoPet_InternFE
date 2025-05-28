@@ -149,3 +149,20 @@ export const getPostsGroup = async (groupId) => {
     throw error
   }
 }
+
+// Thoát khỏi nhóm
+export const leaveGroup = async (groupId, ownerId, memberId) => {
+  try {
+    const response = await apiService.delete('/v1/groups/members', {
+      data: {
+        groupId: groupId,
+        owner: ownerId,
+        member: memberId
+      }
+    })
+    return response.data
+  } catch (error) {
+    console.error('Lỗi khi thoát khỏi nhóm:', error)
+    throw error
+  }
+}
