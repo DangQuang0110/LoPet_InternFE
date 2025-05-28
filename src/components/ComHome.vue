@@ -423,7 +423,6 @@ function formatVietnameseTime(dateStr) {
   const minutes = date.getMinutes().toString().padStart(2, '0')
   return `${day} tháng ${month} lúc ${hours}:${minutes}`
 }
-
 function cancelDelete() {
   showDeleteConfirm.value = false
   deleteTargetId.value = null
