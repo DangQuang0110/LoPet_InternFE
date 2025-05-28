@@ -106,7 +106,8 @@ async function submitPost() {
 
     if (!content.value.trim() && mediaFiles.length === 0) {
       alert('Bạn chưa nhập nội dung hoặc chọn ảnh!')
-    
+      return
+    }
 
     const formData = new FormData()
     formData.append('accountId', userId)
@@ -126,9 +127,8 @@ async function submitPost() {
 
     for (const [key, val] of formData.entries()) {
       console.log('formData:', key, val)
-
     
-
+    }
     const res = await createPost(formData)
     console.log('Post created:', res)
     
@@ -139,6 +139,7 @@ async function submitPost() {
       position: toast.POSITION.TOP_RIGHT,
       theme: 'colored'
     })
+
     closeModal()
   } catch (err) {
 
@@ -149,8 +150,7 @@ async function submitPost() {
       theme: 'colored'
     })
   }
-}
-
+  }
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (user.id) {
@@ -169,8 +169,6 @@ onMounted(async () => {
   }
 })
 </script>
-
-
 <style scoped>
 .modal-overlay {
   position: fixed;
