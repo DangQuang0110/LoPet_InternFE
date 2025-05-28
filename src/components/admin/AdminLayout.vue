@@ -3,7 +3,7 @@
   <div>
     <header class="headerss">
       <div class="logo">
-        <img src="/images/logoLight.png" alt="Sea Dragon Technology" />
+        <img src="/image/logoPetGram.png" alt="Sea Dragon Technology" />
         <span class="logo-text">LoPet</span>
       </div>
       <h1>ADMIN</h1>

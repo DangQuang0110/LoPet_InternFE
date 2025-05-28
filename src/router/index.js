@@ -19,7 +19,10 @@ import CreatePost from '@/components/CreatePost.vue'
 import profiletest from '@/components/profiletest.vue';
 
 
-
+import AdminLayout from '@/components/admin/AdminLayout.vue';
+import Admindenounce from "@/components/admin/Admindenounce.vue";
+import AdminLopetUser from "@/components/admin/AdminLopetUser.vue";
+import AdminLopetAdvertisement from "@/components/admin/AdminLopetAdvertisement.vue";
 // Phần admin
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
 
@@ -103,6 +106,28 @@ const routes=[
     name: 'verificationCode',
     component: VerificationCode,
   },
+  {
+    path: "/admin",
+    component: AdminLayout,
+    children: [
+      {
+          path: "denounce",
+          name: "Admindenounce", 
+          component: Admindenounce,
+      },
+      {
+          path: "user",
+          name: "AdminLopetUser",
+          component: AdminLopetUser,
+      },
+      {
+          path: "advertisement",
+          name: "AdminLopetAdvertisement",
+          component: AdminLopetAdvertisement,
+      },
+    
+    ],
+  }, 
 ]
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
