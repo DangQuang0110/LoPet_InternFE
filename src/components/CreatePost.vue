@@ -118,6 +118,7 @@ async function submitPost() {
       console.log('formData:', key, val)
 
     }
+
     const res = await createPost(formData)
     console.log('Post created:', res)
 
@@ -131,7 +132,6 @@ async function submitPost() {
 
     closeModal()
   } catch (err) {
-
     console.error('Lỗi khi tạo bài viết:', err?.response?.data || err)
     toast.error('Đăng bài viết thất bại!', {
       autoClose: 3000,
