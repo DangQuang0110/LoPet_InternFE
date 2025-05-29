@@ -19,9 +19,14 @@ export const getProfileByAccountId = async (accountId) => {
 
 // Cập nhật profile
 export const updateProfile = async (id, formData) => {
-  const response = await apiService.patch(`/v1/profiles/${id}`, formData)
+  const response = await apiService.patch(`/v1/profiles/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
   return response.data.data
 }
+
 
 // Gán profile vào tài khoản
 export const setProfileToAccount = async (profileId, accountId) => {

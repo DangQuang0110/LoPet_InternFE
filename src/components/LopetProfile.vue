@@ -1,13 +1,12 @@
 <template>
   <layout>
-  <div class="lopet-app">
-    
+  <div class="lopet-app-new">
+    <!-- Header with Search Bar -->
     <div class="search-box">
-            <input type="text" placeholder="Tìm kiếm" />
-            <button class="search-button">
-              <img src="/icon/search.png" alt="Search" class="nav-icon" />
-            </button>
-          </div>
+      <span class="material-icons">search</span>
+      <input v-model="search" type="text" placeholder="Tìm kiếm" />
+    </div>
+
     <!-- Notification section -->
     <div class="notification-container">
       <div
@@ -21,58 +20,118 @@
       </div>
     </div>
 
-    <!-- Report confirmation form -->
-    <div v-if="showReportConfirm" class="confirm-modal">
+    <!-- Edit Post Modal -->
+    <div v-if="showEditPostModal" class="confirm-modal">
       <div class="confirm-modal-content">
-        <h3>Xác nhận tố cáo</h3>
-        <p>Bạn có muốn tố cáo bài viết này?</p>
-        <div class="confirm-modal-actions">
-          <button class="confirm-button" @click="confirmReport">Xác nhận</button>
-          <button class="cancel-button" @click="cancelReport">Hủy</button>
+        <h3>Chỉnh sửa bài viết</h3>
+        <form @submit.prevent="savePostEdit">
+          <div class="form-group">
+            <textarea
+              v-model="editPostForm.content"
+              placeholder="Nội dung bài viết..."
+              class="form-input"
+            ></textarea>
+          </div>
+          <div class="confirm-modal-actions">
+            <button type="submit" class="confirm-button">Lưu</button>
+            <button type="button" class="cancel-button" @click="cancelPostEdit">Hủy</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div v-if="showEditProfileModal" class="confirm-modal">
+      <div class="confirm-modal-content">
+        <h3>Chỉnh sửa thông tin cá nhân</h3>
+        <form @submit.prevent="saveProfileEdit">
+          <div class="form-group">
+            <label for="username">Tên người dùng</label>
+            <input
+              id="username"
+              type="text"
+              v-model="editProfileForm.username"
+              placeholder="Nhập tên người dùng..."
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="avatar">Ảnh đại diện</label>
+            <input
+              id="avatar"
+              type="file"
+              ref="avatarInputModal"
+              accept="image/*"
+              @change="handleAvatarChangeModal"
+              class="form-input"
+            />
+            <div
+              v-if="editProfileForm.avatarPreview"
+              class="avatar-preview"
+              :style="{ 'background-image': 'url(' + editProfileForm.avatarPreview + ')' }"
+            ></div>
+          </div>
+          <div class="form-group">
+            <label for="banner">Ảnh bìa</label>
+            <input
+              id="banner"
+              type="file"
+              ref="bannerInput"
+              accept="image/*"
+              @change="handleBannerChange"
+              class="form-input"
+            />
+            <div
+              v-if="editProfileForm.bannerPreview"
+              class="banner-preview"
+              :style="{ 'background-image': 'url(' + editProfileForm.bannerPreview + ')' }"
+            ></div>
+          </div>
+          <div class="confirm-modal-actions">
+            <button type="submit" class="confirm-button">Lưu</button>
+            <button type="button" class="cancel-button" @click="cancelProfileEdit">Hủy</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete Post Confirmation Modal -->
+    <div v-if="showDeleteConfirm" class="modal-overlay">
+      <div class="delete-modal">
+        <div class="modal-header">
+          <h3>Bạn có muốn xóa bài viết này không</h3>
+          <button class="close-modal" @click="cancelDelete">×</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-title">Bạn có muốn xóa bài viết này hay không?</p>
+          <p class="modal-text">
+            Khi bạn xóa bài viết này thì nó sẽ không còn xuất hiện trong danh sách bài viết mà bạn được xem nữa.
+          </p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-confirm" @click="performDelete">Xác nhận</button>
+          <button class="btn-cancel" @click="cancelDelete">Hủy</button>
         </div>
       </div>
     </div>
-          <div v-if="showDeleteConfirm" class="confirm-modal">
-        <div class="confirm-modal-content">
-          <h3>Xác nhận xóa bài viết</h3>
-          <p>Bạn có chắc chắn muốn xóa bài viết này?</p>
-          <div class="confirm-modal-actions">
-            <button class="confirm-button" @click="confirmDelete">Xác nhận</button>
-            <button class="cancel-button" @click="cancelDelete">Hủy</button>
-          </div>
-        </div>
-      </div>
 
-      <!-- Thêm modal chỉnh sửa bài viết -->
-      <div v-if="showEditPostModal" class="edit-post-modal">
-        <div class="edit-post-content">
-          <h3>Chỉnh sửa bài viết</h3>
-          <textarea v-model="editingPost.content" class="post-edit-textarea"></textarea>
-          <div class="edit-post-actions">
-            <button class="save-button" @click="saveEditedPost">Lưu thay đổi</button>
-            <button class="cancel-button" @click="cancelEditPost">Hủy</button>
-          </div>
-        </div>
-      </div>
     <!-- Hidden file input for avatar change -->
-    <input 
-      type="file" 
-      ref="avatarInput" 
-      style="display: none" 
+    <input
+      type="file"
+      ref="avatarInput"
+      style="display: none"
       accept="image/*"
       @change="handleAvatarChange"
-    >
+    />
 
     <!-- Profile section -->
     <div class="profile-container">
-      <!-- Profile banner image -->
-      <div class="profile-banner">
-        <!-- Banner image background -->
-      </div>
-
-      <!-- Profile details section -->
+      <div
+        class="profile-banner"
+        :style="{ 'background-image': user.banner ? 'url(' + user.banner + ')' : 'linear-gradient(to bottom, #e6e6e6, #f0f2f5)' }"
+      ></div>
       <div class="profile-details-new">
-        <div 
+        <div
           class="profile-avatar"
           :style="{ 'background-image': 'url(' + user.avatar + ')' }"
           @click="$refs.avatarInput.click()"
@@ -81,38 +140,45 @@
         <div class="profile-info">
           <h1 class="profile-name">{{ user.name }}</h1>
           <p class="profile-stats">{{ user.friends }} Bạn bè</p>
-          
+          <button class="edit-profile-button" @click="goToProfileEdit">Chỉnh sửa thông tin</button>
           <div class="profile-nav">
-            <router-link to='/profile' class="nav-item active">Trang Cá Nhân</router-link>
-            <router-link to='/photo' class="nav-item">Hình Ảnh</router-link>
+            <router-link to="/profile" class="nav-item active">Trang Cá Nhân</router-link>
+            <router-link to="/photo" class="nav-item">Hình Ảnh</router-link>
           </div>
         </div>
       </div>
 
       <!-- Profile content section -->
       <div class="profile-content">
-        <!-- Sidebar - Fixed position -->
-        <div class="sidebar-profile">
+        <div class="sidebar">
           <div class="intro-section">
             <h3>Giới Thiệu</h3>
-            
-            <!-- Conditionally render intro details or edit form -->
             <div v-if="!editMode">
-              <!-- Bio and Contact Info -->
               <ul class="intro-list">
                 <li class="bio-item">
-                  <img src="/icon/resume.png" alt="Photo" class="nav-icon" />
+                  <img src="/icon/resume.png" alt="Bio" class="nav-icon" />
                   <span>{{ user.bio || 'Chưa có thông tin giới thiệu...' }}</span>
                 </li>
                 <li>
-                  <img src="/icon/telephone.png" alt="Photo" class="nav-icon" />
-                  <span>{{ user.phone }}</span>
+                  <img src="/icon/telephone.png" alt="Phone" class="nav-icon" />
+                  <span>{{ user.phone || 'Chưa có số điện thoại...' }}</span>
+                </li>
+                <li>
+                  <img src="/icon/home.png" alt="Hometown" class="nav-icon" />
+                  <span>{{ user.hometown || 'Chưa có quê quán...' }}</span>
+                </li>
+                <li>
+                  <img src="/icon/home.png" alt="Gender" class="nav-icon" />
+                  <span>{{ user.gender || 'Chưa có thông tin giới tính...' }}</span>
+                </li>
+                <li>
+                  <img src="/icon/user.png" alt="Date of Birth" class="nav-icon" />
+                  <span>{{ user.dateOfBirth || 'Chưa có ngày sinh...' }}</span>
                 </li>
               </ul>
               <button class="edit-button" @click="goToEdit">Chỉnh sửa chi tiết</button>
             </div>
             <div v-else>
-              <!-- Edit form -->
               <form @submit.prevent="saveDetails" class="edit-form">
                 <div class="form-group">
                   <label for="bio">Giới thiệu</label>
@@ -133,6 +199,37 @@
                     class="form-input"
                   />
                 </div>
+                <div class="form-group">
+                  <label for="hometown">Quê quán</label>
+                  <input
+                    id="hometown"
+                    type="text"
+                    v-model="editForm.hometown"
+                    placeholder="Nhập quê quán..."
+                    class="form-input"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="gender">Giới tính</label>
+                  <select
+                    id="gender"
+                    v-model="editForm.gender"
+                    class="form-input"
+                  >
+                    <option value="" disabled>Chọn giới tính</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="dateOfBirth">Ngày tháng năm sinh</label>
+                  <input
+                    id="dateOfBirth"
+                    type="date"
+                    v-model="editForm.dateOfBirth"
+                    class="form-input"
+                  />
+                </div>
                 <div class="form-actions">
                   <button type="submit" class="save-button">Lưu</button>
                   <button type="button" class="cancel-button" @click="cancelEdit">Hủy</button>
@@ -144,364 +241,644 @@
 
         <!-- Feed -->
         <div class="feed">
-          <!-- Create post box -->
-          <div class="create-post">
-            <div class="create-post-header">
-              <div 
-                class="post-input-avatar"
-                :style="{ 'background-image': 'url(' + user.avatar + ')' }"
-              ></div>
-              <div class="post-input">
-                <input type="text" placeholder="Bạn đang nghĩ gì ?" />
+          <div class="post-card" v-for="post in posts" :key="post.id">
+            <!-- Post Header -->
+            <div class="post-header">
+              <img :src="post.userSrc" alt="avatar" class="avatar" />
+              <div class="post-info">
+                <span class="username">{{ post.user }}</span>
+                <small class="time">{{ post.time }}</small>
+              </div>
+              <div class="post-header-actions">
+                <button class="btn-icon menu-btn" @click.stop="togglePostMenu(post.id)">
+                  <img src="/icon/dots.png" alt="Home" class="nav-icon" />
+                </button>
+                <div v-if="openedMenuPostId === post.id" class="post-menu" @click.stop>
+                  <ul>
+                    <li v-if="post.user === user.name" @click="editPost(post.id)">Sửa bài viết</li>
+                    <li v-if="post.user === user.name" @click="confirmDelete(post.id)">Xóa bài viết</li>
+                    <li @click="showReport = true">Báo cáo bài viết</li>
+                  </ul>
+                </div>
               </div>
             </div>
-            <div class="create-post-actions">
-              <button class="create-action">
-                <img src="/icon/camera.png" alt="Photo" class="nav-icon" />
-                <span>Ảnh</span>
+
+            <!-- Post Content -->
+            <div class="post-content">
+              <p>
+                <span v-if="!expandedPosts[post.postId] && post.text.length > 200">
+                  {{ post.text.slice(0, 200) }}...
+                </span>
+                <span v-else>{{ post.text }}</span>
+              </p>
+              <button
+                v-if="post.text.length > 200"
+                class="toggle-expand-btn"
+                @click="toggleExpand(post.postId)"
+              >
+                {{ expandedPosts[post.postId] ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
+              <div class="post-image-wrapper" v-if="post.img">
+                <img :src="post.img" alt="" />
+              </div>
+            </div>
+            <div class="post-actions">
+              <button class="btn-icon like-btn" @click="toggleLike(post)">
+                <img
+                  :src="post.liked ? '/icon/heart.png' : '/assets/like.png'"
+                  alt="Like"
+                  class="icon-img-like"
+                />
+              </button>
+              <span class="count">{{ post.likes }}</span>
+              <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">
+                <img src="/icon/user.png" alt="Comment" class="icon-img" />
+              </button>
+              <span class="count">{{ post.commentsList.length }}</span>
+              <button class="btn-icon share-btn" @click="toggleSharePopup">
+                <img src="/icon/share.png" alt="Share" class="icon-img-share" />
               </button>
             </div>
-          </div>
 
-          <!-- Posts list -->
-          <div v-for="post in posts" :key="post.id" class="post-item" :class="{ 'user-post': post.author === user.name }">
-            <div class="post-header">
-              <div class="post-author">
-                <div 
-                  class="post-author-avatar" 
-                  :class="{ 'user-avatar': post.author === user.name }"
-                  :style="{ 'background-image': 'url(' + (post.authorAvatar || '/image/avata.jpg') + ')' }"
-                ></div>
-                <div class="post-author-info">
-                  <h4>{{ post.author }}</h4>
-                  <p class="post-time">{{ post.time }}</p>
-                </div>
-              </div>
-              <div class="post-options" @click="toggleDropdown(post.id)">
-                <img src="/icon/dots.png" alt="Options" class="nav-icon" />
-                <!-- Dropdown Menu -->
-                <div v-if="activeDropdown === post.id" class="dropdown-menu">
-                            <div v-if="post.author === user.name" class="dropdown-item" @click.stop="editPost(post)">
-            <img src="/icon/edit.png" alt="Edit" class="nav-icon" />
-            <span>Chỉnh sửa bài viết</span>
-          </div>
-          <div v-if="post.author === user.name" class="dropdown-item" @click.stop="deletePost(post.id)">
-            <img src="/icon/delete.png" alt="Delete" class="nav-icon" />
-            <span>Xóa bài viết</span>
-          </div>
-                  <div class="dropdown-item" @click.stop="reportPost(post.id)">
-                    <img src="/icon/exclamation.png" alt="Report" class="nav-icon" />
-                    <span>Tố cáo bài viết</span>
-                  </div>
+            <!-- Comment list -->
+            <div class="comment-list">
+              <div class="comment-item" v-for="(cmt, idx) in post.commentsList" :key="idx">
+                <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
+                <div class="comment-bubble">
+                  <span class="comment-username">{{ cmt.user }}</span>
+                  <span class="comment-text">{{ cmt.text }}</span>
+                  <div class="comment-time">{{ formatDate(cmt.createdAt) }}</div>
                 </div>
               </div>
             </div>
-            
-            <div class="post-content" v-if="post.content || post.image">
-              <p v-if="post.content">{{ post.content }}</p>
-              <div class="post-image" v-if="post.image" :class="post.imageClass">
-                <img :src="post.image" alt="Ảnh bài viết" />
-              </div>
-            </div>
-            
-            <div class="post-actions-wrapper">
-              <div class="post-actions">
-                <button class="post-action">
-                  <img src="/icon/heart.png" alt="Like" class="nav-icon" />
-                  <span></span>
-                </button>
-                <button class="post-action">
-                  <img src="/icon/chat.png" alt="Comment" class="nav-icon" />
-                  <span></span>
-                </button>
-              </div>
-              <div class="post-actions-new">
-                <button class="post-action">
-                  <img src="/icon/share.png" alt="Share" class="nav-icon" />
-                  <span></span>
-                </button>
-              </div>
-            </div>
-            
-            <div class="post-stats" v-if="post.likes > 0">
-              <span>{{ post.likes }} lượt thích</span>
-            </div>
-            
-            <div class="post-comments" v-if="post.comments && post.comments.length > 0">
-              <div v-for="(comment, index) in post.comments" :key="index" class="comment">
-                <div 
-                  class="comment-avatar-profile"
-                  :style="{ 'background-image': 'url(' + comment.authorAvatar + ')' }"
-                ></div>
-                <div class="comment-content">
-                  <h5>{{ comment.author }}</h5>
-                  <p>{{ comment.content }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Comment input -->
-            <div class="comment-input">
-              <div 
-                class="comment-avatar-profile user-avatar"
-                :style="{ 'background-image': 'url(' + user.avatar + ')' }"
-              ></div>
-              <div class="comment-box">
-                <input
-                  type="text"
-                  :placeholder="'Viết bình luận vào bài của ' + post.author"
-                  v-model="newComments[post.id].content"
-                  v-if="newComments[post.id]"
-                />
-                <input
-                  type="file"
-                  :ref="'commentImage_' + post.id"
-                  style="display: none"
-                  @change="handleCommentImage($event, post.id)"
-                />
-                <button @click="submitComment(post.id)">Gửi</button>
-              </div>
+            <!-- Stats -->
+            <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Xem thêm bình luận</button>
+            <!-- Comment Input -->
+            <div class="post-comment">
+              <input
+                type="text"
+                placeholder="Bình luận..."
+                v-model="newComment"
+                @keydown.enter.prevent="addComment(post)"
+              />
+              <button class="btn-send" @click="addComment(post)">Gửi</button>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div v-if="activeDropdown || showReportConfirm" class="dropdown-overlay" @click="closeDropdown(); cancelReport()"></div>
+
+    <!-- Comments Popup -->
+    <transition name="fade">
+      <div v-if="showCommentModal" class="comment-modal-overlay" @click.self="toggleCommentPopup">
+        <div class="comment-modal">
+          <div class="comment-modal-header">
+            <h3>Bài viết của {{ activePost.user }}</h3>
+            <button class="close-btn" @click="toggleCommentPopup">×</button>
+          </div>
+          <div class="comment-modal-gallery">
+            <img v-for="(img, idx) in activePost.images" :key="idx" :src="img" class="gallery-img" />
+          </div>
+          <div class="comment-modal-list">
+            <div v-for="c in activePost.commentsList" :key="c.id" class="comment-item">
+              <img :src="c.userSrc" class="comment-avatar" />
+              <div class="comment-body">
+                <div class="main-comment">
+                  <span class="comment-username">{{ c.user }}</span>
+                  <p class="comment-text">{{ c.text }}</p>
+                </div>
+                <span class="comment-time">{{ formatDate(c.createdAt) }}</span>
+                <button class="btn-reply-modal" @click="prepareReply(c)">Trả lời</button>
+                <div v-if="replyingCommentId === c.id" class="reply-section">
+                  <input
+                    v-model="replyInputs[c.id]"
+                    type="text"
+                    :placeholder="`@${c.user}`"
+                    @keydown.enter.prevent="submitReplyModal(c)"
+                  />
+                  <button @click="submitReplyModal(c)">Gửi</button>
+                </div>
+                <div v-for="r in c.replies" :key="r.id" class="reply-item">
+                  <img :src="r.userSrc" class="comment-avatar" />
+                  <div class="comment-body">
+                    <div class="main-comment">
+                      <span class="comment-username">{{ r.user }}</span>
+                      <p class="comment-text">{{ r.text }}</p>
+                    </div>
+                    <div class="comment-time">{{ r.time || formatDate(r.createdAt) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="comment-modal-footer">
+            <div
+              class="comment-avatar"
+              :style="{ 'background-image': 'url(' + user.avatar + ')' }"
+            ></div>
+            <input
+              v-model="newComment"
+              type="text"
+              placeholder="Viết bình luận..."
+              @keydown.enter.prevent="addComment(activePost)"
+            />
+            <button class="btn-send" @click="addComment(activePost)">Gửi</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Share Modal -->
+    <transition name="fade">
+      <div v-if="showSharePopup" class="share-overlay" @click.self="toggleSharePopup">
+        <div class="share-modal">
+          <div class="share-header">
+            <span class="share-title">Chia sẻ</span>
+            <button class="close-btn" @click="toggleSharePopup">×</button>
+          </div>
+          <div class="share-body">
+            <div class="share-user">
+              <img :src="user.avatar" alt="avatar" class="share-avatar" />
+              <div class="share-user-info">
+                <span class="share-name">{{ user.name }}</span>
+                <div class="privacy-dropdown">
+                  <button @click="showPrivacy = !showPrivacy">
+                    {{ privacySetting }} <i class="fas fa-caret-down"></i>
+                  </button>
+                  <ul v-if="showPrivacy" class="privacy-options">
+                    <li @click="privacySetting = 'Bằng feed'; showPrivacy = false">Bằng feed</li>
+                    <li @click="privacySetting = 'Công khai'; showPrivacy = false">Công khai</li>
+                    <li @click="privacySetting = 'Bạn bè'; showPrivacy = false">Bạn bè</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <textarea v-model="shareText" class="share-input" placeholder="Hãy nói gì đó về nội dung này…"></textarea>
+          </div>
+          <div class="share-footer">
+            <button class="btn-share-now" @click="shareNow">Chia sẻ ngay</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Create Post Modal -->
+    <CreatePost v-if="showCreate" @close="showCreate = false" @refresh="refreshData" />
+    <!-- Report Modal -->
+    <ReportModal v-if="showReport" @close="showReport = false" @report="onReport" />
   </div>
   </layout>
 </template>
 
-<script>
-import layout from '@/components/Layout.vue'
-import { getPostsByAccountId } from '@/service/postService'
-import { getProfileByAccountId, updateProfile } from '@/service/profileService'
-import { createComment,getCommentsByPostId } from '@/service/commentService'
+<script setup>
+import { ref, onMounted, reactive } from 'vue';
+import layout from './Layout.vue';
+import { getProfileByAccountId,updateProfile} from '@/service/profileService';
+import {getPostsByAccountId} from '@/service/postService';
+// Reactive variables
+const search = ref('');
+const showCreate = ref(false);
+const showReport = ref(false);
+const composeText = ref('');
+const notifications = ref([]);
+const showEditPostModal = ref(false);
+const editPostForm = ref({ postId: null, content: '' });
+const showDeleteConfirm = ref(false);
+const deleteTargetId = ref(null);
+const openedMenuPostId = ref(null);
+const showCommentModal = ref(false);
+const activePost = ref(null);
+const newComment = ref('');
+const showSharePopup = ref(false);
+const showPrivacy = ref(false);
+const privacySetting = ref('Bằng feed');
+const shareText = ref('');
+const editMode = ref(false);
+const showEditProfileModal = ref(false);
+const editProfileForm = ref({
+  username: '',
+  avatar: null,
+  avatarPreview: '',
+  banner: null,
+  bannerPreview: ''
+});
+const editForm = ref({
+  bio: '',
+  phone: '',
+  hometown: '',
+  gender: '',
+  dateOfBirth: ''
+});
+const user = ref({
+  id: '',
+  name: '',
+  avatar: '',
+  banner: '',
+  friends: 0,
+  bio: '',
+  phone: '',
+  hometown: '',
+  gender: '',
+  dateOfBirth: ''
+});
 
-export default {
-  components: { layout },
-  name: 'LopetProfile',
-  data() {
-    return {
-      newComments: {},
-      activeDropdown: null,
-      editMode: false,
-      editForm: { bio: '', phone: '' },
-      notifications: [],
-      showReportConfirm: false,
-      reportPostId: null,
-      user: {
-        name: '', avatar: '', cover: '', friends: 0,
-        bio: '', phone: '', profileId: null
-      },
-      posts: []
-    }
-  },
-  methods: {
-    async loadUserProfile() {
-      try {
-        const localUser = JSON.parse(localStorage.getItem('user'))
-        if (!localUser?.id) return
-        const profile = await getProfileByAccountId(localUser.id)
-        this.user.name = profile.fullName
-        this.user.phone = profile.phoneNumber
-        this.user.bio = profile.bio
-        this.user.avatar = profile.avatarUrl || '/default-avatar.png'
-        this.user.cover = profile.coverUrl || '/default-cover.jpg'
-        this.user.profileId = profile.id
-        localUser.profileId = profile.id
-        localStorage.setItem('user', JSON.stringify(localUser))
-        await this.loadUserPosts()
-      } catch (err) {
-        console.error('Lỗi tải profile:', err)
-        this.showNotification('Không thể tải profile', 'error')
-      }
-    },
-    async loadUserPosts() {
+const expandedPosts = ref({});
+const replyingCommentId = ref(null);
+const replyInputs = reactive({});
+const currentUserId = ref(localStorage.getItem('accountId') || '');
+const posts = ref([]);
+
+// Functions for profile
+function goToEdit() {
+  editForm.value.bio = user.value.bio || '';
+  editForm.value.phone = user.value.phone || '';
+  editForm.value.hometown = user.value.hometown || '';
+  editForm.value.gender = user.value.gender || '';
+  editForm.value.dateOfBirth = user.value.dateOfBirth || '';
+  editMode.value = true;
+}
+
+async function saveDetails() {
   try {
-    const localUser = JSON.parse(localStorage.getItem('user'))
-    if (!localUser?.id) return
+    const formData = new FormData();
+    formData.append('fullName', user.value.name); // giữ nguyên tên
+    formData.append('bio', editForm.value.bio || '');
+    formData.append('phoneNumber', editForm.value.phone || '');
+    formData.append('hometown', editForm.value.hometown || '');
+    formData.append('sex', genderToNumber(editForm.value.gender));
+    formData.append('dateOfBirth', editForm.value.dateOfBirth || '');
 
-    const postsRes = await getPostsByAccountId(localUser.id)
-    this.newComments = {}
+    const updated = await updateProfile(user.value.id, formData);
 
-    const postsWithComments = await Promise.all(
-  postsRes.map(async post => {
-    const postId = post.postId
-    this.newComments[postId] = { content: '', image: null, replyCommentId: null }
-      let comments = []
-      try {
-        const commentRes = await getCommentsByPostId(postId)
-        console.log(`🧪 Kết quả getCommentsByPostId cho postId=${postId}:`, commentRes)
-        comments = Array.isArray(commentRes.comments) ? commentRes.comments : []
-      } catch (err) {
-        console.error(`❌ Không thể lấy bình luận cho bài ${postId}:`, err)
-      }
-    return {
-      id: postId,
-      author: this.user.name,
-      authorAvatar: this.user.avatar?.trim() !== '' ? this.user.avatar : '/image/avata.jpg',
-      time: new Date(post.createdAt).toLocaleString(),
-      content: post.content,
-      image: post.postMedias?.[0]?.mediaUrl || null,
-      imageClass: post.postMedias?.[0] ? 'has-image' : '',
-      likes: post.likeAmount || 0,
-      comments: Array.isArray(comments)
-        ? comments.map(c => ({
-            author: c.authorName,
-            authorAvatar: c.avatarUrl || '/image/avata.jpg',
-            content: c.content
-          }))
-        : []
-    }
-  })
-)
-    this.posts = postsWithComments
-  } catch (err) {
-    console.error('Lỗi tải bài viết:', err?.response?.data || err.message || err)
-    this.showNotification('Không thể tải bài viết', 'error')
-  }
-},
-    async saveDetails() {
-      try {
-        const formData = new FormData()
-        formData.append('fullName', this.user.name)
-        formData.append('bio', this.editForm.bio)
-        formData.append('phoneNumber', this.editForm.phone)
-        // Chỉ gửi avatarUrl và coverUrl nếu đã có (không tạo Blob rỗng)
-        if (this.user.avatar) formData.append('avatarUrl', this.user.avatar)
-        if (this.user.cover) formData.append('coverUrl', this.user.cover)
-        const updated = await updateProfile(this.user.profileId, formData)
-        this.user.bio = updated.bio
-        this.user.phone = updated.phoneNumber
-        this.editMode = false
-        this.showNotification('Thông tin đã được cập nhật', 'success')
-      } catch (err) {
-        console.error('Lỗi cập nhật profile:', err)
-        this.showNotification('Cập nhật thất bại', 'error')
-      }
-    },
-    cancelEdit() {
-      this.editMode = false
-    },
-    async handleAvatarChange(e) {
-      const file = e.target.files[0]
-      if (!file) return
-      const formData = new FormData()
-      formData.append('avatar', file)
-      formData.append('fullName', this.user.name)
-      formData.append('bio', this.user.bio)
-      formData.append('phoneNumber', this.user.phone)
-      formData.append('cover', new Blob([], { type: 'image/png' }), 'empty.png')
-      try {
-        const updated = await updateProfile(this.user.profileId, formData)
-        this.user.avatar = updated.avatarUrl
-        this.showNotification('Đổi ảnh đại diện thành công', 'success')
-      } catch (err) {
-        console.error('Lỗi đổi avatar:', err)
-        this.showNotification('Không thể đổi avatar', 'error')
-      }
-    },
-        handleCommentImage(e, postId) {
-      const file = e.target.files[0]
-      if (!file) return
-      if (!this.newComments[postId]) this.newComments[postId] = { content: '', image: null }
-      this.newComments[postId].image = file
-    },
-async submitComment(postId) {
-  try {
-    const user = JSON.parse(localStorage.getItem('user'))
-    const commentData = this.newComments[postId]
+    user.value.bio = updated.bio || '';
+    user.value.phone = updated.phoneNumber || '';
+    user.value.hometown = updated.hometown || '';
+    user.value.gender = genderLabel(updated.sex);
+    user.value.dateOfBirth = updated.dateOfBirth
+      ? new Date(updated.dateOfBirth).toISOString().split('T')[0]
+      : '';
+      user.value.avatar = updated.avatarUrl || user.value.avatar;
+user.value.banner = updated.coverUrl || user.value.banner;
 
-    if (!commentData || !commentData.content) {
-      this.showNotification('Vui lòng nhập nội dung bình luận', 'error')
-      return
-    }
-
-    const payload = {
-      accountId: user.id,
-      postId: postId,
-      content: commentData.content,
-      replyCommentId: commentData.replyCommentId || '',
-      image: commentData.image || null
-    }
-
-    console.log('🔥 Gửi vào createComment:', payload)
-    await createComment(payload)
-
-    this.showNotification('Bình luận thành công', 'success')
-    this.newComments[postId] = { content: '', image: null }
-
-    this.loadUserPosts()
-  } catch (err) {
-    console.error('Lỗi gửi bình luận:', err?.response?.data || err.message || err)
-    this.showNotification('Không thể gửi bình luận', 'error')
-  }
-},
-    async handleCoverChange(e) {
-      const file = e.target.files[0]
-      if (!file) return
-      const formData = new FormData()
-      formData.append('cover', file)
-      formData.append('fullName', this.user.name)
-      formData.append('bio', this.user.bio)
-      formData.append('phoneNumber', this.user.phone)
-      formData.append('avatar', new Blob([], { type: 'image/png' }), 'empty.png')
-      try {
-        const updated = await updateProfile(this.user.profileId, formData)
-        this.user.cover = updated.coverUrl
-        this.showNotification('Đổi ảnh bìa thành công', 'success')
-      } catch (err) {
-        console.error('Lỗi đổi ảnh bìa:', err)
-        this.showNotification('Không thể đổi ảnh bìa', 'error')
-      }
-    },
-    
-    showNotification(message, type = 'info') {
-      const id = Date.now()
-      this.notifications.push({ id, message, type })
-      setTimeout(() => this.removeNotification(id), 5000)
-    },
-    removeNotification(id) {
-      this.notifications = this.notifications.filter(n => n.id !== id)
-    },
-    toggleDropdown(postId) {
-      this.activeDropdown = this.activeDropdown === postId ? null : postId
-    },
-    closeDropdown() {
-      this.activeDropdown = null
-    },
-    goToEdit() {
-      this.editForm.bio = this.user.bio
-      this.editForm.phone = this.user.phone
-      this.editMode = true
-    },
-    reportPost(postId) {
-      this.showReportConfirm = true
-      this.reportPostId = postId
-      this.closeDropdown()
-    },
-    confirmReport() {
-      this.showNotification('Đã gửi tố cáo bài viết', 'success')
-      this.showReportConfirm = false
-      this.reportPostId = null
-    },
-    cancelReport() {
-      this.showReportConfirm = false
-      this.reportPostId = null
-    }
-  },
-  mounted() {
-    this.loadUserProfile()
-    if (!document.querySelector('script[src*="font-awesome"]')) {
-      const script = document.createElement('script')
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js'
-      document.head.appendChild(script)
-    }
+    editMode.value = false;
+    showNotification('Thông tin đã được cập nhật thành công!', 'success');
+  } catch (error) {
+    console.error('❌ update profile detail error:', error);
+    showNotification('Cập nhật thông tin thất bại!', 'error');
   }
 }
+
+function genderToNumber(label) {
+  if (label === 'Nam') return 0;
+  if (label === 'Nữ') return 1;
+  return -1;
+}
+
+function cancelEdit() {
+  editMode.value = false;
+}
+
+function goToProfileEdit() {
+  editProfileForm.value.username = user.value.name;
+  editProfileForm.value.avatarPreview = user.value.avatar;
+  editProfileForm.value.bannerPreview = user.value.banner;
+  showEditProfileModal.value = true;
+}
+
+function handleAvatarChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  user.value.avatar = URL.createObjectURL(file);
+  showNotification('Ảnh đại diện đã được cập nhật!', 'success');
+}
+
+function handleAvatarChangeModal(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  editProfileForm.value.avatar = file;
+  editProfileForm.value.avatarPreview = URL.createObjectURL(file);
+}
+function handleBannerChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  editProfileForm.value.banner = file;
+  editProfileForm.value.bannerPreview = URL.createObjectURL(file);
+}
+
+async function loadUserProfile() {
+const userData = JSON.parse(localStorage.getItem('user'));
+const accountId = userData?.id;
+
+  if (!accountId) {
+    console.error('❌ Không tìm thấy accountId trong localStorage');
+    showNotification('Vui lòng đăng nhập lại!', 'error');
+    return;
+  }
+
+  try {
+    console.log('📤 Gọi API với accountId:', accountId);
+    const profile = await getProfileByAccountId(accountId);
+
+    user.value = {
+      id: profile.id,
+      name: profile.fullName,
+      avatar: profile.avatarUrl || '/default-avatar.png',
+      banner: profile.coverUrl || '',
+      friends: 500,
+      bio: profile.bio || '',
+      phone: profile.phoneNumber || '',
+      hometown: profile.hometown || '',
+      gender: genderLabel(profile.sex),
+      dateOfBirth: profile.dateOfBirth
+        ? new Date(profile.dateOfBirth).toISOString().split('T')[0]
+        : ''
+    };
+  } catch (error) {
+    console.error('❌ loadUserProfile error:', error);
+    showNotification('Không thể tải thông tin hồ sơ!', 'error');
+  }
+}
+function genderLabel(sex) {
+  const sexNum = Number(sex);
+  if (sexNum === 0) return 'Nam';
+  if (sexNum === 1) return 'Nữ';
+  return 'Không rõ';
+}
+
+async function saveProfileEdit() {
+  try {
+    const formData = new FormData();
+    formData.append('fullName', editProfileForm.value.username);
+
+    // Avatar
+    if (editProfileForm.value.avatar) {
+      formData.append('avatar', editProfileForm.value.avatar);
+    } else {
+      // Gửi URL hiện tại nếu không đổi để backend giữ nguyên
+      const blob = await fetch(user.value.avatar).then(res => res.blob());
+      formData.append('avatar', blob, 'avatar.jpg');
+    }
+
+    // Banner
+    if (editProfileForm.value.banner) {
+      formData.append('cover', editProfileForm.value.banner);
+    } else {
+      // Gửi URL hiện tại nếu không đổi để backend giữ nguyên
+      const blob = await fetch(user.value.banner).then(res => res.blob());
+      formData.append('cover', blob, 'cover.jpg');
+    }
+
+    const updated = await updateProfile(user.value.id, formData);
+
+    user.value.name = updated.fullName || user.value.name;
+    user.value.avatar = updated.avatarUrl || user.value.avatar;
+    user.value.banner = updated.coverUrl || user.value.banner;
+
+    showNotification('Thông tin cá nhân đã được cập nhật!', 'success');
+  } catch (error) {
+    console.error('❌ update profile error', error);
+    showNotification('Cập nhật thất bại!', 'error');
+  }
+
+  showEditProfileModal.value = false;
+  resetProfileForm();
+}
+
+function cancelProfileEdit() {
+  showEditProfileModal.value = false;
+  resetProfileForm();
+}
+
+function resetProfileForm() {
+  editProfileForm.value.username = '';
+  editProfileForm.value.avatar = null;
+  editProfileForm.value.avatarPreview = '';
+  editProfileForm.value.banner = null;
+  editProfileForm.value.bannerPreview = '';
+}
+
+// Functions for posts
+function refreshData() {
+  showNotification('Dữ liệu đã được làm mới!', 'success');
+}
+
+function submitReplyModal(cmt) {
+  const text = (replyInputs[cmt.id] || '').trim();
+  if (!text) return;
+  if (!Array.isArray(cmt.replies)) cmt.replies = [];
+  cmt.replies.push({
+    id: Date.now(),
+    user: user.value.name,
+    userSrc: user.value.avatar,
+    text,
+    time: 'Vừa xong',
+    replyToUser: cmt.user
+  });
+  replyInputs[cmt.id] = '';
+  replyingCommentId.value = null;
+  showNotification('Trả lời bình luận đã được thêm!', 'success');
+}
+
+function prepareReply(cmt) {
+  replyingCommentId.value = cmt.id;
+  if (!replyInputs[cmt.id]) replyInputs[cmt.id] = `@${cmt.user} `;
+}
+
+function toggleExpand(postId) {
+  expandedPosts.value[postId] = !expandedPosts.value[postId];
+}
+
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffMinutes < 1) return 'Vừa xong';
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+}
+
+function formatVietnameseTime(dateStr) {
+  const date = new Date(dateStr);
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${day} tháng ${month} lúc ${hours}:${minutes}`;
+}
+
+function toggleLike(post) {
+  if (post.liked) {
+    post.likes -= 1;
+    post.liked = false;
+    post.postLikes = post.postLikes.filter(like => like.accountId !== currentUserId);
+    showNotification('Đã bỏ thích bài viết!', 'success');
+  } else {
+    post.likes += 1;
+    post.liked = true;
+    if (!Array.isArray(post.postLikes)) post.postLikes = [];
+    post.postLikes.push({ accountId: currentUserId });
+    showNotification('Đã thích bài viết!', 'success');
+  }
+}
+
+function togglePostMenu(id) {
+  openedMenuPostId.value = openedMenuPostId.value === id ? null : id;
+}
+
+function confirmDelete(id) {
+  deleteTargetId.value = id;
+  showDeleteConfirm.value = true;
+}
+
+function performDelete() {
+  const idx = posts.value.findIndex(p => p.id === deleteTargetId.value);
+  if (idx !== -1) {
+    posts.value.splice(idx, 1);
+    showNotification('Bài viết đã được xóa!', 'success');
+  }
+  showDeleteConfirm.value = false;
+  deleteTargetId.value = null;
+}
+
+function cancelDelete() {
+  showDeleteConfirm.value = false;
+  deleteTargetId.value = null;
+}
+
+function toggleCommentPopup(post = null) {
+  if (showCommentModal.value) {
+    showCommentModal.value = false;
+    activePost.value = null;
+  } else {
+    activePost.value = { ...post, postId: post.postId };
+    showCommentModal.value = true;
+  }
+}
+
+function addComment(post) {
+  if (!newComment.value.trim()) return;
+  if (!Array.isArray(post.commentsList)) post.commentsList = [];
+  post.commentsList.push({
+    id: `cmt${Date.now()}`,
+    user: user.value.name,
+    userSrc: user.value.avatar,
+    text: newComment.value,
+    time: 'Vừa xong',
+    createdAt: new Date().toISOString(),
+    replies: []
+  });
+  newComment.value = '';
+  showNotification('Bình luận đã được thêm!', 'success');
+}
+
+function editPost(postId) {
+  const post = posts.value.find(p => p.id === postId);
+  if (post) {
+    editPostForm.value.postId = postId;
+    editPostForm.value.content = post.text;
+    showEditPostModal.value = true;
+    togglePostMenu(null);
+  }
+}
+
+function savePostEdit() {
+  const post = posts.value.find(p => p.id === editPostForm.value.postId);
+  if (post) {
+    post.text = editPostForm.value.content;
+    showNotification('Bài viết đã được cập nhật!', 'success');
+  }
+  showEditPostModal.value = false;
+  editPostForm.value.postId = null;
+  editPostForm.value.content = '';
+}
+
+function cancelPostEdit() {
+  showEditPostModal.value = false;
+  editPostForm.value.postId = null;
+  editPostForm.value.content = '';
+}
+
+function showNotification(message, type = 'info') {
+  const id = Date.now();
+  notifications.value.push({ id, message, type });
+  setTimeout(() => {
+    removeNotification(id);
+  }, 5000);
+}
+
+function removeNotification(id) {
+  notifications.value = notifications.value.filter(n => n.id !== id);
+}
+
+function toggleSharePopup() {
+  showSharePopup.value = !showSharePopup.value;
+}
+
+function shareNow() {
+  console.log('Chia sẻ:', shareText.value, 'Privacy:', privacySetting.value);
+  showNotification('Bài viết đã được chia sẻ!', 'success');
+  toggleSharePopup();
+}
+
+function onReport(reason) {
+  console.log('Báo cáo vì:', reason);
+  showNotification('Báo cáo đã được gửi!', 'success');
+}
+
+onMounted(async () => {
+  await loadUserProfile();
+
+  try {
+  const postsData = await getPostsByAccountId(user.value.id);
+  console.log('✅ Danh sách bài viết từ API:', postsData); 
+  posts.value = postsData.map(post => ({
+    id: post.postId,
+    postId: post.postId,
+    user: user.value.name,
+    userSrc: user.value.avatar,
+    time: formatVietnameseTime(post.createdAt),
+    text: post.content,
+    img: post.postMedias?.[0]?.mediaUrl || '',
+    likes: post.likeAmount || 0,
+    commentsList: [],
+    postLikes: post.listLike || [],
+    liked: post.listLike.some(like => like.id === Number(currentUserId.value)),
+    images: post.postMedias?.map(m => m.mediaUrl) || []
+  }));
+
+  console.log('✅ posts sau khi map:', posts.value); // 🪵 Log kết quả sau khi xử lý
+} catch (err) {
+  console.error('❌ Không thể tải danh sách bài viết:', err);
+  showNotification('Không thể tải danh sách bài viết!', 'error');
+}
+
+
+  // Font Awesome fallback
+  if (!document.querySelector('script[src*="font-awesome"]')) {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js';
+    document.head.appendChild(script);
+  }
+});
 </script>
 
-<style>
+<style scoped>
+:root {
+  --bg-page: #FFF8F0;
+  --bg-main: #FFF8F0;
+  --bg-search: #FFFFFF;
+  --bg-composer: #FAEBD7;
+  --bg-post: #FFF8F0;
+  --bg-sidebar: #FFF8F0;
+  --divider: #D9D9D9;
+  --text: #141414;
+  --subtext: #888888;
+  --accent: #FAEBD7;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -509,119 +886,54 @@ async submitComment(postId) {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.nav-icon {
-  margin-right: 8px;
-  width: 20px;
-  height: 20px;
-}
-
-.lopet-app {
-  background-color: #f0f2f5;
+.lopet-app-new {
+  background-color: var(--bg-page);
   min-height: 100vh;
   position: relative;
 }
 
-.header {
+/* Search Box */
+.search-box {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px; /* Tăng padding cho header */
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  max-width: 1200px; /* Thêm max-width để căn giữa */
-  margin: 0 auto; /* Căn giữa header */
+  background: #EDEBEB;
+  border: 1px solid #000;
+  border-radius: 8px;
+  padding: 4px 8px;
   width: 100%;
+  max-width: 600px;
+  margin: 10px auto;
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-}
-
-.logo-text {
-  font-weight: bold;
-  font-size: 18px;
-  color: #ff6f61;
-}
-
-.search-box{
-  display: flex;
-  align-items: center;
-  background-color: #f0f2f5;
-  border-radius: 25px; 
-  padding: 8px 15px; 
-  flex: 0 1 300px; 
-  border: 1px solid #ddd;
-  margin: 0 20px; 
-  transition: box-shadow 0.3s ease; 
-  margin-bottom: 10px;
-  margin-left: 200px;
-  margin-right: 200px;
-}
-
-.search-box:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Hiệu ứng bóng khi hover */
+.search-box .material-icons {
+  font-size: 20px;
+  color: #888;
+  margin-right: 6px;
 }
 
 .search-box input {
   border: none;
-  background-color: transparent;
+  background: transparent;
   outline: none;
   flex: 1;
-  padding: 8px 10px; /* Tăng padding input */
-  font-size: 15px; /* Tăng kích thước chữ */
+  padding: 6px;
+  font-size: 14px;
 }
 
-.search-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-}
-
-.search-button img {
-  width: 22px; /* Tăng kích thước icon tìm kiếm */
-  height: 22px;
-}
-
-.back-arrow {
-  position: absolute;
-  top: 60px;
-  left: 15px;
-  width: 30px;
-  height: 30px;
-  background-color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.profile-container {
-  max-width: 900px;
-  margin: 0 auto;
-  background-color: #FAEBD7;
-}
-
+/* Notifications */
 .notification-container {
   position: fixed;
   top: 20px;
   right: 20px;
   z-index: 1000;
-  width: 300px;
+  width: clamp(250px, 30vw, 300px);
 }
 
 .notification {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
+  padding: 8px 12px;
   margin-bottom: 10px;
   border-radius: 6px;
   color: black;
@@ -634,8 +946,8 @@ async submitComment(postId) {
   background-color: #FAEBD7;
 }
 
-.notification.info {
-  background-color: #007bff;
+.notification.error {
+  background-color: #ff6b6b;
 }
 
 .close-notification {
@@ -644,11 +956,6 @@ async submitComment(postId) {
   color: black;
   font-size: 16px;
   cursor: pointer;
-  padding: 0 5px;
-}
-
-.close-notification:hover {
-  opacity: 0.8;
 }
 
 @keyframes slideIn {
@@ -662,6 +969,7 @@ async submitComment(postId) {
   }
 }
 
+/* Confirmation Modal */
 .confirm-modal {
   position: fixed;
   top: 0;
@@ -678,7 +986,7 @@ async submitComment(postId) {
 .confirm-modal-content {
   background-color: #FFF8F0;
   border-radius: 8px;
-  padding: 20px;
+  padding: 15px;
   max-width: 400px;
   width: 90%;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -691,25 +999,20 @@ async submitComment(postId) {
   color: #333;
 }
 
-.confirm-modal-content p {
-  font-size: 14px;
-  margin-bottom: 20px;
-  color: #65676b;
-}
-
 .confirm-modal-actions {
   display: flex;
   gap: 10px;
 }
 
-.confirm-button, .cancel-button {
+.confirm-button,
+.cancel-button {
   flex: 1;
-  padding: 10px;
+  padding: 8px;
   border: none;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 14px;
 }
 
 .confirm-button {
@@ -730,12 +1033,37 @@ async submitComment(postId) {
   background-color: #d8dade;
 }
 
+.avatar-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin: 10px auto;
+  background-size: cover;
+  background-position: center;
+}
+
+.banner-preview {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  margin: 10px 0;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Profile Section */
+.profile-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #FAEBD7;
+}
+
 .profile-banner {
-  height: 250px;
+  height: 400px;
   overflow: hidden;
   background-color: #f0f2f5;
-  background-image: linear-gradient(to bottom, #e6e6e6, #f0f2f5);
-  position: relative;
+  background-size: cover;
+  background-position: center;
 }
 
 .profile-details-new {
@@ -743,7 +1071,7 @@ async submitComment(postId) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: #FFF8F0;
+  background-color: #FFFFFF;
 }
 
 .profile-avatar {
@@ -757,7 +1085,6 @@ async submitComment(postId) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
   cursor: pointer;
   transition: transform 0.3s;
 }
@@ -768,8 +1095,11 @@ async submitComment(postId) {
 
 .profile-info {
   text-align: center;
-  width: 100%;
+  width: 90%;
   padding-top: 10px;
+  margin-left: 100px;
+  position: relative;
+  padding-right: 100px;
 }
 
 .profile-name {
@@ -781,6 +1111,25 @@ async submitComment(postId) {
   color: #65676b;
   margin-bottom: 10px;
   font-size: 14px;
+}
+
+.edit-profile-button {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 8px 12px;
+  background-color: #fad989;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #333;
+  font-size: 14px;
+}
+
+.edit-profile-button:hover {
+  background-color: #f8d070;
 }
 
 .profile-nav {
@@ -796,7 +1145,6 @@ async submitComment(postId) {
   text-decoration: none;
   color: #65676b;
   font-weight: 600;
-  position: relative;
   font-size: 14px;
 }
 
@@ -814,17 +1162,17 @@ async submitComment(postId) {
   background-color: #ff6b01;
 }
 
+/* Profile Content */
 .profile-content {
   display: flex;
-  padding: 10px;
+  padding: 15px;
   flex-direction: row;
-  background-color: #FAEBD7;
-  position: relative;
+  background-color: #F9F9F9;
+  gap: 15px;
 }
 
-.sidebar-profile {
+.sidebar {
   flex: 0 0 320px;
-  margin-right: 15px;
   position: sticky;
   top: 10px;
   height: fit-content;
@@ -832,11 +1180,11 @@ async submitComment(postId) {
 }
 
 .intro-section {
-  background-color: #FFF8F0;
+  background-color: #FFFFFF;
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .intro-section h3 {
@@ -856,11 +1204,9 @@ async submitComment(postId) {
   font-size: 14px;
 }
 
-.intro-list li i {
+.intro-list li img {
   margin-right: 10px;
   width: 20px;
-  text-align: center;
-  color: #777;
 }
 
 .edit-button {
@@ -873,7 +1219,7 @@ async submitComment(postId) {
   cursor: pointer;
   margin-top: 10px;
   color: #333;
-  transition: background-color 0.3s;
+  font-size: 14px;
 }
 
 .edit-button:hover {
@@ -918,14 +1264,15 @@ async submitComment(postId) {
   gap: 10px;
 }
 
-.save-button, .cancel-button {
+.save-button,
+.cancel-button {
   flex: 1;
   padding: 8px;
   border: none;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 14px;
 }
 
 .save-button {
@@ -946,383 +1293,706 @@ async submitComment(postId) {
   background-color: #d8dade;
 }
 
+/* Feed */
 .feed {
   flex: 1;
-}
-
-.create-post {
-  background-color: #FFF8F0;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  padding: 12px;
-  margin-bottom: 15px;
-}
-
-.create-post-header {
   display: flex;
-  align-items: center;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.post-input-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  margin-right: 10px;
-  background-color: #e4e6eb;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.post-input {
-  flex: 1;
-}
-
-.post-input input {
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background-color: #f0f2f5;
-  border-radius: 20px;
-  outline: none;
-  font-size: 14px;
-}
-
-.create-post-actions {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 10px;
-  margin-right: 400px;
-}
-
-.create-action {
-  background: none;
-  border: none;
-  padding: 6px;
-  color: #65676b;
-  font-size: 14px;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  transition: color 0.3s;
-}
-
-.create-action:hover {
-  color: #ff6b01;
-}
-
-.create-action i {
-  margin-right: 6px;
-}
-
-.post-item {
-  background-color: #FFF8F0;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  margin-bottom: 15px;
-  padding: 12px;
+.post-card {
+  background: #FFFFFF;
+  border-radius: 10px;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border: 5px solid #FFFFFF;
 }
 
 .post-header {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.post-author {
-  display: flex;
   align-items: center;
-}
-
-.post-author-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  margin-right: 10px;
-  background-color: #e4e6eb;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.user-avatar {
-  background-color: #ddd;
-}
-
-.post-author-info h4 {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.post-time {
-  font-size: 12px;
-  color: #65676b;
-}
-
-.post-options {
+  padding-bottom: 18px;
+  margin-top: -5px;
   position: relative;
-  display: flex;
-  gap: 15px;
-  align-items: center;
 }
 
-.post-options i {
-  cursor: pointer;
-  color: #65676b;
-  transition: color 0.3s;
-  padding: 8px;
+.post-header .avatar {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  transition: background-color 0.3s, color 0.3s;
+  border: 2px solid #000000;
+  object-fit: cover;
+  margin-right: 12px;
+  margin-top: 10px;
+  margin-left: 15px;
 }
 
-.post-options i:hover {
-  background-color: #f0f2f5;
-  color: #ff6b01;
+.post-info {
+  display: flex;
+  flex-direction: column;
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 180px;
-  overflow: hidden;
-  animation: dropdownFadeIn 0.2s ease;
+.username {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 10px;
+  margin-left: 5px;
 }
 
-@keyframes dropdownFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.time {
+  font-size: 16px;
+  color: #000000;
+  margin-top: -4px;
+  margin-left: 5px;
 }
 
-.dropdown-item {
+.post-header-actions {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  gap: 8px;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  padding: 0;
   cursor: pointer;
-  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  margin-left: 8px;
+}
+
+.btn-icon i {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.post-menu {
+  position: absolute;
+  top: 15%;
+  right: 25px;
+  background: var(--bg-post);
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.post-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.post-menu li {
+  padding: 8px 16px;
   font-size: 14px;
-  color: #333;
+  cursor: pointer;
 }
 
-.dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-
-.dropdown-item i {
-  margin-right: 12px;
-  width: 16px;
-  text-align: center;
-  font-size: 14px;
-  color: #65676b;
-}
-
-.dropdown-item:first-child i {
-  color: #e74c3c;
-}
-
-.dropdown-item:last-child i {
-  color: #f39c12;
-}
-
-.dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 999;
-  background-color: transparent;
+.post-menu li:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .post-content {
   margin-bottom: 15px;
+  margin-left: -3px;
 }
 
 .post-content p {
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--text);
+  margin-top: -12px;
+  margin-left: 20px;
+  font-size: 16px;
 }
 
-.post-image {
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 10px;
-  background-color: #e4e6eb;
+.post-image-wrapper {
+  background-color: #f0f0f0;
   display: flex;
   justify-content: center;
   align-items: center;
-  max-height: 350px;
+  max-height: 500px;
+  overflow: hidden;
+  border-radius: 10px;
 }
-.post-image img {
-  max-height: 400px;
-  width: auto;
+
+.post-image-wrapper img {
   max-width: 100%;
-  object-fit: contain;
+  max-height: 380px;
+  width: auto;
+  height: auto;
   display: block;
-  margin: 0 auto;
-}
-
-
-.pets-image {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240"><rect width="400" height="240" fill="%23eee"/><text x="50%" y="50%" fill="%23aaa" font-family="Arial" font-size="16" text-anchor="middle">Pet Image</text></svg>');
-  background-size: cover;
-}
-
-.park-image {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240"><rect width="400" height="240" fill="%23eee"/><text x="50%" y="50%" fill="%23aaa" font-family="Arial" font-size="16" text-anchor="middle">Park Image</text></svg>');
-  background-size: cover;
-}
-
-.post-actions-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 12px;
+  object-fit: contain;
+  margin-top: 8px;
+  margin-inline: auto;
 }
 
 .post-actions {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+  margin-top: -28px;
+  margin-left: -2px;
 }
 
-.post-actions-new {
-  display: flex;
-}
-
-.post-action {
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-}
-
-.nav-icon {
+.post-actions .icon-img,
+.post-actions .icon-img-like,
+.post-actions .icon-img-share {
   width: 20px;
   height: 20px;
+  object-fit: contain;
+  margin-bottom: 8px;
 }
 
-.post-action:hover {
-  color: #ff6b01;
+.icon-img-share {
+  margin-left: 410px;
 }
 
-.post-action i {
-  margin-right: 5px;
+.count {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 8px;
 }
 
-.post-stats {
-  font-size: 14px;
-  color: #65676b;
-  margin: 10px 0;
-}
-
-.post-comments {
-  margin-top: 10px;
-}
-
-.comment {
+.post-comment {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.post-comment input {
+  width: 98%;
+  height: 36px;
+  padding: 8px 12px;
+  border: 1.5px solid #000000;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #000000;
+  margin-top: -2px;
+}
+
+.btn-send {
+  padding: 6px 12px;
+  background: #009DFF;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: -4px;
+}
+
+.btn-send:hover {
+  background: #007ACC;
+}
+
+.comment-list {
+  margin-top: 8px;
+}
+
+.comment-item {
+  display: flex;
+  align-items: flex-start;
   margin-bottom: 10px;
 }
 
-.comment-avatar-profile {
+.comment-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  margin-right: 10px;
-  background-color: #e4e6eb;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  object-fit: cover;
+  margin-top: 5px;
 }
 
-.comment-content {
+.comment-bubble {
   background-color: #f0f2f5;
-  border-radius: 18px;
   padding: 8px 12px;
-  flex: 1;
+  border-radius: 18px;
+  max-width: 500px;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
-.comment-content h5 {
-  font-size: 13px;
-  margin-bottom: 3px;
+.comment-username {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.comment-text {
+  color: #050505;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #65676b;
+  margin-top: 4px;
+  margin-left: 5px;
+}
+
+/* Comment Modal */
+.comment-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.comment-modal {
+  width: 600px;
+  max-height: 80vh;
+  background: #FFF;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.comment-modal-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.comment-modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
   font-weight: 600;
 }
 
-.comment-content p {
-  font-size: 13px;
+.comment-modal-header .close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
 }
 
-.comment-input {
+.comment-modal-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 180px;
+  gap: 4px;
+}
+
+.comment-modal-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comment-modal-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px;
+}
+
+.comment-modal-list .comment-item {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.comment-modal-list .comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-modal-list .comment-body {
+  flex: 1;
+}
+
+.comment-modal-list .main-comment {
+  background: #f0f2f5;
+  border-radius: 20px;
+  padding: 5px 10px;
+}
+
+.comment-modal-list .comment-username {
+  font-weight: 600;
+}
+
+.comment-modal-list .comment-text {
+  margin: 4px 0;
+  color: #333;
+}
+
+.comment-modal-list .comment-time {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.comment-modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+}
+
+.comment-modal-footer .comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}
+
+.comment-modal-footer input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+}
+
+.comment-modal-footer .btn-send {
+  padding: 8px 16px;
+  background: #009DFF;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.comment-modal-footer .btn-send:hover {
+  background: #007ACC;
+}
+.nav-icon {
+  margin-right: 10px; /* Khoảng cách giữa icon và text */
+  width: 25px; 
+  height: 25px;
+}
+.reply-section {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.reply-section input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+}
+
+.reply-section button {
+  background: #009dff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.reply-item {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+
+.reply-item .comment-body {
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  font-size: 14px;
+  max-width: 400px;
+  word-wrap: break-word;
+}
+
+.reply-item .comment-username {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.reply-item .comment-text {
+  display: inline;
+  color: #050505;
+}
+
+.reply-item .comment-time {
+  font-size: 12px;
+  color: #65676b;
+  display: block;
+  margin-top: 4px;
+}
+
+.btn-reply-modal {
+  background: transparent;
+  border: none;
+  color: #1877f2;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Share Modal */
+.share-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.share-modal {
+  width: 360px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.share-header {
   display: flex;
   align-items: center;
-  margin-top: 10px;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
 }
 
-.comment-box {
-  flex: 1;
-  position: relative;
+.share-title {
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
-.comment-box input {
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background-color: #f0f2f5;
-  border-radius: 18px;
-  outline: none;
-  font-size: 13px;
-  padding-right: 80px;
+.share-body {
+  padding: 16px;
 }
 
-.comment-actions {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+.share-user {
   display: flex;
-  gap: 10px;
-  color: #65676b;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
-.comment-actions i {
+.share-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+}
+
+.share-user-info {
+  flex: 1;
+}
+
+.share-name {
+  font-weight: 600;
+  display: block;
+}
+
+.privacy-dropdown {
+  position: relative;
+  margin-top: 4px;
+}
+
+.privacy-dropdown button {
+  background: #eee;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: color 0.3s;
 }
 
-.comment-actions i:hover {
-  color: #ff6b01;
+.privacy-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 4px;
+  list-style: none;
+  padding: 4px 0;
+  width: 100%;
 }
 
-/* Responsive styles */
+.privacy-options li {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.privacy-options li:hover {
+  background: #f5f5f5;
+}
+
+.share-input {
+  width: 100%;
+  min-height: 80px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px;
+  resize: vertical;
+  font-size: 0.95rem;
+}
+
+.share-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+  text-align: right;
+}
+
+.btn-share-now {
+  background: #1877F2;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.btn-share-now:hover {
+  background: #155db2;
+}
+
+/* Delete Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.delete-modal {
+  width: 360px;
+  background: #FFF8F0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #FAEBD7;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.close-modal {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 12px 16px;
+}
+
+.modal-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.modal-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #333;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #FFEDD5;
+}
+
+.btn-confirm,
+.btn-cancel {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn-confirm {
+  background: #FFCC80;
+}
+
+.btn-cancel {
+  background: #FFE0B2;
+}
+
+/* Fade Transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity .2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.toggle-expand-btn {
+  background: none;
+  border: none;
+  color: #A9A9A9;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 4px;
+  margin-left: 20px;
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .profile-content {
+    flex-direction: row;
+  }
+
+  .sidebar {
+    flex: 0 0 280px;
+  }
+
+  .post-image-wrapper img {
+    max-height: 320px;
+  }
+
+  .comment-modal {
+    width: 90%;
+  }
+}
+
 @media (max-width: 768px) {
-  .header {
-    padding: 10px 15px;
-    flex-wrap: wrap; /* Cho phép wrap khi màn hình nhỏ */
-    gap: 10px;
-  }
-
   .search-box {
-    flex: 1 1 100%; /* Chiếm toàn bộ chiều rộng trên mobile */
-    margin: 10px 0; /* Thêm margin trên dưới */
-    max-width: 100%; /* Đảm bảo không vượt quá container */
-  }
-
-  .search-box input {
-    font-size: 14px;
+    margin: 10px 15px;
+    max-width: 100%;
   }
 
   .profile-content {
@@ -1331,44 +2001,146 @@ async submitComment(postId) {
 
   .sidebar {
     flex: 1;
-    margin-right: 0;
-    margin-bottom: 15px;
     position: static;
   }
-  
-  .create-action {
-    flex: 1;
-    min-width: 33%;
-    padding: 6px 2px;
-    font-size: 12px;
-  }
-  
-  .dropdown-menu {
-    right: 10px;
-    min-width: 160px;
-  }
-  
+
   .notification-container {
-    width: 100%;
-    padding: 0 10px;
-    right: 0;
-  }
-  
-  .notification {
-    max-width: 100%;
+    width: 90%;
+    right: 50%;
+    transform: translateX(50%);
   }
 
   .confirm-modal-content {
     width: 95%;
-    padding: 15px;
+    padding: 12px;
   }
 
-  .confirm-modal-content h3 {
+  .profile-banner {
+    height: 220px;
+  }
+
+  .profile-avatar {
+    width: 90px;
+    height: 90px;
+  }
+
+  .post-card {
+    padding: 8px;
+  }
+
+  .post-header .avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .username {
     font-size: 16px;
   }
 
-  .confirm-modal-content p {
+  .time {
+    font-size: 14px;
+  }
+
+  .post-image-wrapper img {
+    max-height: 320px;
+  }
+
+  .post-content p {
+    font-size: 14px;
+  }
+
+  .comment-modal {
+    width: 95%;
+  }
+
+  .icon-img-share {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-box {
+    margin: 8px 10px;
+  }
+
+  .profile-banner {
+    height: 180px;
+  }
+
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+    margin-top: -40px;
+  }
+
+  .profile-name {
+    font-size: 18px;
+  }
+
+  .profile-stats {
+    font-size: 12px;
+  }
+
+  .nav-item {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .intro-section {
+    padding: 10px;
+  }
+
+  .intro-section h3 {
+    font-size: 14px;
+  }
+
+  .intro-list li {
+    font-size: 12px;
+  }
+
+  .edit-button {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .form-group label {
+    font-size: 12px;
+  }
+
+  .form-input {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .save-button,
+  .cancel-button {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .post-header .avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .username {
+    font-size: 14px;
+  }
+
+  .time {
+    font-size: 12px;
+  }
+
+  .post-image-wrapper img {
+    max-height: 280px;
+  }
+
+  .post-content p {
     font-size: 13px;
+  }
+
+  .post-stats {
+    font-size: 12px;
   }
 }
 </style>

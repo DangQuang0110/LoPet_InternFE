@@ -39,7 +39,6 @@
             <i class="fas fa-camera composer-camera"></i>
           </div>
         </div>
-
         <!-- Feed -->
         <div class="content">
           <div class="feed">
@@ -332,7 +331,6 @@
                 />
                 <button @click="submitReplyModal(c)">Gửi</button>
               </div>
-              <!-- Hiển thị danh sách reply -->
              <!-- Hiển thị danh sách reply -->
               <div v-for="r in c.replies" :key="r.id" class="reply-item">
                 <img :src="r.userSrc" class="comment-avatar" />
@@ -397,11 +395,6 @@ const expandedPosts = ref({})
 const replyingCommentId = ref(null)
 const replyInputs = reactive({})
 
-
-
-const replyingReplyId   = ref(null)
-
-
 const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
 
@@ -416,24 +409,42 @@ async function refreshData() {
     console.error('❌ Error refreshing data:', error)
   }
 }
-function submitReplyModal(cmt) {
+async function submitReplyModal(cmt) {
   const text = (replyInputs[cmt.id] || '').trim()
   if (!text) return
 
-  if (!Array.isArray(cmt.replies)) cmt.replies = []
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (!user?.id) return
 
-  cmt.replies.push({
-    id: Date.now(),
-    user: currentUserName.value,
-    userSrc: currentUserAvatar.value,
-    text,
-    time: 'Vừa xong',
-    replyToUser: cmt.user
-  })
+  try {
+    const res = await createComment({
+      postId: activePost.value.postId,
+      accountId: user.id,
+      content: text,
+      replyCommentId: cmt.id // đây là phần quan trọng!
+    })
 
-  replyInputs[cmt.id] = ''
-  replyingCommentId.value = null
+    if (!Array.isArray(cmt.replies)) cmt.replies = []
+
+    cmt.replies.push({
+      id: res.id,
+      user: currentUserName.value,
+      userSrc: currentUserAvatar.value,
+      text: res.content,
+      time: 'Vừa xong',
+      replyToUser: cmt.user
+    })
+
+    replyInputs[cmt.id] = ''
+    replyingCommentId.value = null
+
+    await refreshData() // làm mới để đồng bộ dữ liệu
+  } catch (error) {
+    console.error('❌ Lỗi khi gửi reply:', error)
+    alert('Không thể gửi phản hồi. Vui lòng thử lại.')
+  }
 }
+
 function prepareReply(cmt) {
   replyingCommentId.value = cmt.id
   if (!replyInputs[cmt.id]) {
@@ -634,8 +645,8 @@ async function fetchPosts() {
         if (authorId === user.id || friendIds.includes(authorId)) {
           const commentRes = await getCommentsByPostId(post.postId)
           console.log('📥 Comments for post', post.postId, ':', commentRes)
-          const comments = []
-
+          const commentMap = {}
+          const repliesMap = {}
           if (commentRes?.comments) {
             for (const c of commentRes.comments) {
               const commentAccountId = c.account?.id
@@ -646,19 +657,38 @@ async function fetchPosts() {
                   getAccountById(commentAccountId),
                   getProfileByAccountId(commentAccountId)
                 ])
-                comments.push({
+
+                const commentData = {
                   id: c.id,
                   user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
                   userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
                   text: c.content,
-                  createdAt: c.createdAt
-                })
+                  createdAt: c.createdAt,
+                  replyToCommentId: c.replyToCommentId || null,
+                  replies: []
+                }
+
+                if (!commentData.replyToCommentId) {
+                  commentMap[commentData.id] = commentData
+                } else {
+                  if (!repliesMap[commentData.replyToCommentId]) {
+                    repliesMap[commentData.replyToCommentId] = []
+                  }
+                  repliesMap[commentData.replyToCommentId].push(commentData)
+                }
               } catch (e) {
                 console.error('❌ Error loading comment profile:', e)
               }
             }
-          }
 
+            // Gắn replies vào comment gốc
+            for (const parentId in repliesMap) {
+              if (commentMap[parentId]) {
+                commentMap[parentId].replies = repliesMap[parentId]
+              }
+            }
+          }
+          const comments = Object.values(commentMap)
           const isLiked = post.postLikes?.some(like => like.accountId === user.id)
 
           postResults.push({

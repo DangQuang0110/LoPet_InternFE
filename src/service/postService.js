@@ -40,7 +40,6 @@ export const getPostsByAccountId = async (accountId) => {
 //   apiService.post('/v1/posts/unlike', { accountId, postId }
 
 // )
-import axios from 'axios'
 
 export async function likePost(accountId, postId) {
   console.log('📤 Gửi request LIKE:', { accountId, postId })
