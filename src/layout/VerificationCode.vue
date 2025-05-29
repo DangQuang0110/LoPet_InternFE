@@ -106,6 +106,9 @@ const sendLink = async () => {
         username,
         password,
         confirmPassword
+        // sex,
+        // dateOfBirth,
+        // homeTown,
       })
 
       const accountId = accountRes?.data?.id || JSON.parse(localStorage.getItem('user'))?.id
