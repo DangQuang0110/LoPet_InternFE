@@ -280,10 +280,10 @@ export default {
 .search-box {
   display: flex;
   align-items: center;
-  background-color: #FAEBD7;
+  background-color: #F9F9F9;
   border-radius: 12px;
   padding: 8px 15px;
-  border: 1px solid #e5d5b8;
+  border: 1px solid #000000;
   width: 600px;
 }
 
@@ -338,7 +338,7 @@ export default {
 }
 .main-content {
   flex: 1;
-  background-color: #FFF8F0;
+  background-color: #F9F9F9;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -346,7 +346,7 @@ export default {
 
 .tab-navigation {
   display: flex;
-  background-color: #FFF8F0;
+  background-color: #FFFFFF;
   border-radius: 4px;
   margin-bottom: 20px;
 }
@@ -379,7 +379,7 @@ export default {
 }
 
 .pet-card {
-  background-color: #FAEBD7;
+  background-color: #FFFFFF;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

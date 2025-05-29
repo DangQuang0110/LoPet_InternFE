@@ -6,19 +6,19 @@
           <img src="/image/home.png" class="icon-img" />
         </router-link>
         <!-- <router-link to="/notification">
-          <img src="/image/bell.png" class="icon-img" />
+          <img src="../assets/notification.png" class="icon-img" />
         </router-link> -->
         <router-link to="/message">
-          <img src="/icon/chat.png" class="icon-img" />
+          <img src="../assets/message.png" class="icon-img" />
         </router-link>
         <router-link to="/groups">
-          <img src="/image/group.png" class="icon-img" />
+          <img src="../assets/community.png" class="icon-img" />
         </router-link>
         <router-link to="/friend">
-          <img src="/image/friend.png" class="icon-img" />
+          <img src="../assets/friends.png" class="icon-img" />
         </router-link>
         <router-link to="/profile">
-          <img src="/image/profile.png" class="icon-img" />
+          <img src="../assets/user.png" class="icon-img" />
         </router-link>
       </div>
       <img :src="currentUserAvatar" class="avatar-icon" />

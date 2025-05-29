@@ -5,8 +5,8 @@ export const createProfile = async (data) => {
     fullName: data.fullName,
     phoneNumber: data.phoneNumber,
     bio: data.bio,
-    avatarUrl: '', // hoặc null nếu backend hỗ trợ
-    coverUrl: ''
+    avatarUrl: '',
+    coverUrl: '',
   })
   return response.data.data
 }
@@ -26,9 +26,14 @@ export const getProfileByAccountId = async (accountId) => {
 
 // Cập nhật profile
 export const updateProfile = async (id, formData) => {
-  const response = await apiService.patch(`/v1/profiles/${id}`, formData)
+  const response = await apiService.patch(`/v1/profiles/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
   return response.data.data
 }
+
 
 // Gán profile vào tài khoản
 export const setProfileToAccount = async (profileId, accountId) => {

@@ -39,7 +39,6 @@
             <i class="fas fa-camera composer-camera"></i>
           </div>
         </div>
-
         <!-- Feed -->
         <div class="content">
           <div class="feed">
@@ -132,7 +131,7 @@
                     <div class="comments-footer">
                       <input v-model="newComment" type="text" placeholder="Viết bình luận..."
                         @keydown.enter.prevent="addComment(activePost)" />
-                      <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Gửi</button>
+                      <button class="src/assets/security-password.png" @click="toggleCommentPopup(post)">Gửi</button>
                     </div>
                   </div>
                 </div>
@@ -155,7 +154,9 @@
               <div class="post-comment">
                 <input type="text" placeholder="Bình luận..." v-model="newComment"/>
                 <!-- <button class="btn-send-comment">Gửi</button> -->
-                <button class="btn-send" @click="addComment(post)">Gửi</button>
+                <button class="btn-icon post-comment" @click="addComment(post)">
+                 <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
+                </button>
               </div>
             </div>
           </div>
@@ -238,8 +239,10 @@
             </div>
             <div class="comments-footer">
               <input v-model="newComment" type="text" placeholder="Viết bình luận..." />
-              <button class="btn-send" @click="addComment">Gửi</button>
-            </div>
+                <button class="btn-icon post-comment" @click="addComment(post)">
+                 <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
+                </button>           
+              </div>
           </div>
         </div>
       </transition>
@@ -328,7 +331,6 @@
                 />
                 <button @click="submitReplyModal(c)">Gửi</button>
               </div>
-              <!-- Hiển thị danh sách reply -->
              <!-- Hiển thị danh sách reply -->
               <div v-for="r in c.replies" :key="r.id" class="reply-item">
                 <img :src="r.userSrc" class="comment-avatar" />
@@ -364,6 +366,7 @@ import { getAccountById } from '@/service/authService'
 import { getSuggestedFriends, getFriendList } from '@/service/friendService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
 import { getProfileByAccountId } from '@/service/profileService'
+// import Sendbutton from "@/assets/Sendbutton.svg"
 
 const search = ref('')
 const showCreate = ref(false)
@@ -396,6 +399,8 @@ const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
 
 
+
+
 async function refreshData() {
   try {
     await fetchPosts()
@@ -404,24 +409,42 @@ async function refreshData() {
     console.error('❌ Error refreshing data:', error)
   }
 }
-function submitReplyModal(cmt) {
+async function submitReplyModal(cmt) {
   const text = (replyInputs[cmt.id] || '').trim()
   if (!text) return
 
-  if (!Array.isArray(cmt.replies)) cmt.replies = []
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (!user?.id) return
 
-  cmt.replies.push({
-    id: Date.now(),
-    user: currentUserName.value,
-    userSrc: currentUserAvatar.value,
-    text,
-    time: 'Vừa xong',
-    replyToUser: cmt.user
-  })
+  try {
+    const res = await createComment({
+      postId: activePost.value.postId,
+      accountId: user.id,
+      content: text,
+      replyCommentId: cmt.id // đây là phần quan trọng!
+    })
 
-  replyInputs[cmt.id] = ''
-  replyingCommentId.value = null
+    if (!Array.isArray(cmt.replies)) cmt.replies = []
+
+    cmt.replies.push({
+      id: res.id,
+      user: currentUserName.value,
+      userSrc: currentUserAvatar.value,
+      text: res.content,
+      time: 'Vừa xong',
+      replyToUser: cmt.user
+    })
+
+    replyInputs[cmt.id] = ''
+    replyingCommentId.value = null
+
+    await refreshData() // làm mới để đồng bộ dữ liệu
+  } catch (error) {
+    console.error('❌ Lỗi khi gửi reply:', error)
+    alert('Không thể gửi phản hồi. Vui lòng thử lại.')
+  }
 }
+
 function prepareReply(cmt) {
   replyingCommentId.value = cmt.id
   if (!replyInputs[cmt.id]) {
@@ -622,8 +645,8 @@ async function fetchPosts() {
         if (authorId === user.id || friendIds.includes(authorId)) {
           const commentRes = await getCommentsByPostId(post.postId)
           console.log('📥 Comments for post', post.postId, ':', commentRes)
-          const comments = []
-
+          const commentMap = {}
+          const repliesMap = {}
           if (commentRes?.comments) {
             for (const c of commentRes.comments) {
               const commentAccountId = c.account?.id
@@ -634,19 +657,38 @@ async function fetchPosts() {
                   getAccountById(commentAccountId),
                   getProfileByAccountId(commentAccountId)
                 ])
-                comments.push({
+
+                const commentData = {
                   id: c.id,
                   user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
                   userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
                   text: c.content,
-                  createdAt: c.createdAt
-                })
+                  createdAt: c.createdAt,
+                  replyToCommentId: c.replyToCommentId || null,
+                  replies: []
+                }
+
+                if (!commentData.replyToCommentId) {
+                  commentMap[commentData.id] = commentData
+                } else {
+                  if (!repliesMap[commentData.replyToCommentId]) {
+                    repliesMap[commentData.replyToCommentId] = []
+                  }
+                  repliesMap[commentData.replyToCommentId].push(commentData)
+                }
               } catch (e) {
                 console.error('❌ Error loading comment profile:', e)
               }
             }
-          }
 
+            // Gắn replies vào comment gốc
+            for (const parentId in repliesMap) {
+              if (commentMap[parentId]) {
+                commentMap[parentId].replies = repliesMap[parentId]
+              }
+            }
+          }
+          const comments = Object.values(commentMap)
           const isLiked = post.postLikes?.some(like => like.accountId === user.id)
 
           postResults.push({
@@ -899,16 +941,19 @@ html,
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
-
+  padding: 29px;
+  margin-top: -15px;
 }
 
 .post-card {
   background: #Ffffff;
   border-radius: 10px;
+  padding-top: 10px;
+  padding-bottom: 20px;
   /* box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3); */
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
-  padding: 10px;
-  border: 5px solid #FFFFFF;
+  /* padding: 10px;
+  border: 5px solid #FFFFFF; */
 
 }
 
@@ -938,6 +983,14 @@ html,
   padding: 0;
   cursor: pointer;
 }
+
+/* send-button */
+/* .send-icon{
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin-bottom: 8px;
+} */
 
 /* wrapper để overlay */
 .icon-alert {
@@ -1006,23 +1059,25 @@ html,
   border: 1px solid var(--text);
   border-radius: 6px;
   padding: 6px;
+  
 }
+
 
 .btn-icon i {
   font-size: 18px;
   color: var(--text);
 }
 
-.post-content {
+/* .post-content {
   margin-bottom: 15px;
   margin-left: -3px;
-}
+} */
 
 .post-content p {
   margin-bottom: 8px;
   color: var(--text);
-  margin-top: -12px;
-  margin-left: 20px;
+  margin-top: -20px;
+  margin-left: 10px;
   font-size: 16px;
 }
 
@@ -1030,13 +1085,11 @@ html,
   max-width: 100%;
   max-height: 380px;
   /* Giới hạn chiều cao tối đa */
-  width: auto;
+  /* width: auto;
   height: auto;
-  display: block;
+  display: block; */
   object-fit: contain;
   /* Không cắt ảnh, giữ nguyên tỉ lệ */
-  margin:0;
-  margin-inline: auto;
 }
 
 .post-image-wrapper {
@@ -1047,19 +1100,20 @@ html,
   align-items: center;
   max-height: 500px;
   overflow: hidden;
-  border-radius: 10px;
+  /* border-radius: 10px; */
   margin:0;
 }
 
 .post-actions {
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  border-top: 1px solid var(--divider);
-  border-bottom: 1px solid var(--divider);
-  margin-top: -28px;
-  margin-left: -2px;
+  gap: 6px;          /* khoảng cách giữa từng nhóm icon+count */
 }
+
+.post-actions .count {
+  margin: 0 1px 0 1px;
+}
+
 
 /* .btn-iconlike {
   margin-left: 16px;
@@ -1084,10 +1138,10 @@ html,
   font-size: 20px;
 }
 
-.share-icon {
+/* .share-icon {
   font-size: 20px;
-  margin-left: 540px;
-}
+  margin-left: 550px;
+} */
 
 .icon-img {
   width: 20px;
@@ -1108,7 +1162,7 @@ html,
   height: 20px;
   object-fit: contain;
   margin-bottom: 8px;
-  margin-left:410px;
+  margin-left:430px;
 }
 
 .post-stats {
@@ -1132,34 +1186,76 @@ html,
   margin-left: 16px;
 }
 
-.post-comment input {
-  width: 98%;
-  height: 36px;
+/* .post-comment input {
+  width: auto;
+  height: 42px;
   padding: 8px 12px;
   border: 1.5px solid #000000;
   border-radius: 8px;
   font-size: 14px;
   color: #000000;
   margin-top: -2px;
-}
+} */
 
-.post-comment {
+/* .post-comment {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 8px;
+} */
+
+/* Center the whole input+button block and limit its width */
+.post-comment {
+  display: flex;
+  justify-content: center;    /* center children horizontally */
+  align-items: center;        /* center children vertically */
+  margin: 0 auto;             /* center the block in its parent */
+  max-width: 600px;           /* you can tweak this */
+  gap: 4px;                   /* space between input & button */
+  margin: 0px 10px 0 10px;
 }
 
-.btn-send-comment {
-  padding: 6px 12px;
+/* Style the text input */
+.post-comment input {
+  width: 100%;                /* take full width of the parent */
+  flex: 1;
+  height: 42px;               /* fixed height */
+  padding: 0 12px;
+  border: 1px solid #ccc;
+  border-radius: 9px;        /* pill shape */
+  outline: none;
+}
+
+/* Style the send button */
+.post-comment button {
+  width: 40px;                /* fixed square */
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background-color: #009DFF;  /* your blue */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  margin: 0 0 0 0;
+}
+
+/* If your button contains an SVG or icon, make sure it fits */
+.post-comment button img,
+.post-comment button svg {
+  width: 20px;
+  height: 20px;
+}
+/* .btn-send-comment {
+  padding: 0 0 0 0;
   background: #009DFF;
   color: #fff;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  margin-top: -4px;
-}
+  /* margin-top: -4px; */
 
 .btn-send-comment:hover {
   background: #007ACC;
@@ -1256,9 +1352,9 @@ html,
   white-space: nowrap;
 }
 
-.btn-remove {
+/* .btn-remove {
   background: #FFE0B2;
-}
+} */
 
 /* Modal overlay (nếu cần override) */
 .modal-overlay {
@@ -1514,6 +1610,7 @@ html,
   font-size: 20px;
   color: var(--text);
   margin-top: 10px;
+  margin-left: 100px;
 }
 
 .post-menu {
@@ -1982,6 +2079,70 @@ html,
   padding: 0;
   font-size: 14px;
   font-weight: 500;
+}
+
+.app-wrapper {
+  flex-direction: column; /* stack main + sidebar */
+}
+.main {
+  padding: 16px;
+}
+.suggestions {
+  display: none;         /* ẩn sidebar trên mobile */
+}
+.post-card {
+  margin-bottom: 16px;
+}
+.post-actions {
+  gap: 4px;
+}
+.post-comment {
+  max-width: 100%;
+}
+
+/* --------------------------------------------- */
+/* Tablet (600px – 900px)                        */
+/* --------------------------------------------- */
+@media (min-width: 600px) {
+  .app-wrapper {
+    flex-direction: row;
+  }
+  .main {
+    flex: 1;
+    padding: 24px;
+  }
+  .suggestions {
+    display: block;
+    width: 200px;
+  }
+  .post-card {
+    margin: 0 auto 24px;
+    max-width: 600px;
+  }
+}
+
+/* --------------------------------------------- */
+/* Desktop (trên 900px)                          */
+/* --------------------------------------------- */
+@media (min-width: 900px) {
+  .main {
+    padding: 32px;
+  }
+  .search-box {
+    max-width: 600px;
+  }
+  .composer {
+    max-width: 600px;
+    margin: 0 auto 24px;
+  }
+  .post-card {
+    max-width: 700px;
+    margin: 0 auto 32px;
+  }
+  .suggestions {
+    width: 280px;
+    display: block;
+  }
 }
 
 </style>

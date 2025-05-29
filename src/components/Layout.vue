@@ -5,63 +5,65 @@
         <img src="/assets/logoPetGram.png" alt="LOPET Logo" class="logo-img" />
       </div>
       <div class="menu-container">
-        <nav class="nav-menu">
-          <ul>
-            <li class="nav-item">
-              <router-link to="/home" class="nav-link">
-                <i class="fas fa-home"></i>
-                <span>Trang chủ</span>
-              </router-link>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" @click.prevent="toggleNotifications">
-                <i class="fas fa-bell"></i>
-                <span>Thông báo</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <router-link to="/message" class="nav-link">
-                <i class="fas fa-comment"></i>
-                <span>Nhắn tin</span>
-              </router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/groups" class="nav-link">
-                <i class="fas fa-users"></i>
-                <span>Cộng đồng</span>
-              </router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/friend" class="nav-link">
-                <i class="fas fa-user-friends"></i>
-                <span>Bạn bè</span>
-              </router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/profile" class="nav-link">
-                <i class="fas fa-user"></i>
-                <span>Profile</span>
-              </router-link>
-            </li>
-          </ul>
-          <hr>
-          <div class="user-panel" @click="showLogoutMenu = !showLogoutMenu">
-            <img class="avatar" :src="currentUser.avatar || '/image/avata.jpg'" alt="User Avatar" />
-            <span class="username">{{ currentUser.name || 'Ẩn danh' }}</span>
-            <i class="fas fa-cog"></i>
-            <div v-if="showLogoutMenu" class="logout-menu">
-              <ul>
-                <li @click.stop="handleLogout" class="logout-option">
-                  <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </li>
-              </ul>
+                <nav class="nav-menu">
+            <ul>
+              <li class="nav-item">
+                <router-link to="/home" class="nav-link">
+                  <img src="../assets/trangchu.png" alt="Trang chủ" class="nav-icon" />
+                  <span>Trang chủ</span>
+                </router-link>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" @click.prevent="toggleNotifications">
+                  <img src="../assets/notification.png" alt="Thông báo" class="nav-icon" />
+                  <span>Thông báo</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <router-link to="/message" class="nav-link">
+                  <img src="../assets/message.png" alt="Nhắn tin" class="nav-icon" />
+                  <span>Nhắn tin</span>
+                </router-link>
+              </li>
+              <li class="nav-item">
+                <router-link to="/groups" class="nav-link">
+                  <img src="../assets/community.png" alt="Cộng đồng" class="nav-icon" />
+                  <span>Cộng đồng</span>
+                </router-link>
+              </li>
+              <li class="nav-item">
+                <router-link to="/friend" class="nav-link">
+                  <img src="../assets/friends.png" alt="Bạn bè" class="nav-icon" />
+                  <span>Bạn bè</span>
+                </router-link>
+              </li>
+              <li class="nav-item">
+                <router-link to="/profile" class="nav-link">
+                  <img src="../assets/user.png" alt="Profile" class="nav-icon" />
+                  <span>Profile</span>
+                </router-link>
+              </li>
+            </ul>
+            <hr>
+            <div class="user-panel" @click="showLogoutMenu = !showLogoutMenu">
+              <img class="avatar" :src="currentUser.avatar || '/image/avata.jpg'" alt="User Avatar" />
+              <span class="username">{{ currentUser.name || 'Ẩn danh' }}</span>
+              <img src="../assets/settings.png" alt="Cài đặt" class="nav-icon settings-icon" />
+              <div v-if="showLogoutMenu" class="logout-menu">
+                <ul>
+                  <li @click.stop="handleLogout" class="logout-option">
+                    <img src="../assets/log-out.png" alt="Đăng xuất" class="nav-icon" /> Đăng xuất
+                  </li>
+                  <li @click.stop="resetpassword" class="resetpassword">
+                    <img src="../assets/security-password.png" alt="" class="nav-icon" /> Đổi lại mật khẩu
+                  </li>
+                </ul>
+              </div>
             </div>
-          </div>
-        </nav>
+          </nav>
       </div>
       <div class="sidebar-footer"></div>
     </aside>
-
     <!-- Notification Popup -->
     <transition name="slide">
       <div v-if="showNotifications" class="notification-popup">
@@ -237,11 +239,11 @@ onMounted(async () => {
 
 .sidebar {
   width: 260px;
-  background: #FFFFFF;
+  background: var(--bg-main);
   border-right: 1px solid #FAEBD7;
   display: flex;
   flex-direction: column;
-  padding: 15px;
+  padding: 30px;
   box-sizing: border-box;
   height:680px;
 }
@@ -301,31 +303,68 @@ onMounted(async () => {
 
 .logout-menu {
   position: absolute;
-  display:flex;
-  right:-58px;
-  top: 105%;              /* ngay phía dưới avatar */
-  margin-top: 10px;        /* khoảng cách với avatar */
-  background: #FAEBD7;
+  /* canh về bên phải icon, bạn chỉnh lại giá trị để đưa sát vào */
+  right: 16px;
+  /* cho menu ngay dưới icon, cách 4px */
+  top: calc(100% + 4px);
+  
+  /* bỏ flex, chuyển thành block để xếp thẳng hàng dọc */
+  display: block;
+  
+  /* padding “mỏng” hơn */
+  padding: 4px 0;
+  
+  /* ấn định width bé hơn, không cần min-width lớn */
+  width: 185px;
+  margin-right: -30px;
+  margin-top: 10px;
+  
+  background: #fff;
   border: 1px solid #ccc;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 8px 12px;
   z-index: 999;
-  min-width: 230px;
 }
 
-.logout-option {
+/* style cho từng item trong menu */
+.logout-menu a {
+  display: block;
   padding: 8px 12px;
-  cursor: pointer;
   font-size: 14px;
-  display: flex;
-  align-items: center;
-  color: #000;
+  color: #333;
+  text-decoration: none;
+  white-space: nowrap;
 }
-.logout-option:hover {
+
+/* hover effect cho item */
+.logout-menu a:hover {
   background-color: #f5f5f5;
 }
+.logout-option {
+               /* đảm bảo padding có tác dụng */
+  padding: 8px 16px;                   /* padding mặc định */
+        /* tạo chuyển động mượt */
+}
+
+.logout-option:hover {
+  background-color: #f5f5f5;
+  padding: 8px 39px;                   /* kéo dài chiều ngang thêm 8px hai bên */
+}
 .logout-option i {
+  margin-right: 8px;
+}
+
+.resetpassword {
+  display: inline-block;               /* đảm bảo padding có tác dụng */
+  padding: 8px 16px;                   /* padding mặc định */
+        /* tạo chuyển động mượt */
+}
+
+.resetpassword:hover {
+  background-color: #f5f5f5;
+  padding: 8px 17.5px;                   /* kéo dài chiều ngang thêm 8px hai bên */
+}
+.resetpassword i {
   margin-right: 8px;
 }
 
@@ -422,22 +461,26 @@ onMounted(async () => {
 .notification-item {
   display: flex;
   align-items: center;
-  position: relative;
-  margin-bottom: 12px;
+  padding: 8px 12px;
+  position: relative;   /* giữ lại để dropdown menu vẫn position:absolute */
 }
-
 .avatar-wrapper {
   flex-shrink: 0;
-  background: linear-gradient(135deg, #FF0080, #7928CA);
+  /* background: linear-gradient(135deg, #FF0080, #7928CA);
   padding: 2px;
   border-radius: 50%;
-  margin-right: 12px;
+  margin-right: 12px; */
 }
 
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+}
+
+.item-content {
+  flex: 1;             /* chiếm hết khoảng trống giữa avatar và nút */
+  margin: 0 8px;       /* cho một khoảng hở nhỏ */
 }
 
 .item-content p {
@@ -449,14 +492,14 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-.dot {
+/* .dot {
   display: inline-block;
   width: 6px;
   height: 6px;
   background: #009DFF;
   border-radius: 50%;
   margin-left: 4px;
-}
+} */
 
 .timestamp {
   font-size: 0.8rem;
@@ -465,20 +508,15 @@ onMounted(async () => {
 }
 
 .more-btn {
-  position: absolute;
-  top: 40%;
-  right: -5px; /* tăng khoảng cách so với trước */
-  transform: translateY(-50%);
   background: transparent;
   border: none;
   cursor: pointer;
-  visibility: hidden;
+  margin-left: auto;   /* đẩy thẳng về cuối hàng */
   opacity: 0;
   transition: opacity 0.2s;
 }
 
 .notification-item:hover .more-btn {
-  visibility: visible;
   opacity: 1;
 }
 
@@ -501,7 +539,7 @@ onMounted(async () => {
   position: absolute;
   top: 100%;
   right: 0;
-  background: #FFF8F0;
+  background: #FFFFFF;
   border: 1px solid #DDD;
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
@@ -512,7 +550,7 @@ onMounted(async () => {
 .item-menu ul { list-style: none; margin: 0; padding: 4px 0; }
 .item-menu li { display: flex; align-items: center; padding: 8px 12px; font-size: 0.9rem; cursor: pointer; }
 .item-menu li i { margin-right: 8px; font-size: 1rem; }
-.item-menu li:hover { background: #00eaff; }
+.item-menu li:hover { background: #bbbbbb; }
 
 .main-content { flex: 1; overflow-y: auto; background: #F9F9F9; box-sizing: border-box; }
 
