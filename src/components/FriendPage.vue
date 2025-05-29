@@ -77,10 +77,10 @@
   </layout>
 </template>
 
-
 <script>
 import { getFriendList, getListRequestF, acceptFriendRequest, rejectFriendReq, getSuggestedFriends, sendFriendRequest, deleteFriend } from '@/service/friendService';
-import { getProfileById } from '@/service/profileService';
+// import { getProfileById } from '@/service/profileService';
+
 import Layout from '@/components/Layout.vue'
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -336,8 +336,6 @@ export default {
 .account-info i {
   margin-right: 10px;
 }
-
-/* Main Content Styles */
 .main-content {
   flex: 1;
   background-color: #FFF8F0;

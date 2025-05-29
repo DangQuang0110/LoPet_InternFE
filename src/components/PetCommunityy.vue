@@ -121,7 +121,7 @@
       </div>
       <div v-if="isLoadingCreated" class="loading-state">Đang tải danh sách nhóm đã tạo...</div>
       <div class="group-grid" v-else-if="visibleCreatedGroups.length > 0">
-        <div v-for="group in visibleCreatedGroups" :key="group.id" class="group-card">
+        <div v-for="group in visibleCreatedGroups" :key="group.id" class="group-card" @click="navigateToGroup(group)">
           <img :src="group.image" alt="Group Image" />
           <div class="content">
             <div class="info">
@@ -131,8 +131,8 @@
             </div>
             <div class="group-actions">
               <div class="action-buttons-group">
-                <button class="edit-btn" @click="openEditForm(group)">Chỉnh sửa</button>
-                <button class="delete-btn" @click="openDeleteConfirm(group)">Xóa</button>
+                <button class="edit-btn" @click.stop="openEditForm(group)">Chỉnh sửa</button>
+                <button class="delete-btn" @click.stop="openDeleteConfirm(group)">Xóa</button>
               </div>
               <span class="group-type" :class="group.type.toLowerCase()">
                 {{ group.type === 'PUBLIC' ? 'Công khai' : 'Riêng tư' }}
@@ -153,7 +153,10 @@
       </div>
       <div v-if="isLoadingJoined" class="loading-state">Đang tải danh sách nhóm đã tham gia...</div>
       <div class="group-grid" v-else-if="visibleJoinedGroups.length > 0">
-        <div v-for="group in visibleJoinedGroups" :key="group.id" class="group-card">
+        <div v-for="group in visibleJoinedGroups" 
+             :key="group.id" 
+             class="group-card"
+             @click="navigateToGroup(group)">
           <img :src="group.image" alt="Group Image" />
           <div class="content">
             <div class="info">
@@ -183,7 +186,12 @@
         <p>Không có nhóm gợi ý nào mới</p>
       </div>
       <div v-else class="group-grid">
-        <div v-for="group in visibleSuggestedGroups" :key="group.id" class="group-card">
+        <div 
+          v-for="group in visibleSuggestedGroups" 
+          :key="group.id" 
+          class="group-card"
+          @click="navigateToGroupJoined(group.id)"
+        >
           <img :src="group.image" alt="Group Image" />
           <div class="content">
             <div class="info">
@@ -196,7 +204,7 @@
                 group.status === 'joining' ? 'joining' : group.status === 'joined' ? 'joined' : '',
               ]"
               :disabled="group.status !== 'idle'"
-              @click="handleJoin(group)"
+              @click.stop="handleJoin(group)"
             >
               <span v-if="group.status === 'joining'" class="loading-spinner"></span>
               {{
@@ -255,6 +263,7 @@
 <script setup>
 import Layout from './Layout.vue'
 import { reactive, ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   getSuggestCom,
   createGroup,
@@ -266,6 +275,8 @@ import {
 } from '@/service/communityService'
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
+
+const router = useRouter()
 
 const petGroups = ref([])
 const joinedGroups = ref([])
@@ -353,19 +364,17 @@ async function handleJoin(group) {
     // Gọi API tham gia nhóm
     await joinGroup(group.id, group.ownerId, user.id)
     toast.success('Đã tham gia nhóm thành công!', {
-          autoClose: 3000,
-          position: toast.POSITION.TOP_RIGHT,
-          theme: "colored"
-        });
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+      theme: "colored"
+    });
 
-    // Cập nhật UI sau khi tham gia thành công
-    group.status = 'joined'
+    // Chuyển hướng đến trang GroupPage
+    router.push({
+      name: 'GroupPage',
+      params: { id: group.id }
+    })
 
-    // Refresh danh sách nhóm đã tham gia
-    await fetchJoinedGroups()
-
-    // Xóa nhóm khỏi danh sách gợi ý
-    petGroups.value = petGroups.value.filter((g) => g.id !== group.id)
   } catch (error) {
     // Khôi phục trạng thái nếu có lỗi
     group.status = 'idle'
@@ -687,13 +696,15 @@ const handleUpdateGroup = async () => {
     formData.append('name', updatedData.value.name)
     formData.append('type', updatedData.value.type)
     formData.append('bio', updatedData.value.bio)
-    
-    if (updatedData.value.image) {
-      formData.append('image', updatedData.value.image)
-    } else if (editImagePreview.value === null) {
-      formData.append('removeImage', 'true')
-    }
-
+    formData.append('image', updatedData.value.image)
+  
+    // if (updatedData.value.image) {
+    //   formData.append('image', updatedData.value.image)
+    // } else if (editImagePreview.value === null) {
+    //   formData.append('removeImage', 'true')
+    // }
+    console.log('truoc khi thuc hien goi ham',editingGroup.value.id)
+    console.log('truoc khi thuc hien goi ham',user.id)
     await updateGroup(editingGroup.value.id, user.id, formData)
     
     toast.success('Cập nhật nhóm thành công!', {
@@ -718,7 +729,7 @@ const handleUpdateGroup = async () => {
 
   } catch (error) {
     errorMessage.value = 'Có lỗi xảy ra khi cập nhật nhóm. Vui lòng thử lại.'
-    console.error('Error updating group:', error)
+    console.error('Error updating group:', error.message)
   } finally {
     isEditing.value = false
   }
@@ -730,6 +741,23 @@ onUnmounted(() => {
     URL.revokeObjectURL(editImagePreview.value)
   }
 })
+
+// Add navigation function
+const navigateToGroup = (group) => {
+  console.log('Navigating to group:', group.id)
+  router.push({
+    name: 'GroupPage',
+    params: { id: group.id }
+  })
+}
+
+// Thêm hàm navigateToGroupJoined
+const navigateToGroupJoined = (groupId) => {
+  router.push({
+    name: 'GroupPage',
+    params: { id: groupId }
+  })
+}
 </script>
 
 <style scoped>
@@ -833,7 +861,12 @@ onUnmounted(() => {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  /* cursor: pointer; */
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.group-card:hover {
+  transform: translateY(-4px);
 }
 
 .group-card img {
@@ -1032,7 +1065,6 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .group-actions {
   display: flex;
   justify-content: space-between;
@@ -1230,6 +1262,7 @@ onUnmounted(() => {
 
 .simple-btn.cancel:hover {
   background-color: #d1d5db;
+ 
 }
 
 .simple-btn:disabled {
