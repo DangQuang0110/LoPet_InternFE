@@ -13,8 +13,15 @@ export const createProfile = async (data) => {
 
 // Lấy profile theo accountId
 export const getProfileByAccountId = async (accountId) => {
+  try {
+    console.log('truoc1',accountId)
   const response = await apiService.get(`/v1/profiles/accounts/${accountId}`)
-  return response.data.data
+    console.log('response cua get profile',response)
+  return response.data.data    
+  } catch (error) {
+    console.log(error)
+  }
+
 }
 
 // Cập nhật profile

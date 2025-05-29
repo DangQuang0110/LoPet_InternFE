@@ -1,5 +1,5 @@
 <template>
-   <Layout>
+  <Layout>
     <div class="app-container">
       <!-- Loading state -->
       <div v-if="isLoading" class="loading-overlay">
@@ -59,7 +59,7 @@
             <h3>Chỉnh sửa nhóm</h3>
             <button class="close-btn" @click="closeEditForm">×</button>
           </div>
-          
+
           <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
           </div>
@@ -86,17 +86,22 @@
           <div class="file-input-container">
             <label for="editGroupImage" class="file-label" v-if="!editImagePreview">
               <span>Chọn ảnh bìa nhóm</span>
-              <input 
-                type="file" 
-                id="editGroupImage" 
-                @change="handleEditImageChange" 
+              <input
+                type="file"
+                id="editGroupImage"
+                @change="handleEditImageChange"
                 accept="image/*"
                 :disabled="isUpdating"
               />
             </label>
             <div v-if="editImagePreview" class="image-preview-container">
               <img :src="editImagePreview" alt="Preview" class="image-preview" />
-              <button type="button" class="remove-image" @click="removeEditImage" :disabled="isUpdating">
+              <button
+                type="button"
+                class="remove-image"
+                @click="removeEditImage"
+                :disabled="isUpdating"
+              >
                 <span>×</span>
               </button>
             </div>
@@ -117,11 +122,11 @@
           </div>
 
           <div class="share-link-container">
-            <input 
-              type="text" 
-              :value="shareUrl" 
-              class="share-link-input" 
-              readonly 
+            <input
+              type="text"
+              :value="shareUrl"
+              class="share-link-input"
+              readonly
               ref="shareUrlInput"
             />
             <button class="copy-link-btn" @click="copyShareLink">
@@ -161,7 +166,6 @@
           <template v-else>
             <template v-if="!leftGroup">
               <button class="joined" @click="toggleConfirmLeave">Đã tham gia ✓</button>
-              
             </template>
             <template v-else>
               <button class="join" @click="handleJoin">Tham gia nhóm</button>
@@ -173,17 +177,17 @@
       <main class="main">
         <div class="layout">
           <div class="left">
-            <div class="new-post">
+            <div v-if="canPost" class="new-post">
               <div class="new-post-header">
-                <img :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" class="avatar" />
-                <textarea 
+                <img :src="currentUserAvatar" class="avatar" />
+                <textarea
                   v-model="newPostContent"
-                  class="post-input" 
+                  class="post-input"
                   placeholder="Bạn muốn chia sẻ điều gì?"
                   :disabled="isPostLoading"
                 ></textarea>
               </div>
-              
+
               <!-- Image preview -->
               <div v-if="imagePreview" class="preview-container">
                 <img :src="imagePreview" alt="Preview" class="preview-image" />
@@ -195,17 +199,17 @@
                   <label class="upload-button">
                     <img src="@/assets/camera.png" alt="Upload" class="upload-icon" />
                     <span>Ảnh</span>
-                    <input 
-                      type="file" 
-                      class="file-input" 
-                      @change="handleImageChange" 
+                    <input
+                      type="file"
+                      class="file-input"
+                      @change="handleImageChange"
                       accept="image/*"
                       :disabled="isPostLoading"
                     />
                   </label>
                 </div>
-                <button 
-                  class="share-button" 
+                <button
+                  class="share-button"
                   @click="handleCreatePost"
                   :disabled="isPostLoading || !newPostContent.trim()"
                 >
@@ -214,15 +218,24 @@
               </div>
             </div>
 
+            <div v-else class="join-message">
+              <p>Tham gia nhóm để đăng bài viết và tương tác với các thành viên khác</p>
+            </div>
+
             <!-- Danh sách bài viết -->
-            <div v-for="post in groupPosts" :key="post.id" class="post-card">
+            <div
+              v-for="post in groupPosts"
+              :key="post.id"
+              class="post-card"
+              :data-post-id="post.postId"
+            >
               <div class="post-header">
-                <img :src="user?.avatar || 'https://i.pravatar.cc/40?img=7'" class="avatar" />
+                <img :src="post.userSrc" class="avatar" />
                 <div class="post-info">
-                  <span class="username">{{ post.user?.fullName || 'Người dùng' }}</span>
+                  <span class="username">{{ post.user }}</span>
                   <div class="time">{{ new Date(post.createdAt).toLocaleString('vi-VN') }}</div>
                 </div>
-                <div class="menu-container">
+                <div class="menu-container" v-if="canPost">
                   <div class="menu" @click="toggleReportMenu(post.id)">⋮</div>
                   <div v-if="showReportMenu === post.id" class="report-dropdown">
                     <button @click="openReport(post.id)">Báo cáo bài viết</button>
@@ -230,23 +243,26 @@
                 </div>
               </div>
 
-              <div class="post-content" :class="{ 'expanded': expandedPosts[post.id] }">
+              <div class="post-content" :class="{ expanded: expandedPosts[post.id] }">
                 <p>{{ post.content }}</p>
-                <button 
-                  v-if="post.content && post.content.length > 100" 
+                <button
+                  v-if="post.content && post.content.length > 100"
                   class="see-more-btn"
                   @click="toggleExpand(post.id)"
                 >
                   {{ expandedPosts[post.id] ? 'Thu gọn' : 'Xem thêm' }}
                 </button>
               </div>
-              
+
               <!-- Hiển thị ảnh từ postMedias -->
-              <div v-if="post.postMedias && post.postMedias.length > 0" class="post-media-container">
+              <div
+                v-if="post.postMedias && post.postMedias.length > 0"
+                class="post-media-container"
+              >
                 <template v-for="(media, index) in post.postMedias" :key="index">
-                  <img 
-                    v-if="media.mediaType === 'IMAGE'" 
-                    :src="media.mediaUrl" 
+                  <img
+                    v-if="media.mediaType === 'IMAGE'"
+                    :src="media.mediaUrl"
                     :alt="'Post Image ' + (index + 1)"
                     class="post-image"
                     @click="openImagePreview(media.mediaUrl)"
@@ -254,11 +270,11 @@
                 </template>
               </div>
 
-              <div class="post-actions">
+              <div v-if="canPost" class="post-actions">
                 <div class="action-item" @click="toggleLike(post)">
-                  <img 
-                    :src="post.liked ? '@/assets/liked.png' : '@/assets/like.png'" 
-                    :alt="post.liked ? 'Unlike' : 'Like'" 
+                  <img
+                    :src="post.liked ? '/assets/liked.png' : '/assets/like.png'"
+                    :alt="post.liked ? 'Unlike' : 'Like'"
                     class="action-icon"
                   />
                   <span class="action-count">{{ post.likes || 0 }}</span>
@@ -272,37 +288,47 @@
                   <span>Chia sẻ</span>
                 </div>
               </div>
+              <div v-else class="post-stats">
+                <span>{{ post.likes || 0 }} lượt thích</span>
+                <span>{{ post.comments?.length || 0 }} bình luận</span>
+              </div>
 
               <!-- Comments list -->
-              <div class="comment-list">
+              <div v-if="canPost" class="comment-list">
                 <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
-                  <img 
-                    :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'" 
+                  <img
+                    :src="comment.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
                     class="comment-avatar"
                   />
                   <div class="comment-bubble">
-                    <span class="comment-username">{{ comment.user?.fullName || 'Người dùng' }}</span>
+                    <span class="comment-username">{{ comment.account?.profile?.fullName || 'Người dùng' }}</span>
                     <span class="comment-text">{{ comment.content }}</span>
-                    <div class="comment-time">{{ new Date(comment.createdAt).toLocaleString('vi-VN') }}</div>
+                    <div class="comment-time">
+                     {{  comment.createdAt}} 
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Comment Input -->
-              <div class="comment-input">
-                <input 
-                  type="text" 
-                  class="comment-box" 
-                  placeholder="Viết bình luận..." 
-                  v-model="newComment"
-                  @keyup.enter="addComment(post)"
-                />
-                <button class="btn-send" @click="addComment(post)">Gửi</button>
+                <!-- Comment Input -->
+                <div class="comment-input">
+                  <input
+                    type="text"
+                    class="comment-box"
+                    placeholder="Viết bình luận..."
+                    v-model="newComment"
+                    @keyup.enter="addComment(post)"
+                  />
+                  <button class="btn-send" @click="addComment(post)">Gửi</button>
+                </div>
               </div>
 
               <!-- Comment Popup -->
               <transition name="fade">
-                <div v-if="showCommentPopup && activePost?.postId === post.postId" class="comments-overlay" @click.self="toggleCommentPopup">
+                <div
+                  v-if="showCommentPopup && activePost?.postId === post.postId"
+                  class="comments-overlay"
+                  @click.self="toggleCommentPopup"
+                >
                   <div class="comments-modal">
                     <div class="comments-header">
                       <h3>Bình luận</h3>
@@ -310,21 +336,25 @@
                     </div>
                     <div class="comments-body">
                       <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
-                        <img 
-                          :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'" 
-                          class="comment-avatar" 
+                        <img
+                          :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'"
+                          class="comment-avatar"
                         />
                         <div class="comment-content">
-                          <span class="comment-username">{{ comment.user?.fullName || 'Người dùng' }}</span>
+                          <span class="comment-username">{{
+                            comment.user?.fullName || 'Người dùng'
+                          }}</span>
                           <span class="comment-text">{{ comment.content }}</span>
-                          <div class="comment-time">{{ new Date(comment.createdAt).toLocaleString('vi-VN') }}</div>
+                          <div class="comment-time">
+                            {{ new Date(comment.createdAt).toLocaleString('vi-VN') }}
+                          </div>
                         </div>
                       </div>
                     </div>
                     <div class="comments-footer">
-                      <input 
-                        v-model="newComment" 
-                        type="text" 
+                      <input
+                        v-model="newComment"
+                        type="text"
                         placeholder="Viết bình luận..."
                         @keyup.enter="addComment(post)"
                       />
@@ -342,17 +372,30 @@
               <p class="intro-desc">{{ group.description }}</p>
             </div>
 
-            <div class="sidebar-box">
+            <div v-if="canPost" class="sidebar-box">
               <h3>Bài viết mới</h3>
-              <div class="recent-post" v-for="i in 6" :key="i">
-                <img class="recent-avatar" :src="`https://i.pravatar.cc/100?img=${i}`" />
+              <div v-if="recentPosts.length === 0" class="no-recent-posts">
+                Chưa có bài viết nào
+              </div>
+              <div v-else class="recent-post" v-for="post in recentPosts" :key="post.postId">
+                <img
+                  class="recent-avatar"
+                  :src="post.userSrc || 'https://i.pravatar.cc/100'"
+                  :alt="post.user?.fullName || 'Người dùng'"
+                />
                 <div class="recent-info">
                   <div class="recent-name">
-                    <strong>Conan</strong> đã đăng một bài viết mới <span class="verified">✔️</span>
+                    <strong>{{ post.user?.fullName || 'Người dùng' }}</strong> đã đăng một bài viết
+                    mới
                   </div>
-                  <div class="recent-time">25 phút trước</div>
+                  <div class="recent-content">
+                    {{ post.content.substring(0, 50) }}{{ post.content.length > 50 ? '...' : '' }}
+                  </div>
+                  <div class="recent-time">{{ getTimeAgo(post.createdAt) }}</div>
                 </div>
-                <button class="recent-button">Xem bài viết</button>
+                <button class="recent-button" @click="scrollToPost(post.postId)">
+                  Xem bài viết
+                </button>
               </div>
             </div>
           </div>
@@ -372,7 +415,18 @@
 import Layout from '@/components/Layout.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getGroupDetails, updateGroup, createPostGroup, getPostsGroup, deleteGroupByOwner, leaveGroup } from '@/service/communityService'
+import {
+  getGroupDetails,
+  updateGroup,
+  createPostGroup,
+  getPostsGroup,
+  deleteGroupByOwner,
+  leaveGroup,
+  getListGroupJoin,
+  joinGroup,
+} from '@/service/communityService'
+import { getProfileByAccountId } from '@/service/profileService'
+import { getAccountById } from '@/service/authService'
 import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 import { likePost, unlikePost } from '@/service/postService'
@@ -413,6 +467,10 @@ const selectedPost = ref(null)
 const copied = ref(false)
 const shareUrlInput = ref(null)
 
+// Cập nhật state
+const currentUserAvatar = ref('/image/avata.jpg')
+const currentUserName = ref('Ẩn danh')
+
 const reportOptions = [
   'Thông tin sai sự thật, lừa đảo hoặc gian lận',
   'Quyền sở hữu trí tuệ',
@@ -437,12 +495,28 @@ const isOwner = computed(() => {
   return user.value?.id === group.value?.ownerId
 })
 
-// Hàm để lấy thông tin user
-const getCurrentUser = () => {
-  const userStr = localStorage.getItem('user')
+// Cập nhật hàm getCurrentUser
+const getCurrentUser = async () => {
+  const userStr = localStorage.getItem('user') || '{}'
+  console.log('userStr', userStr)
   if (userStr) {
     try {
       user.value = JSON.parse(userStr)
+      if (user.value?.id) {
+        const [account, profile] = await Promise.all([
+          getAccountById(user.value.id),
+          getProfileByAccountId(user.value.id),
+        ])
+
+        currentUserAvatar.value = profile?.avatarUrl?.trim()
+          ? profile.avatarUrl
+          : account?.avatar || '/image/avata.jpg'
+        currentUserName.value = profile?.fullName?.trim()
+          ? profile.fullName
+          : account?.username || 'Ẩn danh'
+
+        console.log(profile)
+      }
     } catch (error) {
       console.error('Error parsing user from localStorage:', error)
       user.value = null
@@ -473,7 +547,7 @@ const fetchGroupDetails = async () => {
         totalMembers: data.members?.length || 0,
         ownerId: data.owner?.id || null,
       }
-      
+
       console.log('Current user ID:', user.value?.id)
       console.log('Group owner ID:', group.value.ownerId)
     }
@@ -497,7 +571,7 @@ const handleImageChange = (event) => {
       toast.error('Vui lòng chọn file ảnh!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
@@ -505,7 +579,7 @@ const handleImageChange = (event) => {
       toast.error('Kích thước ảnh không được vượt quá 5MB!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
@@ -529,7 +603,7 @@ const handleCreatePost = async () => {
       toast.error('Vui lòng nhập nội dung bài viết!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
@@ -538,7 +612,7 @@ const handleCreatePost = async () => {
       toast.error('Vui lòng đăng nhập để thực hiện chức năng này!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
@@ -547,7 +621,7 @@ const handleCreatePost = async () => {
     const formData = new FormData()
     formData.append('content', newPostContent.value.trim())
     formData.append('groupId', route.params.id)
-    formData.append('userId', user.value.id)
+    formData.append('accountId', user.value.id)
     formData.append('scope', 'PUBLIC')
 
     if (selectedImage.value) {
@@ -574,54 +648,78 @@ const handleCreatePost = async () => {
     toast.success('Đăng bài viết thành công!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
-
   } catch (error) {
     console.error('Lỗi khi đăng bài viết:', error)
     toast.error('Có lỗi xảy ra khi đăng bài viết!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
   } finally {
     isPostLoading.value = false
   }
 }
 
-// Hàm lấy danh sách bài viết
+// hàm lấy thông tin người dùng
+// async function getProfileUser(params) {
+
+// }
+
+// Cập nhật hàm fetchGroupPosts để lấy avatar của người đăng bài
 async function fetchGroupPosts() {
   try {
     const posts = await getPostsGroup(route.params.id)
     const user = JSON.parse(localStorage.getItem('user'))
-    
-    if (!Array.isArray(posts)) {
-      console.error('Invalid posts response:', posts)
-      return
-    }
+
+    // if (!Array.isArray(posts)) {
+    //   console.error('Invalid posts response:', posts)
+    //   return
+    // }
 
     const processedPosts = []
-    
+
     for (const post of posts) {
       try {
         // Lấy thông tin comments
         const commentsData = await getCommentsByPostId(post.postId)
-        const comments = commentsData?.comments || []
+
+        const profileOwner = await getProfileByAccountId(post.accountId)
+
+        const comments = commentsData?.comments|| []
+        console.log('yyyyyyy' , comments)
+
+        // Lấy thông tin người đăng
+        let postUserAvatar = '/image/avata.jpg'
+        let postUserName = 'Ẩn danh'
+
+        // if (post.accountId) {
+        //   const [postAccount, postProfile] = await Promise.all([
+        //     getAccountById(post.accountId),
+        //     getProfileByAccountId(post.accountId),
+        //   ])
+        if (profileOwner) {
+          postUserAvatar = profileOwner.avatarUrl
+          postUserName = profileOwner.fullName
+        }
+
+        // }
 
         // Kiểm tra xem user hiện tại đã like bài viết chưa
-        const isLiked = post.postLikes?.some(like => like.accountId === user?.id)
+        const isLiked = post.postLikes?.some((like) => like.accountId === user?.id)
 
         processedPosts.push({
           ...post,
           postId: post.postId,
-          user: post.accounts?.username || 'Người dùng',
-          userSrc: post.accounts?.avatar || 'https://i.pravatar.cc/40?img=7',
+          user: postUserName,
+          userSrc: postUserAvatar,
           content: post.content,
           createdAt: post.createdAt,
           likes: post.likeAmount || 0,
           comments: comments,
           liked: isLiked,
-          postLikes: post.postLikes || []
+          postLikes: post.postLikes || [],
         })
       } catch (error) {
         console.error('Error processing post:', error)
@@ -634,15 +732,34 @@ async function fetchGroupPosts() {
     toast.error('Không thể tải danh sách bài viết!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
   }
 }
 
+const checkGroupMembership = async () => {
+  try {
+    if (!user.value) {
+      leftGroup.value = true
+      return
+    }
+
+    const response = await getListGroupJoin(user.value.id)
+    if (response && response.data) {
+      const joinedGroups = response.data
+      leftGroup.value = !joinedGroups.some((g) => g.id === parseInt(route.params.id))
+    }
+  } catch (error) {
+    console.error('Error checking group membership:', error)
+    leftGroup.value = true
+  }
+}
+
 onMounted(() => {
-  console.log('Component mounted, route params:', route.params)
+  // console.log('Component mounted, route params:', route.params)
   getCurrentUser()
   fetchGroupDetails()
+  checkGroupMembership()
   fetchGroupPosts()
 })
 
@@ -661,7 +778,7 @@ async function handleLeaveGroup() {
       toast.error('Không thể thoát khỏi nhóm!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
@@ -670,42 +787,69 @@ async function handleLeaveGroup() {
     toast.loading('Đang xử lý yêu cầu...', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 1000,
-      theme: 'colored'
+      theme: 'colored',
     })
 
     await leaveGroup(route.params.id, group.value.ownerId, user.value.id)
-    
+
     leftGroup.value = true
     confirmLeave.value = false
 
     // Refresh group data
     await fetchGroupDetails()
-    
+
     toast.success('Đã thoát khỏi nhóm thành công!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
 
     // Chờ 1 giây để người dùng thấy thông báo thành công
     setTimeout(() => {
       router.push('/groups')
     }, 1000)
-
   } catch (error) {
     console.error('Lỗi khi thoát khỏi nhóm:', error)
     toast.error('Có lỗi xảy ra khi thoát khỏi nhóm!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
     confirmLeave.value = false
   }
 }
 
-function handleJoin() {
-  leftGroup.value = false
-  confirmLeave.value = false
+async function handleJoin() {
+  try {
+    if (!user.value) {
+      toast.error('Vui lòng đăng nhập để tham gia nhóm!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      })
+      return
+    }
+
+    await joinGroup(route.params.id, group.value.ownerId, user.value.id)
+
+    leftGroup.value = false
+
+    // Refresh group data
+    await fetchGroupDetails()
+
+    toast.success('Tham gia nhóm thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+  } catch (error) {
+    console.error('Lỗi khi tham gia nhóm:', error)
+    toast.error('Có lỗi xảy ra khi tham gia nhóm!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+  }
 }
 
 function openReport(postId) {
@@ -798,7 +942,7 @@ const handleUpdateGroup = async () => {
       toast.error('Vui lòng đăng nhập để thực hiện chức năng này!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
@@ -808,7 +952,7 @@ const handleUpdateGroup = async () => {
     formData.append('type', editForm.value.privacy)
     formData.append('bio', editForm.value.description.trim())
     formData.append('owner', user.id)
-    
+
     if (editSelectedImage.value) {
       formData.append('image', editSelectedImage.value)
     } else if (editImagePreview.value === null) {
@@ -816,24 +960,23 @@ const handleUpdateGroup = async () => {
     }
 
     await updateGroup(route.params.id, user.id, formData)
-    
+
     toast.success('Cập nhật nhóm thành công!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
 
     // Refresh group data
     await fetchGroupDetails()
     closeEditForm()
-
   } catch (error) {
     console.error('Lỗi khi cập nhật nhóm:', error)
     errorMessage.value = 'Có lỗi xảy ra khi cập nhật nhóm. Vui lòng thử lại.'
     toast.error('Có lỗi xảy ra khi cập nhật nhóm!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
   } finally {
     isUpdating.value = false
@@ -856,7 +999,7 @@ async function handleDeleteGroup() {
       toast.error('Không thể xóa nhóm!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
@@ -865,29 +1008,28 @@ async function handleDeleteGroup() {
     toast.loading('Đang xóa nhóm...', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 1000,
-      theme: 'colored'
+      theme: 'colored',
     })
 
     await deleteGroupByOwner(user.value.id, route.params.id)
-    
+
     // Hiển thị toast success
     toast.success('Xóa nhóm thành công!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
-    
+
     // Chờ 1 giây trước khi chuyển hướng để người dùng thấy thông báo
     setTimeout(() => {
       router.push('/groups')
     }, 1000)
-
   } catch (error) {
     console.error('Lỗi khi xóa nhóm:', error)
     toast.error('Có lỗi xảy ra khi xóa nhóm!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
   }
 }
@@ -904,7 +1046,7 @@ async function toggleLike(post) {
       toast.error('Vui lòng đăng nhập để thực hiện chức năng này!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
@@ -920,7 +1062,7 @@ async function toggleLike(post) {
     }
 
     // Cập nhật UI ngay lập tức
-    const postIndex = groupPosts.value.findIndex(p => p.postId === post.postId)
+    const postIndex = groupPosts.value.findIndex((p) => p.postId === post.postId)
     if (postIndex !== -1) {
       groupPosts.value[postIndex] = { ...post }
     }
@@ -928,14 +1070,14 @@ async function toggleLike(post) {
     toast.success(post.liked ? 'Đã thích bài viết!' : 'Đã bỏ thích bài viết!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
   } catch (error) {
     console.error('Lỗi khi thực hiện like/unlike:', error)
     toast.error('Có lỗi xảy ra!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
   }
 }
@@ -959,31 +1101,41 @@ async function addComment(post) {
       toast.error('Vui lòng đăng nhập để bình luận!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
-        theme: 'colored'
+        theme: 'colored',
       })
       return
     }
 
-    if (!newComment.value.trim()) return
+    if (!newComment.value.trim()) {
+      toast.error('Vui lòng nhập nội dung bình luận!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      })
+      return
+    }
 
     const commentData = {
       postId: post.postId,
       accountId: user.id,
       content: newComment.value.trim(),
-      replyCommentId: null
+      replyCommentId: null, // Nếu không phải trả lời bình luận nào
     }
 
     const response = await createComment(commentData)
+    console.log('API response for createComment:', response)
 
-    // Thêm comment mới vào UI ngay lập tức
+    // Thêm bình luận mới vào danh sách
     const newCommentObj = {
-      id: response.id || Date.now(),
-      content: newComment.value.trim(),
-      createdAt: new Date().toISOString(),
-      user: {
-        fullName: user.username || 'Người dùng',
-        avatar: user.avatar || 'https://i.pravatar.cc/30?img=9'
-      }
+      id: response.id,
+      content: response.content,
+      createdAt: response.createdAt,
+      account: {
+        profile: {
+          fullName: currentUserName.value,
+          avatarUrl: currentUserAvatar.value,
+        },
+      },
     }
 
     if (!Array.isArray(post.comments)) {
@@ -995,7 +1147,7 @@ async function addComment(post) {
     newComment.value = ''
 
     // Cập nhật UI
-    const postIndex = groupPosts.value.findIndex(p => p.postId === post.postId)
+    const postIndex = groupPosts.value.findIndex((p) => p.postId === post.postId)
     if (postIndex !== -1) {
       groupPosts.value[postIndex] = { ...post }
     }
@@ -1003,14 +1155,14 @@ async function addComment(post) {
     toast.success('Đã thêm bình luận!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
   } catch (error) {
     console.error('Lỗi khi thêm bình luận:', error)
     toast.error('Có lỗi xảy ra khi thêm bình luận!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
-      theme: 'colored'
+      theme: 'colored',
     })
   }
 }
@@ -1033,7 +1185,7 @@ async function copyShareLink() {
     toast.success('Đã sao chép liên kết!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 2000,
-      theme: 'colored'
+      theme: 'colored',
     })
   } catch (error) {
     console.error('Lỗi khi sao chép:', error)
@@ -1058,6 +1210,62 @@ function toggleSharePopup(post = null) {
     showSharePopup.value = true
     copied.value = false
   }
+}
+
+// Thêm computed property để kiểm tra quyền đăng bài
+const canPost = computed(() => {
+  return !leftGroup.value
+})
+
+// Thêm computed property để lấy 6 bài viết mới nhất
+const recentPosts = computed(() => {
+  return [...groupPosts.value]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 6)
+})
+
+// Thêm hàm để định dạng thời gian
+const getTimeAgo = (date) => {
+  const now = new Date()
+  const postDate = new Date(date)
+  const diffInSeconds = Math.floor((now - postDate) / 1000)
+
+  if (diffInSeconds < 60) {
+    return 'Vừa xong'
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60)
+    return `${minutes} phút trước`
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600)
+    return `${hours} giờ trước`
+  } else {
+    const days = Math.floor(diffInSeconds / 86400)
+    return `${days} ngày trước`
+  }
+}
+
+// Cập nhật lại hàm scrollToPost để di chuyển đến bài viết mượt mà hơn
+const scrollToPost = (postId) => {
+  const postElement = document.querySelector(`.post-card[data-post-id="${postId}"]`)
+  if (postElement) {
+    // Scroll đến bài viết với hiệu ứng mượt
+    postElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    // Thêm hiệu ứng highlight
+    postElement.style.backgroundColor = '#fff3e0'
+    setTimeout(() => {
+      postElement.style.backgroundColor = 'transparent'
+      postElement.style.transition = 'background-color 1s ease'
+    }, 100)
+  }
+}
+
+// Thêm hàm để chuyển đến trang chi tiết bài viết
+const navigateToPost = (postId) => {
+  router.push({
+    name: 'PostDetail',
+    params: { id: postId },
+  })
 }
 </script>
 
@@ -1188,20 +1396,18 @@ body {
 .left {
   flex: 2.5;
   margin-left: 140px;
-
 }
 .right {
   flex: 2.5;
   display: flex;
   justify-content: left;
-  align-items: flex-start;   /* đẩy nội dung lên trên */
+  align-items: flex-start; /* đẩy nội dung lên trên */
   flex-direction: column;
-  
-} 
+}
 
 /* --- Ô đăng trạng thái --- */
 .new-post {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   padding: 16px;
@@ -1217,7 +1423,7 @@ body {
 
 .post-input {
   flex: 1;
-  min-height: 100px;
+  min-height: 80px;
   padding: 12px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -1336,12 +1542,13 @@ body {
 
 /* --- Bài viết --- */
 .post-card {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 10px;
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
   padding: 16px;
   margin-bottom: 20px;
   width: 100%;
+  transition: background-color 0.5s ease;
 }
 .post-header {
   display: flex;
@@ -1561,7 +1768,7 @@ body {
   background-color: #f9a825;
   color: #000;
   border: none;
-  padding: 9px 90px;  
+  padding: 9px 90px;
   font-size: 14px;
   border-radius: 12px;
   cursor: pointer;
@@ -1587,31 +1794,79 @@ body {
 }
 .recent-post {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+.recent-post:hover {
+  background-color: #f5f5f5;
 }
 .recent-info {
   flex: 1;
+  min-width: 0; /* Để tránh overflow */
+}
+.recent-name {
   font-size: 14px;
-  line-height: 1.4;
+  margin-bottom: 4px;
+  color: #333;
+}
+.recent-content {
+  font-size: 13px;
+  color: #666;
+  margin: 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .recent-time {
   color: #0288d1;
   font-size: 13px;
+  margin-top: 2px;
 }
 .recent-button {
-  background-color: #fbc02d;
-  color: #000;
+  background-color: #f9a825;
+  color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 10px;
+  padding: 8px 16px;
+  border-radius: 8px;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.verified {
-  color: #2196f3;
-  font-size: 14px;
+.recent-button:hover {
+  background-color: #f57c00;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.recent-button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.no-recent-posts {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+}
+.highlight-post {
+  animation: highlight 2s ease-out;
+}
+@keyframes highlight {
+  0% {
+    background-color: rgba(249, 168, 37, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 /* --- Overlay popup --- */
@@ -1932,7 +2187,6 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  transition: background-color 0.3s;
 }
 
 .remove-image:hover {
@@ -2093,7 +2347,7 @@ body {
 
 /* Share Link Popup Styles */
 .share-popup {
-  background: #FFFFFF;
+  background: #ffffff;
   width: 500px;
   border-radius: 12px;
   padding: 20px;
@@ -2202,5 +2456,82 @@ body {
 .social-share-btn.twitter {
   background-color: #1da1f2;
   color: white;
+}
+
+/* Add new styles for non-member view */
+.post-stats {
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+  color: #666;
+  font-size: 14px;
+  display: flex;
+  gap: 16px;
+}
+
+.join-message {
+  background: #fff;
+  padding: 20px;
+  text-align: center;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  color: #666;
+  font-size: 15px;
+}
+
+.btn-send {
+  background-color: #f9a825;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 10px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-send:hover {
+  background-color: #f57c00;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.btn-send:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-send:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.comment-input {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  gap: 8px;
+}
+
+.comment-box {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.comment-box:focus {
+  border-color: #f9a825;
+  box-shadow: 0 0 0 2px rgba(249, 168, 37, 0.1);
 }
 </style>

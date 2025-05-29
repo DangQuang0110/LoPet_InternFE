@@ -50,6 +50,7 @@ export const resetPassword = async ({ email, password, confirmPassword }) => {
 // }
 export const getAccountById = async (id) => {
   try {
+    console.log('vo day ne')
     const res = await apiService.get(`/v1/accounts/${id}`)
     return res.data.data // Trả về { id, username, email, ... }
   } catch (err) {

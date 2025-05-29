@@ -143,6 +143,7 @@ export const createPostGroup = async (formData) => {
 export const getPostsGroup = async (groupId) => {
   try {
     const response = await apiService.get(`/v1/posts?groupId=${groupId}`)
+    
     return response.data.data
   } catch (error) {
     console.error('Lỗi khi lấy bài viết:', error)

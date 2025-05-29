@@ -369,9 +369,9 @@ async function handleJoin(group) {
       theme: "colored"
     });
 
-    // Chuyển hướng đến trang GroupJoinedView
+    // Chuyển hướng đến trang GroupPage
     router.push({
-      name: 'GroupJoinedView',
+      name: 'GroupPage',
       params: { id: group.id }
     })
 
@@ -754,7 +754,7 @@ const navigateToGroup = (group) => {
 // Thêm hàm navigateToGroupJoined
 const navigateToGroupJoined = (groupId) => {
   router.push({
-    name: 'GroupJoinedView',
+    name: 'GroupPage',
     params: { id: groupId }
   })
 }
