@@ -8,7 +8,7 @@
             <span class="material-icons">search</span>
             <input v-model="search" type="text" placeholder="Tìm kiếm" />
           </div>
-          <transition name="fade">
+        <transition name="fade">
             <div v-if="showDeleteConfirm" class="modal-overlay">
               <div class="delete-modal">
                 <div class="modal-header">
@@ -132,7 +132,7 @@
                     <div class="comments-footer">
                       <input v-model="newComment" type="text" placeholder="Viết bình luận..."
                         @keydown.enter.prevent="addComment(activePost)" />
-                      <button class="btn-send" @click="addComment(activePost)">Gửi</button>
+                      <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Gửi</button>
                     </div>
                   </div>
                 </div>
@@ -149,12 +149,8 @@
                   </div>
                 </div>
               </div>
-
               <!-- Stats -->
-              <div class="post-stats">
-                <a href="#" @click.prevent="openComments(post)">Xem thêm bình luận</a>
-              </div>
-
+                <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Xem thêm bình luận</button>
               <!-- Comment Input -->
               <div class="post-comment">
                 <input type="text" placeholder="Bình luận..." v-model="newComment"/>
@@ -165,7 +161,6 @@
           </div>
         </div>
       </div>
-
       <!-- Suggestions -->
       <aside class="suggestions">
         <div class="ads">
@@ -311,14 +306,42 @@
           <hr />
           <!-- 4. Danh sách comment -->
           <div class="comment-modal-list">
-            <div v-for="c in activePost.commentsList" :key="c.id" class="comment-item">
-              <img :src="c.userSrc" class="comment-avatar" />
-              <div class="comment-body">
-                <span class="comment-username">{{ c.user }}</span>
-                <p class="comment-text">{{ c.text }}</p>
+          <div v-for="c in activePost.commentsList" :key="c.id" class="comment-item">
+            <img :src="c.userSrc" class="comment-avatar" />
+            <div class="comment-body">
+              <div class="main-comment">
+              <span class="comment-username">{{ c.user }}</span>
+              <p class="comment-text">{{ c.text }}</p>
               </div>
-              <span class="comment-time">{{ c.time }}</span>
+              <span class="comment-time">{{ formatDate(c.createdAt) }}</span>
+
+              <!-- Nút trả lời -->
+              <button class="btn-reply-modal" @click="prepareReply(c)">Trả lời</button>
+
+              <!-- Input trả lời -->
+              <div v-if="replyingCommentId === c.id" class="reply-section">
+                <input
+                  v-model="replyInputs[c.id]"
+                  type="text"
+                  :placeholder="`@${c.user}`"
+                  @keydown.enter.prevent="submitReplyModal(c)"
+                />
+                <button @click="submitReplyModal(c)">Gửi</button>
+              </div>
+              <!-- Hiển thị danh sách reply -->
+             <!-- Hiển thị danh sách reply -->
+              <div v-for="r in c.replies" :key="r.id" class="reply-item">
+                <img :src="r.userSrc" class="comment-avatar" />
+                <div class="comment-body">
+                  <div class="main-comment">
+                    <span class="comment-username">{{ r.user }}</span>
+                    <p class="comment-text">{{ r.text }}</p>
+                  </div>
+                  <div class="comment-time">{{ r.time || formatDate(r.createdAt) }}</div>
+                </div>
+              </div>
             </div>
+          </div>
           </div>
           <!-- 5. Input comment -->
           <div class="comments-footer">
@@ -332,7 +355,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,reactive } from 'vue'
 import Layout from '@/components/Layout.vue'
 import CreatePost from '@/components/CreatePost.vue'
 import ReportModal from '@/components/ReportModal.vue'
@@ -366,8 +389,12 @@ const selectedPost = ref({ commentsList: [] })
 const newComment = ref('')
 const expandedPosts = ref({})
 
+const replyingCommentId = ref(null)
+const replyInputs = reactive({})
+
 const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
+
 
 async function refreshData() {
   try {
@@ -377,7 +404,30 @@ async function refreshData() {
     console.error('❌ Error refreshing data:', error)
   }
 }
+function submitReplyModal(cmt) {
+  const text = (replyInputs[cmt.id] || '').trim()
+  if (!text) return
 
+  if (!Array.isArray(cmt.replies)) cmt.replies = []
+
+  cmt.replies.push({
+    id: Date.now(),
+    user: currentUserName.value,
+    userSrc: currentUserAvatar.value,
+    text,
+    time: 'Vừa xong',
+    replyToUser: cmt.user
+  })
+
+  replyInputs[cmt.id] = ''
+  replyingCommentId.value = null
+}
+function prepareReply(cmt) {
+  replyingCommentId.value = cmt.id
+  if (!replyInputs[cmt.id]) {
+    replyInputs[cmt.id] = `@${cmt.user} `
+  }
+}
 function handleCreatePostClose() {
   showCreate.value = false
   refreshData()
@@ -385,6 +435,18 @@ function handleCreatePostClose() {
 
 function toggleExpand(postId) {
   expandedPosts.value[postId] = !expandedPosts.value[postId]
+}
+function formatDate(dateStr) {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now - date
+  const diffMinutes = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMinutes / 60)
+
+  if (diffMinutes < 1) return 'Vừa xong'
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`
+  if (diffHours < 24) return `${diffHours} giờ trước`
+  return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`
 }
 
 async function toggleLike(post) {
@@ -1373,15 +1435,15 @@ html,
 .comment-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
   margin-bottom: 10px;
 }
 
 .comment-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
+  margin-top:5px;
 }
 
 .comment-bubble {
@@ -1406,6 +1468,7 @@ html,
   font-size: 12px;
   color: #65676b;
   margin-top: 4px;
+  margin-left:5px;
 }
 
 .comments-footer {
@@ -1739,7 +1802,6 @@ html,
 
 .comment-modal-list .comment-item {
   display: flex;
-  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -1752,6 +1814,8 @@ html,
 
 .comment-modal-list .comment-body {
   flex: 1;
+  /* box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); */
+  border-radius: 12px;
 }
 
 .comment-modal-list .comment-username {
@@ -1814,6 +1878,110 @@ html,
   font-size: 14px;
   margin-top: 4px;
   margin-left:20px;
+}
+.reply-section {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.reply-section input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+}
+
+.reply-section button {
+  background: #009dff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.nested-replies {
+  margin-top: 6px;
+  padding-left: 16px;
+  border-left: 2px solid #ddd;
+}
+
+.reply-item {
+  font-size: 14px;
+  margin-top: 4px;
+    display: flex;
+  align-items: flex-start;
+}
+
+.reply-username {
+  font-weight: 600;
+}
+
+.reply-to {
+  color: #007aff;
+  margin-left: 4px;
+}
+.nested-replies {
+  margin-left: 48px; /* đẩy sang phải giống trả lời Facebook */
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reply-item {
+  display: flex;
+  align-items: flex-start;
+}
+
+.reply-item .comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.reply-item .comment-body {
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  font-size: 14px;
+  max-width: 400px;
+  word-wrap: break-word;
+}
+
+.reply-item .comment-username {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.reply-item .comment-text {
+  display: inline;
+  color: #050505;
+}
+
+.reply-item .comment-time {
+  font-size: 12px;
+  color: #65676b;
+  display: block;
+  margin-top: 4px;
+}
+.main-comment{
+  background:#f0f2f5;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  padding: 5px 10px;
+}
+.btn-reply-modal {
+  background: transparent;
+  border: none;
+  color: #1877f2; /* xanh Facebook, hoặc dùng `blue` */
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 </style>
