@@ -556,4 +556,8 @@ onMounted(async () => {
 
 .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
 .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
+.nav-icon{
+  width: 20px;
+  height: 20px;
+}
 </style>

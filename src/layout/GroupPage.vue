@@ -155,9 +155,9 @@
           {{ group.totalMembers }} thành viên
         </p>
 
-        <div class="avatars">
+        <!-- <div class="avatars">
           <img v-for="i in 6" :key="i" class="avatar" :src="`https://i.pravatar.cc/40?img=${i}`" />
-        </div>
+        </div> -->
         <div class="group-actions">
           <template v-if="isOwner">
             <button class="delete-group" @click="handleDeleteGroup">Xóa nhóm</button>
@@ -223,7 +223,7 @@
             </div>
 
             <!-- Danh sách bài viết -->
-            <div 
+            <div
               v-for="post in groupPosts"
               :key="post.id"
               class="post-card"
@@ -296,13 +296,19 @@
               <!-- Comments list - Giới hạn hiển thị 2 comments -->
               <div v-if="canPost" class="comment-list">
                 <!-- Hiển thị tối đa 2 comments đầu tiên -->
-                <div v-for="comment in post.comments.slice(0, 2)" :key="comment.id" class="comment-item">
+                <div
+                  v-for="comment in getPostComments(post.postId).slice(0, 2)"
+                  :key="comment.id"
+                  class="comment-item"
+                >
                   <img
                     :src="comment.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
                     class="comment-avatar"
                   />
                   <div class="comment-bubble">
-                    <span class="comment-username">{{ comment.account?.profile?.fullName || 'Người dùng' }}</span>
+                    <span class="comment-username">{{
+                      comment.account?.profile?.fullName || 'Người dùng'
+                    }}</span>
                     <span class="comment-text">{{ comment.content }}</span>
                     <div class="comment-time">
                       {{ formatCommentTime(comment.createdAt) }}
@@ -311,9 +317,9 @@
                 </div>
 
                 <!-- Hiển thị nút "Xem thêm bình luận" nếu có nhiều hơn 2 comments -->
-                <div v-if="post.comments && post.comments.length > 2" class="view-more-comments">
+                <div v-if="getPostComments(post.postId).length > 2" class="view-more-comments">
                   <button class="view-more-btn" @click="toggleCommentPopup(post)">
-                    Xem thêm {{ post.comments.length - 2 }} bình luận
+                    Xem thêm {{ getPostComments(post.postId).length - 2 }} bình luận
                   </button>
                 </div>
 
@@ -326,7 +332,9 @@
                     v-model="newComment"
                     @keyup.enter="addComment(post)"
                   />
-                  <button class="btn-send" @click="addComment(post)">Gửi</button>
+                  <button class="btn-send groupCommnent" @click="addComment(post)">
+                    <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon-group" />
+                  </button>
                 </div>
               </div>
 
@@ -353,12 +361,73 @@
                               :src="comment.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
                               class="comment-avatar-modal"
                             />
-                            <div class="comment-bubble-modal">
-                              <div class="comment-header-modal">
-                                <span class="comment-username-modal">{{ comment.account?.profile?.fullName || 'Người dùng' }}</span>
-                                <span class="comment-time-modal">{{ formatCommentTime(comment.createdAt) }}</span>
+
+                            <div class="comment-main">
+                              <div class="comment-bubble-modal">
+                                <div class="comment-header-modal">
+                                  <span class="comment-username-modal">{{
+                                    comment.account?.profile?.fullName || 'Người dùng'
+                                  }}</span>
+                                </div>
+                                <div class="comment-text-modal">{{ comment.content }}</div>
                               </div>
-                              <div class="comment-text-modal">{{ comment.content }}</div>
+
+                              <!-- ✅ Thời gian và nút trả lời nằm dưới bubble -->
+                              <div class="comment-actions-modal">
+                                <span class="comment-time-modal">{{
+                                  formatCommentTime(comment.createdAt)
+                                }}</span>
+                                ·
+                                <button class="btn-reply-modal" @click="prepareReply(comment)">
+                                  Trả lời
+                                </button>
+                              </div>
+
+                              <!-- Reply Input Section -->
+                              <div v-if="replyingCommentId === comment.id" class="reply-input-section">
+  <div class="reply-input-wrapper">
+    <input
+      type="text"
+      class="reply-input"
+      v-model="replyInputs[comment.id]"
+      @keyup.enter="submitReply(comment)"
+      :placeholder="'@' + (comment.account?.profile?.fullName || 'Người dùng')"
+    />
+    <button 
+      class="btn-send-reply" 
+      @click="submitReply(comment)"
+      :disabled="!replyInputs[comment.id]?.trim()"
+    >
+      Gửi
+    </button>
+  </div>
+</div>
+
+
+                              <!-- Display Replies -->
+                              <div v-if="comment.replies && comment.replies.length > 0" class="replies-section">
+                                <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+                                  <img
+                                    :src="reply.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
+                                    class="reply-avatar"
+                                  />
+                                  <div class="reply-content">
+                                    <div class="reply-bubble">
+                                      <div class="reply-header">
+                                        <span class="reply-username">{{ reply.account?.profile?.fullName || 'Người dùng' }}</span>
+                                      </div>
+                                      <div class="reply-text">
+                                        <span class="reply-mention">@{{ comment.account?.profile?.fullName || 'Người dùng' }}</span>
+                                        {{ reply.content.replace(`@${comment.account?.profile?.fullName}`, '').trim() }}
+                                      </div>
+                                    </div>
+                                    <div class="reply-footer">
+                                      <span class="reply-time">{{ formatCommentTime(reply.createdAt) }}</span>
+                                      <span class="reply-action" @click="prepareReply(comment)">Trả lời</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -368,13 +437,13 @@
                     <!-- Comment Input Section -->
                     <div class="comment-input-section">
                       <div class="comment-input-container">
-                        <input 
-                          type="text" 
-                          class="comment-input-modal" 
-                          placeholder="Viết bình luận..." 
+                        <input
+                          type="text"
+                          class="comment-input-modal"
+                          placeholder="Viết bình luận..."
                           v-model="newComment"
                           @keyup.enter="addComment(post)"
-                        >
+                        />
                         <button class="send-btn-modal" @click="addComment(post)">Gửi</button>
                       </div>
                     </div>
@@ -414,7 +483,6 @@
                 <button class="recent-button" @click="scrollToPost(post.postId)">
                   Xem bài viết
                 </button>
-                
               </div>
             </div>
           </div>
@@ -432,7 +500,7 @@
 
 <script setup>
 import Layout from '@/components/Layout.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   getGroupDetails,
@@ -485,6 +553,9 @@ const showSharePopup = ref(false)
 const selectedPost = ref(null)
 const copied = ref(false)
 const shareUrlInput = ref(null)
+
+// Thêm reactive state cho comments
+const postComments = ref({})
 
 // Cập nhật state
 const currentUserAvatar = ref('/image/avata.jpg')
@@ -692,43 +763,27 @@ async function fetchGroupPosts() {
     const posts = await getPostsGroup(route.params.id)
     const user = JSON.parse(localStorage.getItem('user'))
 
-    // if (!Array.isArray(posts)) {
-    //   console.error('Invalid posts response:', posts)
-    //   return
-    // }
-
     const processedPosts = []
 
     for (const post of posts) {
       try {
         // Lấy thông tin comments
         const commentsData = await getCommentsByPostId(post.postId)
+        const comments = commentsData?.comments || []
 
         const profileOwner = await getProfileByAccountId(post.accountId)
 
-        const comments = commentsData?.comments|| []
-        console.log('yyyyyyy' , comments)
-
-        // Lấy thông tin người đăng
         let postUserAvatar = '/image/avata.jpg'
         let postUserName = 'Ẩn danh'
 
-        // if (post.accountId) {
-        //   const [postAccount, postProfile] = await Promise.all([
-        //     getAccountById(post.accountId),
-        //     getProfileByAccountId(post.accountId),
-        //   ])
         if (profileOwner) {
           postUserAvatar = profileOwner.avatarUrl
           postUserName = profileOwner.fullName
         }
 
-        // }
-
-        // Kiểm tra xem user hiện tại đã like bài viết chưa
         const isLiked = post.postLikes?.some((like) => like.accountId === user?.id)
 
-        processedPosts.push({
+        const processedPost = {
           ...post,
           postId: post.postId,
           user: postUserName,
@@ -739,13 +794,19 @@ async function fetchGroupPosts() {
           comments: comments,
           liked: isLiked,
           postLikes: post.postLikes || [],
-        })
+        }
+
+        processedPosts.push(processedPost)
+        
+        // Lưu comments vào state riêng
+        postComments.value[post.postId] = comments
       } catch (error) {
         console.error('Error processing post:', error)
       }
     }
 
-    groupPosts.value = processedPosts
+    // Cập nhật state với spread operator để đảm bảo reactivity
+    groupPosts.value = [...processedPosts]
   } catch (error) {
     console.error('Lỗi khi lấy danh sách bài viết:', error)
     toast.error('Không thể tải danh sách bài viết!', {
@@ -1141,13 +1202,10 @@ async function addComment(post) {
       replyCommentId: null,
     }
 
-    const response = await createComment(commentData)
-    console.log('API response for createComment:', response)
-
-    // Tạo object comment mới với thông tin đầy đủ
-    const newCommentObj = {
-      id: response.id,
-      content: response.content,
+    // Tạo comment mới trước khi gọi API
+    const optimisticComment = {
+      id: Date.now(), // Temporary ID
+      content: newComment.value.trim(),
       createdAt: new Date().toISOString(),
       account: {
         profile: {
@@ -1157,19 +1215,35 @@ async function addComment(post) {
       },
     }
 
-    // Thêm comment mới vào đầu danh sách
-    if (!Array.isArray(post.comments)) {
-      post.comments = []
+    // Cập nhật UI ngay lập tức (Optimistic Update)
+    const postToUpdate = groupPosts.value.find(p => p.postId === post.postId)
+    if (postToUpdate) {
+      if (!Array.isArray(postToUpdate.comments)) {
+        postToUpdate.comments = []
+      }
+      postToUpdate.comments = [optimisticComment, ...postToUpdate.comments]
+      // Force reactivity update
+      groupPosts.value = [...groupPosts.value]
     }
-    post.comments.unshift(newCommentObj)
 
-    // Reset input
+    // Reset input ngay lập tức
     newComment.value = ''
 
-    // Cập nhật UI ngay lập tức
-    const postIndex = groupPosts.value.findIndex((p) => p.postId === post.postId)
-    if (postIndex !== -1) {
-      groupPosts.value[postIndex] = { ...post }
+    // Gọi API để lưu comment
+    const response = await createComment(commentData)
+    console.log('API response for createComment:', response)
+
+    // Cập nhật lại comment với ID thật từ server
+    if (postToUpdate) {
+      const commentIndex = postToUpdate.comments.findIndex(c => c.id === optimisticComment.id)
+      if (commentIndex !== -1) {
+        postToUpdate.comments[commentIndex] = {
+          ...optimisticComment,
+          id: response.id
+        }
+        // Force reactivity update again
+        groupPosts.value = [...groupPosts.value]
+      }
     }
 
     toast.success('Đã thêm bình luận!', {
@@ -1179,6 +1253,13 @@ async function addComment(post) {
     })
   } catch (error) {
     console.error('Lỗi khi thêm bình luận:', error)
+    // Nếu có lỗi, rollback lại UI
+    const postToUpdate = groupPosts.value.find(p => p.postId === post.postId)
+    if (postToUpdate) {
+      postToUpdate.comments = postToUpdate.comments.filter(c => c.id !== optimisticComment.id)
+      groupPosts.value = [...groupPosts.value]
+    }
+    
     toast.error('Có lỗi xảy ra khi thêm bình luận!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
@@ -1311,6 +1392,101 @@ const formatCommentTime = (dateString) => {
     }
   }
 }
+
+// Thêm computed property để theo dõi comments
+const getPostComments = computed(() => (postId) => {
+  const post = groupPosts.value.find(p => p.postId === postId)
+  return post?.comments || []
+})
+
+// Thêm state cho reply
+const replyingCommentId = ref(null)
+const replyInputs = reactive({})
+
+// Thêm hàm xử lý reply
+function prepareReply(comment) {
+  replyingCommentId.value = comment.id
+  if (!replyInputs[comment.id]) {
+    replyInputs[comment.id] = `@${comment.account?.profile?.fullName || 'Người dùng'} `
+  }
+}
+
+async function submitReply(comment) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user'))
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập để trả lời bình luận!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      })
+      return
+    }
+
+    const replyText = (replyInputs[comment.id] || '').trim()
+    if (!replyText) {
+      toast.error('Vui lòng nhập nội dung trả lời!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      })
+      return
+    }
+
+    const response = await createComment({
+      postId: activePost.value.postId,
+      accountId: user.id,
+      content: replyText,
+      replyCommentId: comment.id
+    })
+
+    // Tạo object reply mới
+    const newReply = {
+      id: response.id,
+      content: replyText,
+      createdAt: new Date().toISOString(),
+      account: {
+        profile: {
+          fullName: currentUserName.value,
+          avatarUrl: currentUserAvatar.value,
+        },
+      },
+    }
+
+    // Cập nhật UI
+    const postIndex = groupPosts.value.findIndex(p => p.postId === activePost.value.postId)
+    if (postIndex !== -1) {
+      const commentIndex = groupPosts.value[postIndex].comments.findIndex(c => c.id === comment.id)
+      if (commentIndex !== -1) {
+        if (!Array.isArray(groupPosts.value[postIndex].comments[commentIndex].replies)) {
+          groupPosts.value[postIndex].comments[commentIndex].replies = []
+        }
+        groupPosts.value[postIndex].comments[commentIndex].replies.push(newReply)
+        // Force reactivity update
+        groupPosts.value = [...groupPosts.value]
+      }
+    }
+
+    // Reset input và trạng thái
+    replyInputs[comment.id] = ''
+    replyingCommentId.value = null
+
+    toast.success('Đã thêm trả lời!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+  } catch (error) {
+    console.error('Lỗi khi trả lời bình luận:', error)
+    toast.error('Có lỗi xảy ra khi trả lời bình luận!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+  }
+}
+
+// Cập nhật template phần modal comments
 </script>
 
 <style scoped>
@@ -1707,7 +1883,7 @@ body {
 .post-actions {
   display: flex;
   align-items: center;
-  padding: 12px 0;
+  padding: 12px 8px 12px 5px;
   border-top: 1px solid #eee;
   border-bottom: 1px solid #eee;
   margin: 12px 0;
@@ -1985,7 +2161,9 @@ body {
   font-size: 24px;
   color: #666;
   cursor: pointer;
-  padding: 4px;
+  padding-top: 0px;
+  padding-bottom: 6px;
+
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -2412,7 +2590,10 @@ body {
   font-size: 24px;
   color: #666;
   cursor: pointer;
-  padding: 4px;
+  margin-right: 10px;
+  padding-top: 0px;
+  padding-bottom: 6px;
+
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -2516,25 +2697,17 @@ body {
 }
 
 .btn-send {
-  background-color: #f9a825;
-  color: white;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   border: none;
-  padding: 8px 20px;
-  border-radius: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-left: 10px;
-  font-size: 14px;
+  border-radius: 9px;
+  background-color: #009dff;
   display: flex;
-  align-items: center;
   justify-content: center;
-}
-
-.btn-send:hover {
-  background-color: #f57c00;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  align-items: center;
+  cursor: pointer;
+  margin: 0 0 0 0;
 }
 
 .btn-send:active {
@@ -2557,17 +2730,17 @@ body {
 }
 
 .comment-box {
+  width: 100%;
   flex: 1;
-  padding: 10px 16px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  font-size: 14px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #ccc;
+  border-radius: 9px;
   outline: none;
-  transition: border-color 0.3s ease;
 }
 
 .comment-box:focus {
-  border-color: #f9a825;
+  border-color: #4e9bff;
   box-shadow: 0 0 0 2px rgba(249, 168, 37, 0.1);
 }
 .overlay {
@@ -2597,13 +2770,10 @@ body {
 
 .post-header {
   padding: 10px 0 0 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    
-
-  
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
 }
 
 .post-title {
@@ -2611,6 +2781,8 @@ body {
   font-weight: 700;
   color: #1c1e21;
   margin: 0;
+  padding-left: 12px;
+  padding-bottom: 8px;
 }
 
 .close-btn {
@@ -2632,9 +2804,22 @@ body {
   background: #e4e6ea;
 }
 
-/* .post-content {
-
-} */
+.post-content {
+  padding: 10px 10px 0px 10px;
+}
+.groupCommnent button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background-color: #009dff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  margin: 0 0 0 0;
+}
 
 .post-author {
   display: flex;
@@ -2701,8 +2886,6 @@ body {
   margin-bottom: 8px;
 }
 
-
-
 .comments-title {
   font-size: 16px;
   font-weight: 600;
@@ -2713,13 +2896,10 @@ body {
 .comments-list {
   max-height: 300px;
   overflow-y: auto;
-}
-
-.comment-item-modal {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  padding: 8px 0;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 10px;
+  margin-bottom: 0px;
 }
 
 .comment-avatar-modal {
@@ -2730,12 +2910,6 @@ body {
   object-fit: cover;
 }
 
-.comment-bubble-modal {
-  background: #f0f2f5;
-  border-radius: 16px;
-  padding: 8px 12px;
-  flex: 1;
-}
 
 .comment-header-modal {
   display: flex;
@@ -2755,11 +2929,6 @@ body {
   color: #65676b;
 }
 
-.comment-text-modal {
-  font-size: 14px;
-  color: #1c1e21;
-  line-height: 1.3;
-}
 
 .comment-input-section {
   padding: 16px 20px;
@@ -2776,7 +2945,7 @@ body {
 .comment-input-modal {
   flex: 1;
   border: 1px solid #ccd0d5;
-  border-radius: 20px;
+  border-radius: 10px;
   padding: 8px 16px;
   font-size: 15px;
   outline: none;
@@ -2796,7 +2965,7 @@ body {
   color: white;
   border: none;
   padding: 8px 20px;
-  border-radius: 20px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -2817,19 +2986,29 @@ body {
 .view-more-comments {
   margin: 8px 0;
   text-align: center;
+  padding-left: 0px;
+
+  padding-right: 328px;
+  height: 35px;
+  width: 550px;
 }
 
 .view-more-btn {
- background: none;
-    border: none;
-    color: #1877f2;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    margin: 1px 190px 3px 0;
-    padding: 6px 12px;
-    border-radius: 6px;
-    transition: background-color 0.2s;
+  background: none;
+  border: none;
+  color: #1877f2;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin: 1px 190px 3px 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+
+  padding-left: 0px;
+  padding-right: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
 }
 
 .view-more-btn:hover {
@@ -2837,11 +3016,266 @@ body {
 }
 
 /* Fade transition */
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.3s ease;
 }
 
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
+}
+.comment-item-modal {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.comment-avatar-modal {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.comment-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-bubble-modal {
+  background-color: #f0f2f5;
+  padding: 8px 12px;
+  border-radius: 16px;
+  max-width: 500px;
+}
+
+.comment-header-modal {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.comment-text-modal {
+  font-size: 14px;
+  color: #050505;
+}
+
+.comment-actions-modal {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #65676b;
+}
+
+.btn-reply-modal {
+  background: none;
+  border: none;
+  color: #1877f2;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.reply-input-section {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  padding-left: 48px;
+}
+
+.reply-input-wrapper {
+  display: flex;
+  align-items: center;
+  
+  border-radius: 50px;
+  padding: 4px;
+  gap: 8px;
+  max-width: 500px;
+}
+
+.reply-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #050505;
+  padding: 8px 12px;
+  background: transparent;
+}
+
+.reply-input::placeholder {
+  color: #1877f2;
+  font-weight: 500;
+}
+
+/* .btn-send-reply {
+  background: #0095f6;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+} */
+
+.btn-send-reply:disabled {
+  background: #ccd0d5;
+  cursor: not-allowed;
+}
+
+.btn-send-reply:not(:disabled):hover {
+  background: #1877f2;
+}
+
+.reply-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.reply-mention {
+  color: #1877f2;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.reply-footer {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  padding-left: 12px;
+  align-items: center;
+}
+
+.reply-time {
+  font-size: 12px;
+  color: #65676b;
+  margin-left: 12px;
+  margin-top: 4px;
+}
+
+.reply-action {
+  font-size: 12px;
+  color: #65676b;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.reply-action:hover {
+  text-decoration: underline;
+}
+.reply-input-section {
+  margin-top: 8px;
+
+}
+
+.reply-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reply-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid black;
+  border-radius: 999px; /* tạo bo tròn */
+  font-size: 14px;
+  outline: none;
+  flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #a5a5a5;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+}
+
+.btn-send-reply {
+ background-color: #1877f2;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-send-reply:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.reply-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  margin-left: 48px;
+}
+
+.reply-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.reply-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.reply-bubble {
+  background-color: #f0f2f5;
+  padding: 8px 12px;
+  border-radius: 16px;
+  max-width: 500px;
+  display: inline-block;
+}
+
+.reply-header {
+  margin-bottom: 2px;
+}
+
+.reply-username {
+  font-weight: 600;
+  font-size: 13px;
+  color: #050505;
+}
+
+.reply-text {
+  font-size: 14px;
+  color: #050505;
+}
+
+.reply-mention {
+  color: #1877f2;
+  font-weight: 500;
+}
+
+.reply-footer {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #65676b;
+  padding-left: 12px;
+}
+
+.reply-time {
+  font-size: 12px;
+  color: #65676b;
+}
+
+.reply-action {
+  font-size: 12px;
+  color: #65676b;
+  cursor: pointer;
+}
+
+.reply-action:hover {
+  text-decoration: underline;
 }
 </style>
