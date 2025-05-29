@@ -5,8 +5,8 @@ export const createProfile = async (data) => {
     fullName: data.fullName,
     phoneNumber: data.phoneNumber,
     bio: data.bio,
-    avatarUrl: '', // hoặc null nếu backend hỗ trợ
-    coverUrl: ''
+    avatarUrl: '',
+    coverUrl: '',
   })
   return response.data.data
 }

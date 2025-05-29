@@ -64,7 +64,6 @@
       </div>
       <div class="sidebar-footer"></div>
     </aside>
-
     <!-- Notification Popup -->
     <transition name="slide">
       <div v-if="showNotifications" class="notification-popup">
