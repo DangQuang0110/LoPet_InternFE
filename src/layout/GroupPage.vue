@@ -223,7 +223,7 @@
             </div>
 
             <!-- Danh sách bài viết -->
-            <div
+            <div 
               v-for="post in groupPosts"
               :key="post.id"
               class="post-card"
@@ -293,9 +293,10 @@
                 <span>{{ post.comments?.length || 0 }} bình luận</span>
               </div>
 
-              <!-- Comments list -->
+              <!-- Comments list - Giới hạn hiển thị 2 comments -->
               <div v-if="canPost" class="comment-list">
-                <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
+                <!-- Hiển thị tối đa 2 comments đầu tiên -->
+                <div v-for="comment in post.comments.slice(0, 2)" :key="comment.id" class="comment-item">
                   <img
                     :src="comment.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
                     class="comment-avatar"
@@ -304,9 +305,16 @@
                     <span class="comment-username">{{ comment.account?.profile?.fullName || 'Người dùng' }}</span>
                     <span class="comment-text">{{ comment.content }}</span>
                     <div class="comment-time">
-                     {{  comment.createdAt}} 
+                      {{ formatCommentTime(comment.createdAt) }}
                     </div>
                   </div>
+                </div>
+
+                <!-- Hiển thị nút "Xem thêm bình luận" nếu có nhiều hơn 2 comments -->
+                <div v-if="post.comments && post.comments.length > 2" class="view-more-comments">
+                  <button class="view-more-btn" @click="toggleCommentPopup(post)">
+                    Xem thêm {{ post.comments.length - 2 }} bình luận
+                  </button>
                 </div>
 
                 <!-- Comment Input -->
@@ -322,43 +330,53 @@
                 </div>
               </div>
 
-              <!-- Comment Popup -->
+              <!-- Post Detail Popup -->
               <transition name="fade">
                 <div
                   v-if="showCommentPopup && activePost?.postId === post.postId"
-                  class="comments-overlay"
+                  class="overlay"
                   @click.self="toggleCommentPopup"
                 >
-                  <div class="comments-modal">
-                    <div class="comments-header">
-                      <h3>Bình luận</h3>
-                      <button class="close-comments" @click="toggleCommentPopup">×</button>
+                  <div class="post-modal">
+                    <!-- Header -->
+                    <div class="post-header">
+                      <h2 class="post-title">Bình luận</h2>
+                      <button class="close-btn" @click="toggleCommentPopup">×</button>
                     </div>
-                    <div class="comments-body">
-                      <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
-                        <img
-                          :src="comment.user?.avatar || 'https://i.pravatar.cc/30?img=9'"
-                          class="comment-avatar"
-                        />
-                        <div class="comment-content">
-                          <span class="comment-username">{{
-                            comment.user?.fullName || 'Người dùng'
-                          }}</span>
-                          <span class="comment-text">{{ comment.content }}</span>
-                          <div class="comment-time">
-                            {{ new Date(comment.createdAt).toLocaleString('vi-VN') }}
+
+                    <!-- Comments List -->
+                    <div class="post-content">
+                      <div class="comments-section">
+                        <div class="comments-list">
+                          <div v-for="comment in post.comments" :key="comment.id" class="comment-item-modal">
+                            <img
+                              :src="comment.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
+                              class="comment-avatar-modal"
+                            />
+                            <div class="comment-bubble-modal">
+                              <div class="comment-header-modal">
+                                <span class="comment-username-modal">{{ comment.account?.profile?.fullName || 'Người dùng' }}</span>
+                                <span class="comment-time-modal">{{ formatCommentTime(comment.createdAt) }}</span>
+                              </div>
+                              <div class="comment-text-modal">{{ comment.content }}</div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div class="comments-footer">
-                      <input
-                        v-model="newComment"
-                        type="text"
-                        placeholder="Viết bình luận..."
-                        @keyup.enter="addComment(post)"
-                      />
-                      <button class="btn-send" @click="addComment(post)">Gửi</button>
+
+                    <!-- Comment Input Section -->
+                    <div class="comment-input-section">
+                      <div class="comment-input-container">
+                        <input 
+                          type="text" 
+                          class="comment-input-modal" 
+                          placeholder="Viết bình luận..." 
+                          v-model="newComment"
+                          @keyup.enter="addComment(post)"
+                        >
+                        <button class="send-btn-modal" @click="addComment(post)">Gửi</button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -396,6 +414,7 @@
                 <button class="recent-button" @click="scrollToPost(post.postId)">
                   Xem bài viết
                 </button>
+                
               </div>
             </div>
           </div>
@@ -1119,17 +1138,17 @@ async function addComment(post) {
       postId: post.postId,
       accountId: user.id,
       content: newComment.value.trim(),
-      replyCommentId: null, // Nếu không phải trả lời bình luận nào
+      replyCommentId: null,
     }
 
     const response = await createComment(commentData)
     console.log('API response for createComment:', response)
 
-    // Thêm bình luận mới vào danh sách
+    // Tạo object comment mới với thông tin đầy đủ
     const newCommentObj = {
       id: response.id,
       content: response.content,
-      createdAt: response.createdAt,
+      createdAt: new Date().toISOString(),
       account: {
         profile: {
           fullName: currentUserName.value,
@@ -1138,15 +1157,16 @@ async function addComment(post) {
       },
     }
 
+    // Thêm comment mới vào đầu danh sách
     if (!Array.isArray(post.comments)) {
       post.comments = []
     }
-    post.comments.push(newCommentObj)
+    post.comments.unshift(newCommentObj)
 
     // Reset input
     newComment.value = ''
 
-    // Cập nhật UI
+    // Cập nhật UI ngay lập tức
     const postIndex = groupPosts.value.findIndex((p) => p.postId === post.postId)
     if (postIndex !== -1) {
       groupPosts.value[postIndex] = { ...post }
@@ -1266,6 +1286,30 @@ const navigateToPost = (postId) => {
     name: 'PostDetail',
     params: { id: postId },
   })
+}
+
+// Thêm hàm formatCommentTime vào phần script
+const formatCommentTime = (dateString) => {
+  const now = new Date()
+  const commentDate = new Date(dateString)
+  const diffInSeconds = Math.floor((now - commentDate) / 1000)
+
+  if (diffInSeconds < 60) {
+    return 'Vừa xong'
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60)
+    return `${minutes} phút trước`
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600)
+    return `${hours} giờ trước`
+  } else {
+    const days = Math.floor(diffInSeconds / 86400)
+    if (days < 30) {
+      return `${days} ngày trước`
+    } else {
+      return commentDate.toLocaleDateString('vi-VN')
+    }
+  }
 }
 </script>
 
@@ -1545,17 +1589,12 @@ body {
   background: #ffffff;
   border-radius: 10px;
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
-  padding: 16px;
-  margin-bottom: 20px;
+  padding: 10px 10px 1px 10px;
   width: 100%;
   transition: background-color 0.5s ease;
+  margin-bottom: 20px;
 }
-.post-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
+
 .avatar {
   width: 40px;
   height: 40px;
@@ -1617,13 +1656,13 @@ body {
 .report-dropdown button:hover {
   background-color: #f5f5f5;
 }
-.post-content {
+/* .post-content {
   font-size: 15px;
   line-height: 1.5;
   margin-bottom: 16px;
   color: #1a1a1a;
   position: relative;
-}
+} */
 
 .post-content p {
   margin: 0;
@@ -1720,9 +1759,6 @@ body {
   font-size: 12px;
   color: #65676b;
   margin-top: 4px;
-}
-.comment-input {
-  margin-top: 12px;
 }
 .comment-box {
   width: 100%;
@@ -2533,5 +2569,279 @@ body {
 .comment-box:focus {
   border-color: #f9a825;
   box-shadow: 0 0 0 2px rgba(249, 168, 37, 0.1);
+}
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.post-modal {
+  background: white;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.post-header {
+  padding: 10px 0 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    
+
+  
+}
+
+.post-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1c1e21;
+  margin: 0;
+}
+
+.close-btn {
+  background: #f0f2f5;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  color: #606770;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: #e4e6ea;
+}
+
+/* .post-content {
+
+} */
+
+.post-author {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+}
+
+.author-info {
+  flex: 1;
+}
+
+.author-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1e21;
+  margin-bottom: 2px;
+}
+
+.post-time {
+  font-size: 13px;
+  color: #65676b;
+  display: flex;
+  align-items: center;
+}
+
+.reply-link {
+  color: #1877f2;
+  text-decoration: none;
+  margin-left: 8px;
+  font-size: 13px;
+}
+
+.reply-link:hover {
+  text-decoration: underline;
+}
+
+.post-text {
+  background: #f0f2f5;
+  border-radius: 18px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #1c1e21;
+}
+
+.post-images {
+  margin: 16px 0;
+}
+
+.post-image-modal {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+
+
+.comments-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1c1e21;
+  margin-bottom: 12px;
+}
+
+.comments-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.comment-item-modal {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding: 8px 0;
+}
+
+.comment-avatar-modal {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+  object-fit: cover;
+}
+
+.comment-bubble-modal {
+  background: #f0f2f5;
+  border-radius: 16px;
+  padding: 8px 12px;
+  flex: 1;
+}
+
+.comment-header-modal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.comment-username-modal {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1e21;
+}
+
+.comment-time-modal {
+  font-size: 12px;
+  color: #65676b;
+}
+
+.comment-text-modal {
+  font-size: 14px;
+  color: #1c1e21;
+  line-height: 1.3;
+}
+
+.comment-input-section {
+  padding: 16px 20px;
+  border-top: 1px solid #e4e6ea;
+  background: #fafbfc;
+}
+
+.comment-input-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.comment-input-modal {
+  flex: 1;
+  border: 1px solid #ccd0d5;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.comment-input-modal:focus {
+  border-color: #1877f2;
+}
+
+.comment-input-modal::placeholder {
+  color: #65676b;
+}
+
+.send-btn-modal {
+  background: #1877f2;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.send-btn-modal:hover {
+  background: #166fe5;
+}
+
+.send-btn-modal:disabled {
+  background: #e4e6ea;
+  color: #bcc0c4;
+  cursor: not-allowed;
+}
+
+/* View more comments button styles */
+.view-more-comments {
+  margin: 8px 0;
+  text-align: center;
+}
+
+.view-more-btn {
+ background: none;
+    border: none;
+    color: #1877f2;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin: 1px 190px 3px 0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.view-more-btn:hover {
+  background: #f0f2f5;
+}
+
+/* Fade transition */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 </style>
