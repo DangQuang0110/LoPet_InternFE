@@ -57,17 +57,17 @@ function confirm() {
   z-index: 1000;
 }
 .report-modal {
-  background: #FAEBD7;
+  background: #FFFFFF;
   border-radius: 12px;
   width: 90%; max-width: 400px;
-  overflow: hidden;
+  overflow: hidden; 
 }
 .report-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #FFF8F0;
+  background: #F9F9F9;
   font-weight: 500;
 }
 .report-body {
@@ -85,7 +85,7 @@ function confirm() {
 .report-option {
   display: flex;
   align-items: center;
-  background: #FFF8F0;
+  background: #F9F9F9;
   border-radius: 8px;
   padding: 8px;
 }
@@ -94,7 +94,7 @@ function confirm() {
 }
 .report-footer {
   padding: 12px 16px;
-  background: #FFF8F0;
+  background: #F9F9F9;
   text-align: center;
 }
 .confirm-btn {
