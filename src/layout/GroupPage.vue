@@ -2074,22 +2074,20 @@ body {
   width: 100%;
 }
 .layout {
-  display: flex;
-  gap: 30px;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;       /* khoảng cách giữa hai cột */
+  align-items: start;
   width: 100%;
-}
-.left {
-  flex: 2.5;
-  margin-left: 140px;
-}
-.right {
-  flex: 2.5;
-  display: flex;
-  justify-content: left;
-  align-items: flex-start; /* đẩy nội dung lên trên */
-  flex-direction: column;
+  padding: 0 90px; /* tương tự padding main nếu cần */
+  box-sizing: border-box;
 }
 
+.left,
+.right {
+  margin: 0;
+  padding: 0;
+}
 /* --- Ô đăng trạng thái --- */
 .new-post {
   background: #ffffff;
@@ -2435,6 +2433,52 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: 81%; /* hoặc để auto nếu bạn muốn */
 }
+
+/* 1. Xóa hết margin-left và width cố định */
+.introduction {
+
+  margin: 0 50px 24px;      /* chỉ giữ margin-bottom */
+  padding: 20px;
+  width: 100%;           /* full width cột bên phải */
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.sidebar-box {
+  margin: 0 0 24px;      /* chỉ giữ margin-bottom */
+  padding: 20px;
+  width: 100%;       
+     
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+
+
+/* 2. Điều chỉnh layout chung để 2 cột sát nhau */
+.layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* trái rộng 2, phải rộng 1 */
+  gap: 24px;                      /* khoảng cách giữa 2 cột */
+  padding: 0 90px;                /* giữ padding trái/phải cho cả layout */
+  box-sizing: border-box;
+}
+
+/* 3. Khi xuống tablet/mobile thì stack dọc */
+@media (max-width: 768px) {
+  .layout {
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px;
+  }
+  .introduction,
+  .sidebar-box {
+    margin-bottom: 20px;
+  }
+}
+
+
 .intro-title {
   color: #333;
   font-size: 18px;
@@ -2475,12 +2519,11 @@ body {
 .sidebar-box {
   background: #fff;
   padding: 16px;
-  margin-bottom: 20px;
-  margin-left: 140px;
-  width: 81%;
+  margin: 0 50px  20px;    /* chỉ giữ margin-bottom */
+  width: 100%;         /* full width trong cột phải */
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
+} 
 .recent-post {
   display: flex;
   align-items: flex-start;
@@ -3760,6 +3803,114 @@ body {
   text-decoration: underline;
 }
 
+
+@media (min-width: 1025px) {
+  .header {
+    padding: 15px 80px;
+  }
+  .search {
+    width: 350px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    padding: 0 90px;
+  }
+}
+
+/* ----------------------------------------
+   Tablet (600px – 1024px)
+-----------------------------------------*/
+@media (max-width: 1024px) and (min-width: 601px) {
+  .header {
+    padding: 12px 40px;
+  }
+  .search {
+    width: 60%;
+  }
+  .cover {
+    height: 250px;
+  }
+  .full-width-group {
+    padding: 16px 40px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr; /* stack dọc 1 cột */
+    gap: 20px;
+    padding: 0 40px;
+  }
+  .introduction,
+  .sidebar-box {
+    width: 100%;
+    margin: 0 0 20px;
+  }
+}
+
+/* ----------------------------------------
+   Mobile (dưới 600px)
+-----------------------------------------*/
+@media (max-width: 600px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 16px;
+  }
+  .search {
+    width: 100%;
+    margin-top: 10px;
+  }
+  .cover {
+    height: 150px;
+  }
+  .full-width-group {
+    padding: 12px 16px;
+  }
+  .layout {
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px;
+    gap: 16px;
+  }
+  .introduction,
+  .sidebar-box {
+    padding: 16px;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+  /* giảm kích thước avatar, button, input trên mobile */
+  .new-post-header img,
+  .post-header .avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .post-input {
+    font-size: 14px;
+    padding: 10px;
+  }
+  .action-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .comment-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  .recent-button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  /* đảm bảo các modal và popup co dãn */
+  .report-popup,
+  .edit-form,
+  .share-popup,
+  .popup {
+    width: 90%;
+    padding: 16px;
+  }
+}
+
 .edit-post-form {
   background: white;
   padding: 20px;
@@ -3926,4 +4077,5 @@ body {
 .confirm-delete-btn:hover {
   background: #c82333;
 }
+
 </style>

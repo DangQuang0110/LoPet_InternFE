@@ -143,7 +143,7 @@
           <button class="edit-profile-button" @click="goToProfileEdit">Chỉnh sửa thông tin</button>
           <div class="profile-nav">
             <router-link to="/profile" class="nav-item active">Trang Cá Nhân</router-link>
-            <router-link to="/photo" class="nav-item">Hình Ảnh</router-link>
+            <!-- <router-link to="/photo" class="nav-item">Hình Ảnh</router-link> -->
           </div>
         </div>
       </div>
@@ -164,15 +164,15 @@
                   <span>{{ user.phone || 'Chưa có số điện thoại...' }}</span>
                 </li>
                 <li>
-                  <img src="/icon/home.png" alt="Hometown" class="nav-icon" />
+                  <img src="../assets/trangchu.png" alt="Hometown" class="nav-icon" />
                   <span>{{ user.hometown || 'Chưa có quê quán...' }}</span>
                 </li>
                 <li>
-                  <img src="/icon/home.png" alt="Gender" class="nav-icon" />
+                  <img src="../assets/sex.jpg" alt="Gender" class="nav-icon" />
                   <span>{{ user.gender || 'Chưa có thông tin giới tính...' }}</span>
                 </li>
                 <li>
-                  <img src="/icon/user.png" alt="Date of Birth" class="nav-icon" />
+                  <img src="../assets/date.jpg" alt="Date of Birth" class="nav-icon" />
                   <span>{{ user.dateOfBirth || 'Chưa có ngày sinh...' }}</span>
                 </li>
               </ul>
@@ -285,14 +285,14 @@
             <div class="post-actions">
               <button class="btn-icon like-btn" @click="toggleLike(post)">
                 <img
-                  :src="post.liked ? '/icon/heart.png' : '/assets/like.png'"
+                  :src="post.liked ? '/assets/like.png' : '/assets/like.png'"
                   alt="Like"
                   class="icon-img-like"
                 />
               </button>
               <span class="count">{{ post.likes }}</span>
               <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">
-                <img src="/icon/user.png" alt="Comment" class="icon-img" />
+                <img src="../assets/comment.png" alt="Comment" class="icon-img" />
               </button>
               <span class="count">{{ post.commentsList.length }}</span>
               <button class="btn-icon share-btn" @click="toggleSharePopup">
@@ -321,7 +321,9 @@
                 v-model="newComment"
                 @keydown.enter.prevent="addComment(post)"
               />
-              <button class="btn-send" @click="addComment(post)">Gửi</button>
+              <button class="btn-icon post-comment" @click="addComment(post)">
+                 <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
+                </button>
             </div>
           </div>
         </div>
@@ -336,9 +338,9 @@
             <h3>Bài viết của {{ activePost.user }}</h3>
             <button class="close-btn" @click="toggleCommentPopup">×</button>
           </div>
-          <div class="comment-modal-gallery">
+          <!-- <div class="comment-modal-gallery">
             <img v-for="(img, idx) in activePost.images" :key="idx" :src="img" class="gallery-img" />
-          </div>
+          </div> -->
           <div class="comment-modal-list">
             <div v-for="c in activePost.commentsList" :key="c.id" class="comment-item">
               <img :src="c.userSrc" class="comment-avatar" />
@@ -434,6 +436,7 @@
 import { ref, onMounted, reactive, computed, watch } from 'vue';
 import layout from './Layout.vue';
 import { getProfileByAccountId,updateProfile} from '@/service/profileService';
+import ReportModal from '@/components/ReportModal.vue'
 import {getPostsByAccountId} from '@/service/postService';
 import { getCommentsByPostId } from '@/service/commentService';
 import { likePost, unlikePost } from '@/service/postService'
@@ -587,7 +590,9 @@ const accountId = userData?.id;
     user.value = {
       id: profile.id,
       name: profile.fullName,
-      avatar: profile.avatarUrl || '/default-avatar.png',
+
+      avatar: profile.avatarUrl || '/image/avata.jpg',
+
       banner: profile.coverUrl || '',
       friends: 500,
       bio: profile.bio || '',
@@ -1079,7 +1084,7 @@ onMounted(async () => {
 }
 
 .confirm-modal-content {
-  background-color: #FFF8F0;
+  background-color: #FFFFFF;
   border-radius: 8px;
   padding: 15px;
   max-width: 400px;
@@ -1396,31 +1401,34 @@ onMounted(async () => {
   gap: 16px;
 }
 
+/* ====== Post Card & Header ====== */
 .post-card {
-  background: #FFFFFF;
-  border-radius: 10px;
-  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
-  padding: 10px;
-  border: 5px solid #FFFFFF;
+  margin: 16px auto;         /* căn giữa, zoom trên desktop */
+  max-width: 600px;          /* giới hạn chiều rộng */
+  padding: 16px;             /* khoảng cách đều xung quanh */
+  border-radius: 12px;       /* bo góc mềm mại */
+  background: #FFF;          /* nền trắng */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  /* bỏ border dày nếu có */
+  border: none;
 }
 
 .post-header {
   display: flex;
   align-items: center;
-  padding-bottom: 18px;
-  margin-top: -5px;
-  position: relative;
+  gap: 12px;                 /* avatar ↔ info */
+  padding-bottom: 12px;      /* tách header/content */
+  border-bottom: 1px solid #EEE;
+  margin-bottom: 12px;
+  position: relative;        /* để menu absolute */
 }
 
 .post-header .avatar {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  border: 2px solid #000000;
   object-fit: cover;
-  margin-right: 12px;
-  margin-top: 10px;
-  margin-left: 15px;
+  /* bỏ margin rời rạc */
 }
 
 .post-info {
@@ -1429,25 +1437,19 @@ onMounted(async () => {
 }
 
 .username {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text);
-  margin-top: 10px;
-  margin-left: 5px;
+  color: #141414;
 }
 
 .time {
-  font-size: 16px;
-  color: #000000;
-  margin-top: -4px;
-  margin-left: 5px;
+  font-size: 12px;
+  color: #888;
 }
 
+/* nút ... */
 .post-header-actions {
   margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .btn-icon {
@@ -1462,6 +1464,29 @@ onMounted(async () => {
   margin-left: 8px;
 }
 
+.post-header-actions .btn-icon {
+  padding: 4px;
+  border-radius: 4px;
+  transition: background .2s;
+}
+
+.post-header-actions .btn-icon:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+/* Responsive: mobile nhỏ hơn 600px */
+@media (max-width: 600px) {
+  .post-card {
+    padding: 12px;
+    margin: 12px 8px;
+  }
+  .post-header .avatar {
+    width: 40px;
+    height: 40px;
+  }
+  .username { font-size: 14px; }
+  .time     { font-size: 11px; }
+}
 .btn-icon i {
   font-size: 18px;
   color: var(--text);
@@ -1469,8 +1494,8 @@ onMounted(async () => {
 
 .post-menu {
   position: absolute;
-  top: 15%;
-  right: 25px;
+  top: -12px;
+  right: 40px;
   background: var(--bg-post);
   border: 1px solid var(--divider);
   border-radius: 6px;
@@ -1480,8 +1505,8 @@ onMounted(async () => {
 
 .post-menu ul {
   list-style: none;
-  margin: 0;
-  padding: 8px 0;
+  margin: 0px 0;
+  padding: 0px 0;
 }
 
 .post-menu li {
@@ -1531,14 +1556,34 @@ onMounted(async () => {
 .post-actions {
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  border-top: 1px solid var(--divider);
-  border-bottom: 1px solid var(--divider);
-  margin-top: -28px;
-  margin-left: -2px;
+  gap: 6px;          /* khoảng cách giữa từng nhóm icon+count */
 }
 
-.post-actions .icon-img,
+.post-actions .count {
+  margin: 0 1px 0 1px;
+  font-size: 20px;
+}
+
+.post-actions i {
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text);
+  margin-top: 10px;
+}
+
+.post-actions p {
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text);
+  margin-top: 10px;
+}
+
+/* .post-actions {
+  font-size: 50px;
+} */
+
+
+/* .post-actions .icon-img,
 .post-actions .icon-img-like,
 .post-actions .icon-img-share {
   width: 20px;
@@ -1548,7 +1593,29 @@ onMounted(async () => {
 }
 
 .icon-img-share {
-  margin-left: 410px;
+  margin-left: 700px;
+} */
+
+.icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
+.icon-img-like {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.icon-img-share {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin-bottom: 8px;
+  margin-left:430px;
 }
 
 .count {
@@ -1573,6 +1640,26 @@ onMounted(async () => {
   font-size: 14px;
   color: #000000;
   margin-top: -2px;
+}
+
+.post-comment button {
+  width: 40px;                /* fixed square */
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background-color: #009DFF;  /* your blue */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  margin: 0 0 0 0;
+}
+
+.post-comment button img,
+.post-comment button svg {
+  width: 20px;
+  height: 20px;
 }
 
 .btn-send {
