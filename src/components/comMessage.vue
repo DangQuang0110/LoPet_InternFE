@@ -133,7 +133,7 @@ import { getFriendList } from '@/service/friendService'
 import { getMessageList,createMessage  } from '@/service/messageService'
 import { getAccountById } from '@/service/authService'
 import { getProfileByAccountId } from '@/service/profileService'
-import socket from '@/socket'
+// import socket from '@/socket'
 
 
 const currentUserAvatar = ref('/image/avata.jpg')

@@ -2,7 +2,6 @@
   <div class="layout-wrapper">
     <aside class="sidebar">
       <div class="logo">
-      <div class="logo">
         <img src="/assets/logoPetGram.png" alt="LOPET Logo" class="logo-img" />
       </div>
       <div class="menu-container">
@@ -262,7 +261,7 @@ onMounted(async () => {
   margin-bottom: 10px;
 }
 
-.logo-img {
+
 .logo-img {
   position: absolute;
   top: -12px;
