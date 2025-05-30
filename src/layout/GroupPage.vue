@@ -138,7 +138,41 @@
       </div>
 
       <header class="header">
-        <input class="search" placeholder="Tìm kiếm..." />
+        <div class="search-container">
+          <input 
+            v-model="searchQuery"
+            @input="handleSearch"
+            class="search" 
+            placeholder="Tìm kiếm theo tên người dùng hoặc nội dung..." 
+          />
+          <div v-if="isSearching" class="search-loading">
+            <div class="loading-spinner-small"></div>
+          </div>
+          
+          <!-- Search Results Dropdown -->
+          <div v-if="showSearchResults" class="search-results">
+            <div v-if="isSearching" class="searching-message">
+              Đang tìm kiếm...
+            </div>
+            <div v-else-if="searchResults.length === 0" class="no-results">
+              Không tìm thấy kết quả
+            </div>
+            <div v-else class="results-list">
+              <div 
+                v-for="post in searchResults" 
+                :key="post.postId" 
+                class="search-result-item"
+                @click="scrollToPost(post.postId)"
+              >
+                <img :src="post.userSrc || '/image/avata.jpg'" class="result-avatar" />
+                <div class="result-info">
+                  <div class="result-username">{{ post.user }}</div>
+                  <div class="result-content">{{ post.content }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
 
       <div class="cover" :style="{ backgroundImage: `url(${group.coverUrl})` }"></div>
@@ -236,9 +270,13 @@
                   <div class="time">{{ new Date(post.createdAt).toLocaleString('vi-VN') }}</div>
                 </div>
                 <div class="menu-container" v-if="canPost">
-                  <div class="menu" @click="toggleReportMenu(post.id)">⋮</div>
-                  <div v-if="showReportMenu === post.id" class="report-dropdown">
-                    <button @click="openReport(post.id)">Báo cáo bài viết</button>
+                  <div class="menu" @click.stop="toggleReportMenu(post.postId)">⋮</div>
+                  <div v-show="activeMenuPostId === post.postId" class="report-dropdown">
+                    <button v-if="!isPostOwner(post)" @click="openReport(post.postId)">Báo cáo bài viết</button>
+                    <template v-else>
+                      <button @click="handleDeletePost(post.postId)">Xóa bài viết</button>
+                      <button @click="handleEditPost(post)">Chỉnh sửa bài viết</button>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -496,11 +534,61 @@
     <img :src="selectedPreviewImage" alt="Preview" @click.stop />
     <div class="close-button" @click="closeImagePreview">×</div>
   </div>
+
+  <!-- Thêm form chỉnh sửa bài viết -->
+  <div v-if="showEditPostPopup" class="overlay">
+    <div class="edit-post-form">
+      <div class="form-header">
+        <h3>Chỉnh sửa bài viết</h3>
+        <button class="close-btn" @click="closeEditPostForm">×</button>
+      </div>
+
+      <textarea
+        v-model="editPostForm.content"
+        class="edit-post-input"
+        placeholder="Nội dung bài viết..."
+      ></textarea>
+
+      <!-- Image Previews -->
+      <div v-if="editImagePreviews.length > 0" class="preview-container">
+        <div v-for="(preview, index) in editImagePreviews" :key="index" class="preview-item">
+          <img :src="preview" alt="Preview" class="preview-image" />
+          <button class="remove-preview" @click="removeEditPostImage(index)">×</button>
+        </div>
+      </div>
+
+      <div class="edit-post-actions">
+        <div class="media-buttons">
+          <label class="upload-button">
+            <img src="@/assets/camera.png" alt="Upload Image" class="upload-icon" />
+            <span>Ảnh</span>
+            <input
+              type="file"
+              class="file-input"
+              @change="handleEditPostImageChange"
+              accept="image/*"
+              multiple
+            />
+          </label>
+        </div>
+
+        <select v-model="editPostForm.scope" class="scope-select">
+          <option value="PUBLIC">Công khai</option>
+          <option value="FRIEND">Bạn bè</option>
+          <option value="PRIVATE">Riêng tư</option>
+        </select>
+
+        <button class="update-button" @click="handleUpdatePost" :disabled="!editPostForm.content.trim()">
+          Cập nhật
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import Layout from '@/components/Layout.vue'
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   getGroupDetails,
@@ -516,8 +604,9 @@ import { getProfileByAccountId } from '@/service/profileService'
 import { getAccountById } from '@/service/authService'
 import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
-import { likePost, unlikePost } from '@/service/postService'
+import { likePost, unlikePost, deletePost, updatePost } from '@/service/postService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
+import { sendReport } from '@/service/reportService'
 
 const route = useRoute()
 const router = useRouter()
@@ -841,6 +930,21 @@ onMounted(() => {
   fetchGroupDetails()
   checkGroupMembership()
   fetchGroupPosts()
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.menu-container')) {
+      activeMenuPostId.value = null;
+    }
+  });
+  document.addEventListener('click', closeSearchResults)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', (e) => {
+    if (!e.target.closest('.menu-container')) {
+      activeMenuPostId.value = null;
+    }
+  });
+  document.removeEventListener('click', closeSearchResults)
 })
 
 function saveChanges() {
@@ -945,26 +1049,71 @@ function closeReport() {
   selectedReason.value = ''
 }
 
-function submitReport() {
-  if (!selectedReason.value) {
-    alert('Vui lòng chọn lý do báo cáo!')
-    return
+async function submitReport() {
+  try {
+    if (!selectedReason.value) {
+      toast.error('Vui lòng chọn lý do báo cáo!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      });
+      return;
+    }
+
+    const reportData = {
+      accountId: user.value?.id,
+      targetId: selectedPostId.value,
+      type: 'GROUP',
+      reason: selectedReason.value
+    };
+
+    await sendReport(reportData);
+
+    toast.success('Báo cáo đã được gửi thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
+
+    closeReport();
+  } catch (error) {
+    console.error('Lỗi khi gửi báo cáo:', error);
+    toast.error('Có lỗi xảy ra khi gửi báo cáo!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
   }
-  console.log('Báo cáo bài viết ID:', selectedPostId.value, 'Lý do:', selectedReason.value)
-  alert('Báo cáo của bạn đã được gửi thành công!')
-  closeReport()
 }
 
-function toggleReportMenu(postId) {
-  showReportMenu.value = showReportMenu.value === postId ? null : postId
-}
+// Thay đổi showReportMenu thành activeMenuPostId
+const activeMenuPostId = ref(null);
+
+// Cập nhật hàm toggleReportMenu
+const toggleReportMenu = (postId) => {
+  // Nếu menu của bài viết này đang mở, đóng nó lại
+  if (activeMenuPostId.value === postId) {
+    activeMenuPostId.value = null;
+  } else {
+    // Mở menu cho bài viết được chọn
+    activeMenuPostId.value = postId;
+  }
+};
+
+// Thêm hàm closeAllMenus
+const closeAllMenus = () => {
+  activeMenuPostId.value = null;
+};
 
 // Đóng menu khi click bên ngoài
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.menu-container')) {
-    showReportMenu.value = null
+    closeAllMenus();
   }
-})
+});
+
+// Cập nhật template phần dropdown menu
+// ... existing code ...
 
 const openEditForm = () => {
   editForm.value = {
@@ -1487,6 +1636,175 @@ async function submitReply(comment) {
 }
 
 // Cập nhật template phần modal comments
+
+// Add this computed property to check if user is post owner
+const isPostOwner = (post) => {
+  return user.value?.id === post.accountId;
+}
+
+// Add delete post handler
+const handleDeletePost = async (postId) => {
+  console.log("bug nè: ", postId)
+  try {
+    if (!confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
+      return;
+    }
+
+    await deletePost(postId);
+    
+    // Remove post from local state
+    groupPosts.value = groupPosts.value.filter(post => post.postId !== postId);
+    
+    // Close the menu
+    showReportMenu.value = null;
+
+    toast.success('Xóa bài viết thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
+  } catch (error) {
+    console.error('Lỗi khi xóa bài viết:', error);
+    toast.error('Có lỗi xảy ra khi xóa bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
+  }
+}
+
+// ... existing code ...
+
+// Thêm state cho form chỉnh sửa bài viết
+const showEditPostPopup = ref(false);
+const editPostForm = reactive({
+  content: '',
+  images: [],
+  scope: 'PUBLIC',
+});
+const editImagePreviews = ref([]);
+const editingPostId = ref(null);
+
+// Hàm mở form chỉnh sửa
+const handleEditPost = (post) => {
+  editingPostId.value = post.postId;
+  editPostForm.content = post.content;
+  editPostForm.scope = post.scope || 'PUBLIC';
+  editImagePreviews.value = post.postMedias
+    ?.filter(media => media.mediaType === 'IMAGE')
+    .map(media => media.mediaUrl) || [];
+  showEditPostPopup.value = true;
+  activeMenuPostId.value = null; // Đóng dropdown menu
+};
+
+// Hàm đóng form chỉnh sửa
+const closeEditPostForm = () => {
+  showEditPostPopup.value = false;
+  editingPostId.value = null;
+  editPostForm.content = '';
+  editPostForm.images = [];
+  editImagePreviews.value = [];
+};
+
+const handleEditPostImageChange = (event) => {
+  const files = Array.from(event.target.files);
+  const validImageFiles = files.filter(file => file.type.startsWith('image/'));
+  
+  if (validImageFiles.length > 0) {
+    editPostForm.images.push(...validImageFiles);
+    const newPreviews = validImageFiles.map(file => URL.createObjectURL(file));
+    editImagePreviews.value.push(...newPreviews);
+  }
+};
+
+const removeEditPostImage = (index) => {
+  editPostForm.images.splice(index, 1);
+  editImagePreviews.value.splice(index, 1);
+};
+
+// Cập nhật bài viết
+const handleUpdatePost = async () => {
+  try {
+    if (!editPostForm.content.trim()) {
+      toast.error('Vui lòng nhập nội dung bài viết!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('content', editPostForm.content.trim());
+    formData.append('ownerId', user.value.id);
+    formData.append('scope', editPostForm.scope);
+    formData.append('groupId', route.params.id);
+
+    // Thêm ảnh vào formData
+    editPostForm.images.forEach(image => {
+      formData.append('images', image);
+    });
+
+    await updatePost(editingPostId.value, formData);
+
+    // Refresh posts list
+    await fetchGroupPosts();
+
+    // Đóng form và reset state
+    closeEditPostForm();
+
+    toast.success('Cập nhật bài viết thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
+  } catch (error) {
+    console.error('Lỗi khi cập nhật bài viết:', error);
+    toast.error('Có lỗi xảy ra khi cập nhật bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
+  }
+};
+
+// ... existing code ...
+
+const searchQuery = ref('')
+const isSearching = ref(false)
+const showSearchResults = ref(false)
+
+// Computed property for filtered posts
+const searchResults = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return []
+  }
+  
+  const query = searchQuery.value.toLowerCase()
+  return groupPosts.value.filter(post => {
+    const usernameMatch = post.user?.toLowerCase().includes(query)
+    const contentMatch = post.content?.toLowerCase().includes(query)
+    return usernameMatch || contentMatch
+  })
+})
+
+// Handle search input
+const handleSearch = () => {
+  isSearching.value = true
+  showSearchResults.value = true
+  
+  // Debounce search to avoid too many updates
+  setTimeout(() => {
+    isSearching.value = false
+  }, 300)
+}
+
+// Close search results when clicking outside
+const closeSearchResults = (event) => {
+  if (!event.target.closest('.search-container')) {
+    showSearchResults.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -1514,11 +1832,107 @@ body {
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
 .search {
-  padding: 6px 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 24px;
+  font-size: 15px;
+  outline: none;
+  background: #f0f2f5;
+  transition: all 0.3s ease;
+}
+
+.search:focus {
+  background: #fff;
+  border-color: #1a73e8;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.search-loading {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
   border-radius: 8px;
-  border: 1px solid #000;
-  width: 350px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  margin-top: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.searching-message,
+.no-results {
+  padding: 16px;
+  text-align: center;
+  color: #65676b;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+  background-color: #f0f2f5;
+}
+
+.result-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.result-info {
+  flex: 1;
+}
+
+.result-username {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.result-content {
+  color: #65676b;
+  font-size: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #1a73e8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* --- Ảnh bìa --- */
@@ -1794,20 +2208,22 @@ body {
 }
 .menu-container {
   position: relative;
+  display: inline-block;
 }
 .menu {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
-  font-size: 20px;
+  padding: 8px;
+  border-radius: 50%;
   transition: background-color 0.2s;
+  
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 10px;
+    padding-top: 10px;
+
 }
 .menu:hover {
-  background-color: #f5f5f5;
+  background-color: #f0f2f5;
 }
 .report-dropdown {
   position: absolute;
@@ -1816,22 +2232,32 @@ body {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 100;
+  z-index: 1000;
   min-width: 180px;
   padding: 8px 0;
 }
 .report-dropdown button {
   width: 100%;
   padding: 8px 16px;
-  border: none;
-  background: none;
   text-align: left;
-  font-size: 14px;
+  background: none;
+  border: none;
+  color: #333;
   cursor: pointer;
+  font-size: 14px;
 }
 .report-dropdown button:hover {
   background-color: #f5f5f5;
 }
+.report-dropdown button:not(:last-child) {
+  border-bottom: 1px solid #eee;
+}
+
+/* Add color for delete button */
+.report-dropdown button:first-child {
+  color: #dc3545;
+}
+
 /* .post-content {
   font-size: 15px;
   line-height: 1.5;
@@ -2171,6 +2597,7 @@ body {
   width: 32px;
   height: 32px;
   transition: background-color 0.2s;
+  
 }
 
 .close-btn:hover {
@@ -2601,6 +3028,9 @@ body {
   width: 32px;
   height: 32px;
   transition: background-color 0.2s;
+  
+    padding-top: 4px;
+
 }
 
 .close-btn:hover {
@@ -3277,5 +3707,102 @@ body {
 
 .reply-action:hover {
   text-decoration: underline;
+}
+
+.edit-post-form {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.edit-post-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin: 16px 0;
+  font-size: 15px;
+  resize: vertical;
+}
+
+.preview-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.preview-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.remove-preview {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-post-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.media-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.scope-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.update-button {
+  background: #f9a825;
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.update-button:hover {
+  background: #f57c00;
+}
+
+.update-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 </style>
