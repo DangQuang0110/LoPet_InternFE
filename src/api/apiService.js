@@ -8,7 +8,6 @@ const apiService = axios.create({
   }
 });
 
-// ✅ Gắn token mỗi khi gọi request
 apiService.interceptors.request.use(
   config => {
     const token = localStorage.getItem('accessToken');
@@ -35,3 +34,5 @@ apiService.interceptors.response.use(
 );
 
 export default apiService;
+
+

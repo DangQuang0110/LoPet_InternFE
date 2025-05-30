@@ -1079,10 +1079,10 @@ html,
   margin-top: -20px;
   margin-left: 10px;
   font-size: 16px;
+  width: 580px;
 }
-
 .post-content img {
-  max-width: 100%;
+  max-width: 580px;
   max-height: 380px;
   /* Giới hạn chiều cao tối đa */
   /* width: auto;

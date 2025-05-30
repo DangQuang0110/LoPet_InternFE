@@ -19,23 +19,29 @@ export const loginUser = async ({ username, password }) => {
     const response = await apiService.post('/v1/auth/login', {
       username,
       password,
-    })
-    // payload của bạn nằm ở response.data.data
-    const { id: userId, accessToken, refreshToken } = response.data.data
+    });
 
-    // Lưu token vào localStorage
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('refreshToken', refreshToken)
+    const {
+      id: userId,
+      username: returnedUsername, // 🟢 lấy đúng username từ API
+      accessToken,
+      refreshToken,
+      roles
+    } = response.data.data;
 
-    // Thiết lập header Authorization cho mọi request sau
-    apiService.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
 
-    return { userId }
+    return {
+      userId,
+      username: returnedUsername, // ✅ sửa tại đây
+      roles
+    };
   } catch (err) {
-    // Ném lỗi lên trên để component bắt và hiển thị
-    throw err.response?.data ?? err
+    throw err.response?.data ?? err;
   }
-}
+};
+
 export const resetPassword = async ({ email, password, confirmPassword }) => {
   return await apiService.post('/v1/password/reset', {
     email,

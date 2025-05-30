@@ -79,14 +79,21 @@
           <!-- NEW & OLD -->
           <template v-if="activeTab === 'all'">
             <p class="section-title">Mới</p>
-            <div v-for="(item,i) in notifications.new" :key="i" class="notification-item">
+<!-- Click để mở chat -->
+            <div
+              v-for="(item,k) in notifications.unread"
+              :key="k"
+              :class="['notification-item', { unread: !item.isRead }]"
+              @click="goToChat(item.actorId)"
+            >
               <div class="avatar-wrapper">
                 <img class="avatar" :src="item.avatar" alt="avatar" />
               </div>
               <div class="item-content">
-                <p>
-                  <span class="username">{{ item.name }}</span> {{ item.text }}<span class="dot"></span>
-                </p>
+              <p>
+                <span class="username">{{ item.name }}</span> {{ item.text }}
+                <span v-if="!item.isRead" class="dot"></span>
+              </p>
                 <p class="timestamp">{{ item.time }}</p>
               </div>
               <button class="more-btn" @click.stop="toggleMenu(i)">
@@ -102,26 +109,30 @@
                 </ul>
               </div>
             </div>
-            <p class="section-title">Trước đó</p>
-            <div v-for="(item,j) in notifications.old" :key="j" class="notification-item">
+              <div
+                v-for="(item,j) in notifications.read"
+                :key="j"
+                :class="['notification-item', { unread: !item.isRead }]"
+              >
               <div class="avatar-wrapper">
                 <img class="avatar" :src="item.avatar" alt="avatar" />
               </div>
               <div class="item-content">
                 <p>
-                  <span class="username">{{ item.name }}</span> {{ item.text }}<span class="dot"></span>
+                  <span class="username">{{ item.name }}</span> {{ item.text }}
+                  <!-- ❌ KHÔNG có dot trong thông báo đã đọc -->
                 </p>
                 <p class="timestamp">{{ item.time }}</p>
               </div>
-              <button class="more-btn" @click.stop="toggleMenu(j + notifications.new.length)">
+              <button class="more-btn" @click.stop="toggleMenu(j + notifications.unread.length)">
                 <i class="fas fa-ellipsis-h"></i>
               </button>
-              <div v-if="openMenuIdx === j + notifications.new.length" class="item-menu">
+              <div v-if="openMenuIdx === j + notifications.unread.length" class="item-menu">
                 <ul>
-                  <li @click="markAsRead(j + notifications.new.length)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
-                  <li @click="deleteNotification(j + notifications.new.length)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                  <li @click="muteTopic(j + notifications.new.length)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
-                  <li @click="reportIssue(j + notifications.new.length)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
+                  <li @click="markAsRead(j + notifications.unread.length)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
+                  <li @click="deleteNotification(j + notifications.unread.length)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
+                  <li @click="muteTopic(j + notifications.unread.length)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
+                  <li @click="reportIssue(j + notifications.unread.length)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
                 </ul>
               </div>
             </div>
@@ -135,14 +146,15 @@
               </div>
               <div class="item-content">
                 <p>
-                  <span class="username">{{ item.name }}</span> {{ item.text }}<span class="dot"></span>
+                  <span class="username">{{ item.name }}</span> {{ item.text }}<span v-if="!item.isRead" class="dot"></span>
+
                 </p>
                 <p class="timestamp">{{ item.time }}</p>
               </div>
-              <button class="more-btn" @click.stop="toggleMenu(k + notifications.new.length + notifications.old.length)">
+              <button class="more-btn" @click.stop="toggleMenu(k + notifications.unread.length + notifications.read.length)">
                 <i class="fas fa-ellipsis-h"></i>
               </button>
-              <div v-if="openMenuIdx === k + notifications.new.length + notifications.old.length" class="item-menu">
+              <div v-if="openMenuIdx === k + notifications.unread.length + notifications.read.length" class="item-menu">
                 <ul>
                   <li @click="markAsRead(k)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
                   <li @click="deleteNotification(k)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
@@ -166,6 +178,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { logoutUser, getAccountById } from '@/service/authService'
 import { getProfileByAccountId } from '@/service/profileService'
+import { getNotificationList } from '@/service/notificationService'
+import { updateNotificationStatus } from '@/service/notificationService'
 
 const showNotifications = ref(false)
 const activeTab = ref('all')
@@ -173,20 +187,12 @@ const router = useRouter()
 const openMenuIdx = ref(null)
 const showLogoutMenu = ref(false)
 const currentUser = ref({ name: '', avatar: '' })
+const friends = ref([])
 
-const notifications = {
-  new: [
-    { name: 'Skibidi', text: 'đã chia sẻ bài viết của Conan', time: '5 phút trước', avatar: '/assets/trường.jpg' },
-    { name: 'Conan', text: 'đã đăng một bài viết mới', time: '25 phút trước', avatar: '/assets/trường.jpg' }
-  ],
-  old: [
-    { name: 'Shinichi', text: 'đã chia sẻ bài viết của "Thế Giới Động Vật"', time: '2 ngày trước', avatar: '/assets/trường.jpg' },
-    { name: 'Sakura', text: 'đã gửi cho bạn một lời kết bạn', time: '5 ngày trước', avatar: '/assets/trường.jpg' }
-  ],
-  unread: [
-    { name: 'Minh', text: 'đã bình luận vào bài viết của bạn', time: '10 phút trước', avatar: '/assets/trường.jpg' }
-  ]
-}
+const notifications = ref({
+  unread: [],
+  read: []
+})
 
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
@@ -194,10 +200,6 @@ function toggleNotifications() {
 }
 function toggleMenu(idx) {
   openMenuIdx.value = openMenuIdx.value === idx ? null : idx
-}
-function markAsRead(idx) {
-  console.log('Marked read', idx)
-  openMenuIdx.value = null
 }
 function deleteNotification(idx) {
   console.log('Deleted', idx)
@@ -215,21 +217,134 @@ function handleLogout() {
   logoutUser()
   router.push('/login')
 }
+async function markAsRead(idx) {
+  const item = notifications.value.unread[idx]
+  if (!item) return
+
+  try {
+    await updateNotificationStatus(item.notificationId, 'READ')
+    item.isRead = true
+
+    // Di chuyển từ unread sang read
+    notifications.value.unread.splice(idx, 1)
+    notifications.value.read.unshift({ ...item, type: 'read' })
+
+    openMenuIdx.value = null
+  } catch (err) {
+    console.error('❌ Lỗi khi cập nhật trạng thái thông báo:', err)
+  }
+}
+function goToChat(actorId) {
+  router.push('/message')
+
+  setTimeout(() => {
+    const friend = friends.value.find(f => f.id === actorId)
+    if (friend) {
+      selectedFriend.value = friend
+      showSidebar.value = false
+      showNotifications.value = false // ✅ Ẩn popup khi mở chat
+    } else {
+      console.warn('⚠️ Không tìm thấy người tạo thông báo trong friends:', actorId)
+    }
+  }, 300)
+}
+// Nhận socket 'notification'
+socket.on('notification', async (data) => {
+  // data: { actorId, receptorId, content, objectType, createdAt }
+
+  try {
+    const [account, profile] = await Promise.all([
+      getAccountById(data.actorId),
+      getProfileByAccountId(data.actorId)
+    ])
+
+    const name = profile?.fullName || account?.username || 'Ẩn danh'
+    const avatar = profile?.avatarUrl || account?.avatar || '/image/avata.jpg'
+
+    notifications.value.unread.unshift({
+      notificationId: data.notificationId || Date.now(),
+      actorId: data.actorId,
+      name,
+      text: data.content,
+      time: 'Vừa xong',
+      avatar,
+      isRead: false, // luôn gán là chưa đọc khi vừa nhận
+      type: 'unread'
+    })
+  } catch (err) {
+    console.error('❌ Lỗi khi nhận thông báo socket:', err)
+  }
+})
 
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  if (user.id) {
-    const profile = await getProfileByAccountId(user.id)
-    const account = await getAccountById(user.id)
-    currentUser.value = {
-      name: profile.fullName || account.username || 'Ẩn danh',
-      avatar: profile.avatarUrl || account.avatar || '/image/avata.jpg'
-    }
+  if (!user?.id) return
+
+  try {
+    const [account, profile] = await Promise.all([
+      getAccountById(user.id),
+      getProfileByAccountId(user.id)
+    ])
+
+    currentUser.value.name = profile?.fullName?.trim()
+      ? profile.fullName
+      : account?.username || 'Ẩn danh'
+
+    currentUser.value.avatar = profile?.avatarUrl?.trim()
+      ? profile.avatarUrl
+      : account?.avatar || '/image/avata.jpg'
+
+  } catch (err) {
+    console.error('❌ Lỗi khi load thông tin user sidebar:', err)
   }
+
+  const list = await getNotificationList(user.id)
+
+  // 👇 parsed chỉ dùng trong onMounted
+  const parsed = await Promise.all(
+    list.map(async (n) => {
+      try {
+        const [account, profile] = await Promise.all([
+          getAccountById(n.actorId),
+          getProfileByAccountId(n.actorId)
+        ])
+
+        const name = profile?.fullName?.trim()
+          ? profile.fullName
+          : account?.username?.trim() || 'Ẩn danh'
+
+        const avatar = profile?.avatarUrl?.trim()
+          ? profile.avatarUrl
+          : account?.avatar?.trim() || '/image/avata.jpg'
+
+        return {
+          notificationId: n.notificationId,
+          actorId: n.actorId,
+          name,
+          text: n.content,
+          time: new Date(n.createdAt).toLocaleTimeString('vi-VN'),
+          avatar,
+          isRead: n.status === 'READ'
+        }
+      } catch {
+        return {
+          notificationId: n.notificationId,
+          actorId: n.actorId,
+          name: 'Ẩn danh',
+          text: n.content,
+          time: new Date(n.createdAt).toLocaleTimeString('vi-VN'),
+          avatar: '/image/avata.jpg',
+          isRead: n.status === 'READ'
+        }
+      }
+    })
+  )
+
+notifications.value.unread = parsed.filter(n => !n.isRead).map(n => ({ ...n, type: 'unread' }))
+notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 'read' }))
+
 })
 </script>
-
-
 <style scoped>
 .layout-wrapper {
   display: flex;
@@ -466,17 +581,20 @@ onMounted(async () => {
 }
 .avatar-wrapper {
   flex-shrink: 0;
-  /* background: linear-gradient(135deg, #FF0080, #7928CA);
-  padding: 2px;
-  border-radius: 50%;
-  margin-right: 12px; */
-}
-
-.avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  overflow: hidden; /* ⚠️ Giúp cắt ảnh tràn */
+  margin-right: 12px;
 }
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* ✅ Giữ ảnh đúng tỉ lệ và phủ kín */
+  border-radius: 50%; /* Đảm bảo hình vẫn bo tròn */
+}
+
 
 .item-content {
   flex: 1;             /* chiếm hết khoảng trống giữa avatar và nút */
@@ -565,5 +683,18 @@ onMounted(async () => {
 .nav-icon{
   width: 20px;
   height: 20px;
+}
+.notification-popup .popup-content {
+  max-height: 660px; /* hoặc 70vh tuỳ bạn */
+  overflow-y: auto;
+  padding-right: 8px; /* giúp hiển thị scroll bar không bị dính chữ */
+}
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #00b300; /* xanh lá hoặc #009DFF nếu thích */
+  border-radius: 50%;
+  margin-left: 6px;
 }
 </style>
