@@ -435,6 +435,8 @@ import { ref, onMounted, reactive } from 'vue';
 import layout from './Layout.vue';
 import { getProfileByAccountId,updateProfile} from '@/service/profileService';
 import {getPostsByAccountId} from '@/service/postService';
+import { getCommentsByPostId } from '@/service/commentService';
+import { likePost, unlikePost } from '@/service/postService'
 // Reactive variables
 const search = ref('');
 const showCreate = ref(false);
@@ -709,18 +711,30 @@ function formatVietnameseTime(dateStr) {
   return `${day} tháng ${month} lúc ${hours}:${minutes}`;
 }
 
-function toggleLike(post) {
-  if (post.liked) {
-    post.likes -= 1;
-    post.liked = false;
-    post.postLikes = post.postLikes.filter(like => like.accountId !== currentUserId);
-    showNotification('Đã bỏ thích bài viết!', 'success');
-  } else {
-    post.likes += 1;
-    post.liked = true;
-    if (!Array.isArray(post.postLikes)) post.postLikes = [];
-    post.postLikes.push({ accountId: currentUserId });
-    showNotification('Đã thích bài viết!', 'success');
+async function toggleLike(post) {
+  try {
+    const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}')
+    const accountId = userFromStorage?.id
+    const postId = post?.postId
+
+    if (!accountId || !postId) {
+      console.error('❌ Thiếu accountId hoặc postId khi like:', { accountId, postId })
+      return
+    }
+
+    if (post.liked) {
+      await unlikePost(accountId, postId)
+      post.likes -= 1
+      post.liked = false
+    } else {
+      await likePost(accountId, postId)
+      post.likes += 1
+      post.liked = true
+    }
+
+    await refreshData()
+  } catch (error) {
+    console.error('❌ Lỗi khi xử lý like/unlike:', error)
   }
 }
 
@@ -748,16 +762,36 @@ function cancelDelete() {
   deleteTargetId.value = null;
 }
 
-function toggleCommentPopup(post = null) {
+async function toggleCommentPopup(post = null) {
   if (showCommentModal.value) {
     showCommentModal.value = false;
     activePost.value = null;
   } else {
     activePost.value = { ...post, postId: post.postId };
+    try {
+      const response = await getCommentsByPostId(post.postId);
+      const comments = Array.isArray(response) ? response : response.comments || [];
+      let commentsList = comments.map(cmt => ({
+        id: cmt.id,
+        user: cmt.account?.fullName || cmt.account?.username || 'Ẩn danh',
+        userSrc: cmt.account?.avatarUrl || cmt.account?.avatar || '/image/avata.jpg',
+        text: cmt.content,
+        createdAt: cmt.createdAt,
+        replies: (cmt.replies || []).map(reply => ({
+          id: reply.id,
+          user: reply.account?.fullName || reply.account?.username || 'Ẩn danh',
+          userSrc: reply.account?.avatarUrl || reply.account?.avatar || '/image/avata.jpg',
+          text: reply.content,
+          createdAt: reply.createdAt,
+          time: formatVietnameseTime(reply.createdAt)
+        }))
+      }))
+    } catch (e) {
+      console.error(`❌ Không thể lấy comment cho post ${post.postId}:`, e);
+    }
     showCommentModal.value = true;
   }
 }
-
 function addComment(post) {
   if (!newComment.value.trim()) return;
   if (!Array.isArray(post.commentsList)) post.commentsList = [];
@@ -831,38 +865,96 @@ function onReport(reason) {
 onMounted(async () => {
   await loadUserProfile();
 
+  const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}');
+  const accountId = userFromStorage?.id;
+
+  if (!accountId) {
+    console.error('❌ Không tìm thấy accountId trong localStorage');
+    showNotification('Vui lòng đăng nhập lại!', 'error');
+    return;
+  }
+
   try {
-  const postsData = await getPostsByAccountId(user.value.id);
-  console.log('✅ Danh sách bài viết từ API:', postsData); 
-  posts.value = postsData.map(post => ({
-    id: post.postId,
-    postId: post.postId,
-    user: user.value.name,
-    userSrc: user.value.avatar,
-    time: formatVietnameseTime(post.createdAt),
-    text: post.content,
-    img: post.postMedias?.[0]?.mediaUrl || '',
-    likes: post.likeAmount || 0,
-    commentsList: [],
-    postLikes: post.listLike || [],
-    liked: post.listLike.some(like => like.id === Number(currentUserId.value)),
-    images: post.postMedias?.map(m => m.mediaUrl) || []
-  }));
+    const postsData = await getPostsByAccountId(accountId);
+    console.log('✅ Danh sách bài viết từ API:', postsData);
 
-  console.log('✅ posts sau khi map:', posts.value); // 🪵 Log kết quả sau khi xử lý
-} catch (err) {
-  console.error('❌ Không thể tải danh sách bài viết:', err);
-  showNotification('Không thể tải danh sách bài viết!', 'error');
-}
+    const mappedPosts = await Promise.all(
+      postsData.map(async post => {
+        let commentsList = [];
+        try {
+          const res = await getCommentsByPostId(post.postId);
+          const comments = Array.isArray(res) ? res : res.comments || [];
 
+          const commentMap = {};
+          const repliesMap = {};
 
-  // Font Awesome fallback
+          for (const cmt of comments) {
+            const acc = cmt.account || {};
+            const fullName = acc.fullName || acc.username || 'Ẩn danh';
+            const avatarUrl = acc.avatarUrl || acc.avatar || '/image/avata.jpg';
+
+            const commentData = {
+              id: cmt.id,
+              user: fullName,
+              userSrc: avatarUrl,
+              text: cmt.content,
+              createdAt: cmt.createdAt,
+              replyToCommentId: cmt.replyToCommentId || null,
+              replies: []
+            };
+
+            if (!commentData.replyToCommentId) {
+              commentMap[commentData.id] = commentData;
+            } else {
+              if (!repliesMap[commentData.replyToCommentId]) {
+                repliesMap[commentData.replyToCommentId] = [];
+              }
+              repliesMap[commentData.replyToCommentId].push(commentData);
+            }
+          }
+
+          for (const parentId in repliesMap) {
+            if (commentMap[parentId]) {
+              commentMap[parentId].replies = repliesMap[parentId];
+            }
+          }
+
+          commentsList = Object.values(commentMap);
+        } catch (e) {
+          console.error(`❌ Không thể lấy comment cho post ${post.postId}:`, e);
+        }
+
+        return {
+          id: post.postId,
+          postId: post.postId,
+          user: user.value.name,
+          userSrc: user.value.avatar,
+          time: formatVietnameseTime(post.createdAt),
+          text: post.content,
+          img: post.postMedias?.[0]?.mediaUrl || '',
+          likes: post.likeAmount || 0,
+          commentsList,
+          postLikes: post.listLike || [],
+          liked: post.listLike?.some(like => like.accountId === accountId),
+          images: post.postMedias?.map(m => m.mediaUrl) || []
+        };
+      })
+    );
+
+    posts.value = mappedPosts;
+    console.log('✅ posts sau khi map:', posts.value);
+  } catch (err) {
+    console.error('❌ Không thể tải danh sách bài viết:', err);
+    showNotification('Không thể tải danh sách bài viết!', 'error');
+  }
+
   if (!document.querySelector('script[src*="font-awesome"]')) {
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js';
     document.head.appendChild(script);
   }
 });
+
 </script>
 
 <style scoped>

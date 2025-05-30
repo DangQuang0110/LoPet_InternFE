@@ -547,6 +547,12 @@ onMounted(async () => {
   width: 220px;
   margin-top: 4px;
 }
+.nav-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
 .item-menu ul { list-style: none; margin: 0; padding: 4px 0; }
 .item-menu li { display: flex; align-items: center; padding: 8px 12px; font-size: 0.9rem; cursor: pointer; }
 .item-menu li i { margin-right: 8px; font-size: 1rem; }
