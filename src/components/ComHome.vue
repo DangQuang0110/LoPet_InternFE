@@ -16,7 +16,7 @@
                   <button class="close-modal" @click="cancelDelete">&times;</button>
                 </div>
                 <div class="modal-body">
-                  <p class="modal-title">Bạn có muốn xóa bài viết này hay không?</p>
+                  <!-- <p class="modal-title">Bạn có muốn xóa bài viết này hay không?</p> -->
                   <p class="modal-text">
                     Khi bạn xóa bài viết này thì nó sẽ không còn xuất hiện trong danh sách bài viết mà bạn được xem nữa.
                   </p>
@@ -890,6 +890,7 @@ html,
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
   background-color: #FFFFFF;
   /* click bất kỳ mở popup */
+  /* margin-top: 20px; */
 }
 
 .composer-avatar {
@@ -2133,7 +2134,7 @@ html,
   }
   .composer {
     max-width: 600px;
-    margin: 0 auto 24px;
+    margin: 24px auto 24px;
   }
   .post-card {
     max-width: 700px;

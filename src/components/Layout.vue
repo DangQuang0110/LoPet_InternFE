@@ -54,9 +54,10 @@
                   <li @click.stop="handleLogout" class="logout-option">
                     <img src="../assets/log-out.png" alt="Đăng xuất" class="nav-icon" /> Đăng xuất
                   </li>
-                  <li @click.stop="resetpassword" class="resetpassword">
-                    <img src="../assets/security-password.png" alt="" class="nav-icon" /> Đổi lại mật khẩu
-                  </li>
+                  <router-link to="/resetNewPassword" class="nav-link">
+    <img src="../assets/security-password.png" class="nav-icon" />
+    Đổi lại mật khẩu
+  </router-link>
                 </ul>
               </div>
             </div>
@@ -181,6 +182,7 @@ import { getProfileByAccountId } from '@/service/profileService'
 import { getNotificationList } from '@/service/notificationService'
 import { updateNotificationStatus } from '@/service/notificationService'
 
+
 const showNotifications = ref(false)
 const activeTab = ref('all')
 const router = useRouter()
@@ -276,6 +278,10 @@ socket.on('notification', async (data) => {
   }
 })
 
+function resetNewPassword() {
+  router.push('/resetNewPassword')
+}
+
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (!user?.id) return
@@ -366,14 +372,18 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 .logo {
   position: relative;
   text-align: center;
+  text-align: center;
   margin-bottom: 10px;
 }
+
 
 .logo-img {
   position: absolute;
   top: -12px;
+  top: -12px;
   left: 50%;
   transform: translateX(-50%);
+  width: 100px;
   width: 100px;
   height: 80px;
   z-index: 1;
@@ -396,6 +406,7 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 .nav-item {
   display: flex;
   align-items: center;
+  padding: 8px 4px;
   padding: 8px 4px;
   cursor: pointer;
   color: #000;

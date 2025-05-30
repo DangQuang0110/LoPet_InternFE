@@ -17,6 +17,8 @@ import Message from '@/components/comMessage.vue';
 import CreatePost from '@/components/CreatePost.vue'
 import GroupPage from "@/layout/GroupPage.vue";
 import GroupJoinedView from "@/layout/GroupJoinedView.vue";
+import ResetNewPassword from "@/layout/ResetNewPassword.vue";
+
 
 
 
@@ -26,6 +28,9 @@ import AdminLopetUser from "@/components/admin/AdminLopetUser.vue";
 import AdminLopetAdvertisement from "@/components/admin/AdminLopetAdvertisement.vue";
 // Phần admin
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
+
+
+
 
 const routes=[
     {
@@ -108,8 +113,8 @@ const routes=[
     component: RegisterView,
   },
   {
-    path: '/resetPassword',
-    name: 'resetPassword',
+    path: '/reset-Password',
+    name: 'reset-Password',
     component: ResetPassword,
   },
   {
@@ -122,6 +127,13 @@ const routes=[
     name: 'verificationCode',
     component: VerificationCode,
   },
+
+{
+    path: '/resetNewPassword',
+    name: 'resetNewPassword',
+    component: ResetNewPassword,
+  },
+
   {
     path: "/admin",
     component: AdminLayout,
@@ -150,5 +162,3 @@ const router = createRouter({
   routes,
 })
 export default router
-
-

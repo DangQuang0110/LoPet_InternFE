@@ -1,13 +1,16 @@
 <template>
   <div class="chat-app">
+     <div class="logo-section">
+    <img src="/image/logoPetGram.png" alt="PetGram" class="logo-img" />
+  </div>
     <nav class="left-bar">
+      <!-- <div class="logo-section">
+    <img src="/image/logoPetGram.png" alt="PetGram" class="logo-img" />
+  </div> -->
       <div class="nav-icons">
         <router-link to="/home">
           <img src="/image/home.png" class="icon-img" />
         </router-link>
-        <!-- <router-link to="/notification">
-          <img src="../assets/notification.png" class="icon-img" />
-        </router-link> -->
         <router-link to="/message">
           <img src="../assets/message.png" class="icon-img" />
         </router-link>
@@ -130,6 +133,12 @@ import { getFriendList } from '@/service/friendService'
 import { getMessageList,createMessage  } from '@/service/messageService'
 import { getAccountById } from '@/service/authService'
 import { getProfileByAccountId } from '@/service/profileService'
+
+// import socket from '@/socket'
+
+
+const currentUserAvatar = ref('/image/avata.jpg')
+
 import socket from '@/socket'
 import { getNotificationList } from '@/service/notificationService'
 import { createNotification } from '@/service/notificationService' // thêm import
@@ -139,7 +148,7 @@ const notifications = ref({
   new: [],
   old: []
 })
-const currentUserAvatar = ref('/image/quang.png')
+
 const friends = ref([])
 const messages = ref({})
 const selectedFriend = ref(null)
@@ -412,13 +421,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 15px 0;
+  padding: 32px 6px;
   border-right: 2px solid #ddd;
   height: 330px;
-  margin-top:50px;
   position: relative;
   border-radius: 10px;
-  margin-left:10px;
+  margin-left:-54px;
+  margin-top: 72px;;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .left-bar::before {
@@ -427,7 +437,7 @@ onMounted(() => {
   top: -40px;
   left: 50%;
   transform: translateX(-50%);
-  background-image: url('/image/logoPetGram.png');
+  /* background-image: url('/image/logoPetGram.png'); */
   background-repeat: no-repeat;
   background-position: top center;
   background-size: 60px 40px;
@@ -442,6 +452,7 @@ onMounted(() => {
   cursor: pointer;
   opacity: 0.9;
   transition: 0.2s;
+  margin-block: 2px;  /* thêm 2px khoảng trên/dưới mỗi icon */
 }
 .icon-img:hover {
   opacity: 1;
@@ -451,8 +462,7 @@ onMounted(() => {
 .nav-icons {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  flex: 1;
+  gap: 8px;       /* trước là 20px, giờ giảm xuống 8px */
 }
 .icon {
   font-size: 20px;
@@ -463,6 +473,7 @@ onMounted(() => {
   height: 35px;
   border-radius: 50%;
   margin-top: auto;
+  margin-top: 20px;
 }
 .right-main {
   display: flex;
@@ -541,11 +552,22 @@ onMounted(() => {
   transition: transform 0.3s ease;
   border-radius: 2px;
 }
+/* Block chứa logo */
 .logo-section {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 30px;      /* khoảng cách đến nav-icons */
   display: flex;
-  flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-right: -12px;
+
 }
 
 .all-msg-btn {
@@ -775,22 +797,22 @@ onMounted(() => {
   }
 
   .left-bar {
-    width: 60px;
-    background: #FAEBD7;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 15px 0;
-    border-right: 1px solid #ddd;
-    position: relative;
-    border-radius: 0;
-    margin-left: 0;
-    height: 100%;
-  }
-
+  width: 60px;
+  background: #F9F9F9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  border-right: 2px solid #ddd;
+  border-radius: 10px;
+  margin-left: 10px;
+  
+}
   .left-bar::before {
     bottom: 20px;
   }
+
+
 
   .right-main {
     flex: 1;
