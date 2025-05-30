@@ -54,9 +54,10 @@
                   <li @click.stop="handleLogout" class="logout-option">
                     <img src="../assets/log-out.png" alt="Đăng xuất" class="nav-icon" /> Đăng xuất
                   </li>
-                  <li @click.stop="resetpassword" class="resetpassword">
-                    <img src="../assets/security-password.png" alt="" class="nav-icon" /> Đổi lại mật khẩu
-                  </li>
+                  <router-link to="/resetNewPassword" class="nav-link">
+    <img src="../assets/security-password.png" class="nav-icon" />
+    Đổi lại mật khẩu
+  </router-link>
                 </ul>
               </div>
             </div>
@@ -167,6 +168,7 @@ import { useRouter } from 'vue-router'
 import { logoutUser, getAccountById } from '@/service/authService'
 import { getProfileByAccountId } from '@/service/profileService'
 
+
 const showNotifications = ref(false)
 const activeTab = ref('all')
 const router = useRouter()
@@ -214,6 +216,10 @@ function reportIssue(idx) {
 function handleLogout() {
   logoutUser()
   router.push('/login')
+}
+
+function resetNewPassword() {
+  router.push('/resetNewPassword')
 }
 
 onMounted(async () => {
