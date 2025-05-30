@@ -584,7 +584,7 @@ const accountId = userData?.id;
     user.value = {
       id: profile.id,
       name: profile.fullName,
-      avatar: profile.avatarUrl || '/default-avatar.png',
+      avatar: profile.avatarUrl || '/image/avatar.png',
       banner: profile.coverUrl || '',
       friends: 500,
       bio: profile.bio || '',
