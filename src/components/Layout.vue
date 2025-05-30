@@ -38,7 +38,7 @@
                 </router-link>
               </li>
               <li class="nav-item">
-                <router-link to="/profile" class="nav-link">
+                <router-link to="/profile/me" class="nav-link">
                   <img src="../assets/user.png" alt="Profile" class="nav-icon" />
                   <span>Profile</span>
                 </router-link>
@@ -97,7 +97,7 @@
                 <ul>
                   <li @click="markAsRead(i)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
                   <li @click="deleteNotification(i)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                  <li @click="muteTopic(i)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
+                  <li @click="muteTopic(i)"><i class="fas fa-cog"></i> Tắt thông báo về "{{item.name}}"</li>
                   <li @click="reportIssue(i)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
                 </ul>
               </div>
@@ -120,7 +120,7 @@
                 <ul>
                   <li @click="markAsRead(j + notifications.new.length)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
                   <li @click="deleteNotification(j + notifications.new.length)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                  <li @click="muteTopic(j + notifications.new.length)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
+                  <li @click="muteTopic(j + notifications.new.length)"><i class="fas fa-cog"></i> Tắt thông báo về "{{item.name}}"</li>
                   <li @click="reportIssue(j + notifications.new.length)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
                 </ul>
               </div>
@@ -146,7 +146,7 @@
                 <ul>
                   <li @click="markAsRead(k)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
                   <li @click="deleteNotification(k)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                  <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
+                  <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về "{{item.name}}"</li>
                   <li @click="reportIssue(k)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
                 </ul>
               </div>
@@ -311,7 +311,7 @@ onMounted(async () => {
   /* bỏ flex, chuyển thành block để xếp thẳng hàng dọc */
   display: block;
   
-  /* padding “mỏng” hơn */
+  /* padding "mỏng" hơn */
   padding: 4px 0;
   
   /* ấn định width bé hơn, không cần min-width lớn */
