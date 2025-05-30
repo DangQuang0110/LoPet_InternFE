@@ -39,9 +39,19 @@ const routes=[
         component: FriendPage,
     },
     {
+        path: "/profile/me",
+        name: "OwnProfile",
+        component: LopetProfile
+    },
+    {
         path: "/profile",
-        name: "LopetProfile",
+        redirect: "/profile/me"
+    },
+    {
+        path: "/profile/:profileId",
+        name: "UserProfile",
         component: LopetProfile,
+        props: true
     },
     {
         path: "/about",

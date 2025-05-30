@@ -14,14 +14,12 @@ export const createProfile = async (data) => {
 // Lấy profile theo accountId
 export const getProfileByAccountId = async (accountId) => {
   try {
-    console.log('truoc1',accountId)
-  const response = await apiService.get(`/v1/profiles/accounts/${accountId}`)
-    console.log('response cua get profile',response)
-  return response.data.data    
+    const response = await apiService.get(`/v1/profiles/accounts/${accountId}`)
+    return response.data.data
   } catch (error) {
-    console.log(error)
+    console.error('Error fetching profile:', error)
+    throw error
   }
-
 }
 
 // Cập nhật profile
@@ -33,7 +31,6 @@ export const updateProfile = async (id, formData) => {
   })
   return response.data.data
 }
-
 
 // Gán profile vào tài khoản
 export const setProfileToAccount = async (profileId, accountId) => {

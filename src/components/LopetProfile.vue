@@ -433,13 +433,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed, watch } from 'vue';
 import layout from './Layout.vue';
 import { getProfileByAccountId,updateProfile} from '@/service/profileService';
 import ReportModal from '@/components/ReportModal.vue'
 import {getPostsByAccountId} from '@/service/postService';
 import { getCommentsByPostId } from '@/service/commentService';
 import { likePost, unlikePost } from '@/service/postService'
+import { useRoute } from 'vue-router';
+
 // Reactive variables
 const search = ref('');
 const showCreate = ref(false);
@@ -492,6 +494,7 @@ const replyingCommentId = ref(null);
 const replyInputs = reactive({});
 const currentUserId = ref(localStorage.getItem('accountId') || '');
 const posts = ref([]);
+const route = useRoute();
 
 // Functions for profile
 function goToEdit() {
