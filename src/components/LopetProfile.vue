@@ -103,14 +103,14 @@
           <button class="close-modal" @click="cancelDelete">×</button>
         </div>
         <div class="modal-body">
-          <p class="modal-title">Bạn có muốn xóa bài viết này hay không?</p>
+          <!-- <p class="modal-title">Bạn có muốn xóa bài viết này hay không?</p> -->
           <p class="modal-text">
             Khi bạn xóa bài viết này thì nó sẽ không còn xuất hiện trong danh sách bài viết mà bạn được xem nữa.
           </p>
         </div>
         <div class="modal-actions">
-          <button class="btn-confirm" @click="performDelete">Xác nhận</button>
-          <button class="btn-cancel" @click="cancelDelete">Hủy</button>
+           <button class="btn-cancel" @click="cancelDelete">Không</button>
+          <button class="btn-confirm" @click="performDelete">Có, tôi muống</button>
         </div>
       </div>
     </div>
@@ -587,7 +587,9 @@ const accountId = userData?.id;
     user.value = {
       id: profile.id,
       name: profile.fullName,
+
       avatar: profile.avatarUrl || '/image/avata.jpg',
+
       banner: profile.coverUrl || '',
       friends: 500,
       bio: profile.bio || '',

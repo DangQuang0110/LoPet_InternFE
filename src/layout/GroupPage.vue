@@ -138,7 +138,41 @@
       </div>
 
       <header class="header">
-        <input class="search" placeholder="Tìm kiếm..." />
+        <div class="search-container">
+          <input 
+            v-model="searchQuery"
+            @input="handleSearch"
+            class="search" 
+            placeholder="Tìm kiếm theo tên người dùng hoặc nội dung..." 
+          />
+          <div v-if="isSearching" class="search-loading">
+            <div class="loading-spinner-small"></div>
+          </div>
+          
+          <!-- Search Results Dropdown -->
+          <div v-if="showSearchResults" class="search-results">
+            <div v-if="isSearching" class="searching-message">
+              Đang tìm kiếm...
+            </div>
+            <div v-else-if="searchResults.length === 0" class="no-results">
+              Không tìm thấy kết quả
+            </div>
+            <div v-else class="results-list">
+              <div 
+                v-for="post in searchResults" 
+                :key="post.postId" 
+                class="search-result-item"
+                @click="scrollToPost(post.postId)"
+              >
+                <img :src="post.userSrc || '/image/avata.jpg'" class="result-avatar" />
+                <div class="result-info">
+                  <div class="result-username">{{ post.user }}</div>
+                  <div class="result-content">{{ post.content }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
 
       <div class="cover" :style="{ backgroundImage: `url(${group.coverUrl})` }"></div>
@@ -236,9 +270,13 @@
                   <div class="time">{{ new Date(post.createdAt).toLocaleString('vi-VN') }}</div>
                 </div>
                 <div class="menu-container" v-if="canPost">
-                  <div class="menu" @click="toggleReportMenu(post.id)">⋮</div>
-                  <div v-if="showReportMenu === post.id" class="report-dropdown">
-                    <button @click="openReport(post.id)">Báo cáo bài viết</button>
+                  <div class="menu" @click.stop="toggleReportMenu(post.postId)">⋮</div>
+                  <div v-show="activeMenuPostId === post.postId" class="report-dropdown">
+                    <button v-if="!isPostOwner(post)" @click="openReport(post.postId)">Báo cáo bài viết</button>
+                    <template v-else>
+                      <button @click="handleDeletePost(post.postId)">Xóa bài viết</button>
+                      <button @click="handleEditPost(post)">Chỉnh sửa bài viết</button>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -329,7 +367,7 @@
                     type="text"
                     class="comment-box"
                     placeholder="Viết bình luận..."
-                    v-model="newComment"
+                    v-model="commentInputs[post.postId]"
                     @keyup.enter="addComment(post)"
                   />
                   <button class="btn-send groupCommnent" @click="addComment(post)">
@@ -383,26 +421,25 @@
                                 </button>
                               </div>
 
-                              <!-- Reply Input Section -->
+                              <!-- Reply Input Section - Chỉ hiển thị khi comment này được chọn để trả lời -->
                               <div v-if="replyingCommentId === comment.id" class="reply-input-section">
-  <div class="reply-input-wrapper">
-    <input
-      type="text"
-      class="reply-input"
-      v-model="replyInputs[comment.id]"
-      @keyup.enter="submitReply(comment)"
-      :placeholder="'@' + (comment.account?.profile?.fullName || 'Người dùng')"
-    />
-    <button 
-      class="btn-send-reply" 
-      @click="submitReply(comment)"
-      :disabled="!replyInputs[comment.id]?.trim()"
-    >
-      Gửi
-    </button>
-  </div>
-</div>
-
+                                <div class="reply-input-wrapper">
+                                  <input
+                                    type="text"
+                                    class="reply-input"
+                                    v-model="replyInputs[comment.id]"
+                                    @keyup.enter="submitReply(comment)"
+                                    :placeholder="'@' + (comment.account?.profile?.fullName || 'Người dùng')"
+                                  />
+                                  <button 
+                                    class="btn-send-reply" 
+                                    @click="submitReply(comment)"
+                                    :disabled="!replyInputs[comment.id]?.trim()"
+                                  >
+                                    Gửi
+                                  </button>
+                                </div>
+                              </div>
 
                               <!-- Display Replies -->
                               <div v-if="comment.replies && comment.replies.length > 0" class="replies-section">
@@ -423,7 +460,6 @@
                                     </div>
                                     <div class="reply-footer">
                                       <span class="reply-time">{{ formatCommentTime(reply.createdAt) }}</span>
-                                      <span class="reply-action" @click="prepareReply(comment)">Trả lời</span>
                                     </div>
                                   </div>
                                 </div>
@@ -441,7 +477,7 @@
                           type="text"
                           class="comment-input-modal"
                           placeholder="Viết bình luận..."
-                          v-model="newComment"
+                          v-model="commentInputs[post.postId]"
                           @keyup.enter="addComment(post)"
                         />
                         <button class="send-btn-modal" @click="addComment(post)">Gửi</button>
@@ -467,13 +503,12 @@
               <div v-else class="recent-post" v-for="post in recentPosts" :key="post.postId">
                 <img
                   class="recent-avatar"
-                  :src="post.userSrc || 'https://i.pravatar.cc/100'"
-                  :alt="post.user?.fullName || 'Người dùng'"
+                  :src="post.userSrc || '/image/avata.jpg'"
+                  :alt="post.user || 'Người dùng'"
                 />
                 <div class="recent-info">
                   <div class="recent-name">
-                    <strong>{{ post.user?.fullName || 'Người dùng' }}</strong> đã đăng một bài viết
-                    mới
+                    <strong>{{ post.user }}</strong> đã đăng một bài viết mới
                   </div>
                   <div class="recent-content">
                     {{ post.content.substring(0, 50) }}{{ post.content.length > 50 ? '...' : '' }}
@@ -496,11 +531,79 @@
     <img :src="selectedPreviewImage" alt="Preview" @click.stop />
     <div class="close-button" @click="closeImagePreview">×</div>
   </div>
+
+  <!-- Thêm form chỉnh sửa bài viết -->
+  <div v-if="showEditPostPopup" class="overlay">
+    <div class="edit-post-form">
+      <div class="form-header">
+        <h3>Chỉnh sửa bài viết</h3>
+        <button class="close-btn" @click="closeEditPostForm">×</button>
+      </div>
+
+      <textarea
+        v-model="editPostForm.content"
+        class="edit-post-input"
+        placeholder="Nội dung bài viết..."
+      ></textarea>
+
+      <!-- Image Previews -->
+      <div v-if="editImagePreviews.length > 0" class="preview-container">
+        <div v-for="(preview, index) in editImagePreviews" :key="index" class="preview-item">
+          <img :src="preview" alt="Preview" class="preview-image" />
+          <button class="remove-preview" @click="removeEditPostImage(index)">×</button>
+        </div>
+      </div>
+
+      <div class="edit-post-actions">
+        <div class="media-buttons">
+          <label class="upload-button">
+            <img src="@/assets/camera.png" alt="Upload Image" class="upload-icon" />
+            <span>Ảnh</span>
+            <input
+              type="file"
+              class="file-input"
+              @change="handleEditPostImageChange"
+              accept="image/*"
+              multiple
+            />
+          </label>
+        </div>
+
+        <select v-model="editPostForm.scope" class="scope-select">
+          <option value="PUBLIC">Công khai</option>
+          <option value="FRIEND">Bạn bè</option>
+          <option value="PRIVATE">Riêng tư</option>
+        </select>
+
+        <button class="update-button" @click="handleUpdatePost" :disabled="!editPostForm.content.trim()">
+          Cập nhật
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thêm popup xác nhận xóa bài viết -->
+  <div v-if="showDeleteConfirm" class="overlay">
+    <div class="delete-confirm-popup">
+      <div class="popup-header">
+        <h3>Xóa bài viết</h3>
+        <button class="close-btn" @click="closeDeleteConfirm">×</button>
+      </div>
+      <div class="popup-content">
+        <p>Bạn có chắc chắn muốn xóa bài viết này không?</p>
+        <p class="warning-text">Hành động này không thể hoàn tác.</p>
+      </div>
+      <div class="popup-actions">
+        <button class="cancel-btn" @click="closeDeleteConfirm">Hủy</button>
+        <button class="confirm-delete-btn" @click="confirmDeletePost">Xóa bài viết</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import Layout from '@/components/Layout.vue'
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   getGroupDetails,
@@ -516,8 +619,9 @@ import { getProfileByAccountId } from '@/service/profileService'
 import { getAccountById } from '@/service/authService'
 import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
-import { likePost, unlikePost } from '@/service/postService'
+import { likePost, unlikePost, deletePost, updatePost } from '@/service/postService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
+import { sendReport } from '@/service/reportService'
 
 const route = useRoute()
 const router = useRouter()
@@ -548,7 +652,6 @@ const selectedPreviewImage = ref(null)
 const expandedPosts = ref({})
 const showCommentPopup = ref(false)
 const activePost = ref(null)
-const newComment = ref('')
 const showSharePopup = ref(false)
 const selectedPost = ref(null)
 const copied = ref(false)
@@ -556,6 +659,7 @@ const shareUrlInput = ref(null)
 
 // Thêm reactive state cho comments
 const postComments = ref({})
+const commentInputs = reactive({})
 
 // Cập nhật state
 const currentUserAvatar = ref('/image/avata.jpg')
@@ -718,12 +822,28 @@ const handleCreatePost = async () => {
       formData.append('images', selectedImage.value)
     }
 
-    // Log formData after all data has been appended
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value)
+    const response = await createPostGroup(formData)
+
+    // Tạo bài viết mới với thông tin cần thiết
+    const newPost = {
+      postId: response.data.postId,
+      content: newPostContent.value.trim(),
+      createdAt: new Date().toISOString(),
+      accountId: user.value.id,
+      user: currentUserName.value,
+      userSrc: currentUserAvatar.value,
+      likes: 0,
+      comments: [],
+      liked: false,
+      postLikes: [],
+      postMedias: selectedImage.value ? [{
+        mediaType: 'IMAGE',
+        mediaUrl: URL.createObjectURL(selectedImage.value)
+      }] : []
     }
 
-    await createPostGroup(formData)
+    // Thêm bài viết mới vào đầu mảng
+    groupPosts.value = [newPost, ...groupPosts.value]
 
     // Reset form
     newPostContent.value = ''
@@ -731,9 +851,6 @@ const handleCreatePost = async () => {
     imagePreview.value = null
     const input = document.querySelector('.file-input')
     if (input) input.value = ''
-
-    // Refresh posts
-    await fetchGroupPosts()
 
     toast.success('Đăng bài viết thành công!', {
       position: toast.POSITION.TOP_RIGHT,
@@ -805,6 +922,9 @@ async function fetchGroupPosts() {
       }
     }
 
+    // Sắp xếp bài viết theo thời gian tạo mới nhất
+    processedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
     // Cập nhật state với spread operator để đảm bảo reactivity
     groupPosts.value = [...processedPosts]
   } catch (error) {
@@ -841,6 +961,21 @@ onMounted(() => {
   fetchGroupDetails()
   checkGroupMembership()
   fetchGroupPosts()
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.menu-container')) {
+      activeMenuPostId.value = null;
+    }
+  });
+  document.addEventListener('click', closeSearchResults)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', (e) => {
+    if (!e.target.closest('.menu-container')) {
+      activeMenuPostId.value = null;
+    }
+  });
+  document.removeEventListener('click', closeSearchResults)
 })
 
 function saveChanges() {
@@ -945,26 +1080,71 @@ function closeReport() {
   selectedReason.value = ''
 }
 
-function submitReport() {
-  if (!selectedReason.value) {
-    alert('Vui lòng chọn lý do báo cáo!')
-    return
+async function submitReport() {
+  try {
+    if (!selectedReason.value) {
+      toast.error('Vui lòng chọn lý do báo cáo!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      });
+      return;
+    }
+
+    const reportData = {
+      accountId: user.value?.id,
+      targetId: selectedPostId.value,
+      type: 'GROUP',
+      reason: selectedReason.value
+    };
+
+    await sendReport(reportData);
+
+    toast.success('Báo cáo đã được gửi thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
+
+    closeReport();
+  } catch (error) {
+    console.error('Lỗi khi gửi báo cáo:', error);
+    toast.error('Có lỗi xảy ra khi gửi báo cáo!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
   }
-  console.log('Báo cáo bài viết ID:', selectedPostId.value, 'Lý do:', selectedReason.value)
-  alert('Báo cáo của bạn đã được gửi thành công!')
-  closeReport()
 }
 
-function toggleReportMenu(postId) {
-  showReportMenu.value = showReportMenu.value === postId ? null : postId
-}
+// Thay đổi showReportMenu thành activeMenuPostId
+const activeMenuPostId = ref(null);
+
+// Cập nhật hàm toggleReportMenu
+const toggleReportMenu = (postId) => {
+  // Nếu menu của bài viết này đang mở, đóng nó lại
+  if (activeMenuPostId.value === postId) {
+    activeMenuPostId.value = null;
+  } else {
+    // Mở menu cho bài viết được chọn
+    activeMenuPostId.value = postId;
+  }
+};
+
+// Thêm hàm closeAllMenus
+const closeAllMenus = () => {
+  activeMenuPostId.value = null;
+};
 
 // Đóng menu khi click bên ngoài
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.menu-container')) {
-    showReportMenu.value = null
+    closeAllMenus();
   }
-})
+});
+
+// Cập nhật template phần dropdown menu
+// ... existing code ...
 
 const openEditForm = () => {
   editForm.value = {
@@ -1147,18 +1327,18 @@ async function toggleLike(post) {
       groupPosts.value[postIndex] = { ...post }
     }
 
-    toast.success(post.liked ? 'Đã thích bài viết!' : 'Đã bỏ thích bài viết!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.success(post.liked ? 'Đã thích bài viết!' : 'Đã bỏ thích bài viết!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   } catch (error) {
     console.error('Lỗi khi thực hiện like/unlike:', error)
-    toast.error('Có lỗi xảy ra!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.error('Có lỗi xảy ra!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   }
 }
 
@@ -1170,6 +1350,10 @@ function toggleCommentPopup(post = null) {
   } else {
     activePost.value = post
     showCommentPopup.value = true
+    // Khởi tạo input rỗng cho post này nếu chưa có
+    if (!commentInputs[post.postId]) {
+      commentInputs[post.postId] = ''
+    }
   }
 }
 
@@ -1178,34 +1362,35 @@ async function addComment(post) {
   try {
     const user = JSON.parse(localStorage.getItem('user'))
     if (!user?.id) {
-      toast.error('Vui lòng đăng nhập để bình luận!', {
-        position: toast.POSITION.TOP_RIGHT,
-        autoClose: 3000,
-        theme: 'colored',
-      })
+      // toast.error('Vui lòng đăng nhập để bình luận!', {
+      //   position: toast.POSITION.TOP_RIGHT,
+      //   autoClose: 3000,
+      //   theme: 'colored',
+      // })
       return
     }
 
-    if (!newComment.value.trim()) {
-      toast.error('Vui lòng nhập nội dung bình luận!', {
-        position: toast.POSITION.TOP_RIGHT,
-        autoClose: 3000,
-        theme: 'colored',
-      })
+    const commentText = commentInputs[post.postId]?.trim()
+    if (!commentText) {
+      // toast.error('Vui lòng nhập nội dung bình luận!', {
+      //   position: toast.POSITION.TOP_RIGHT,
+      //   autoClose: 3000,
+      //   theme: 'colored',
+      // })
       return
     }
 
     const commentData = {
       postId: post.postId,
       accountId: user.id,
-      content: newComment.value.trim(),
+      content: commentText,
       replyCommentId: null,
     }
 
-    // Tạo comment mới trước khi gọi API
+    // Create optimistic comment
     const optimisticComment = {
-      id: Date.now(), // Temporary ID
-      content: newComment.value.trim(),
+      id: Date.now(),
+      content: commentText,
       createdAt: new Date().toISOString(),
       account: {
         profile: {
@@ -1215,25 +1400,24 @@ async function addComment(post) {
       },
     }
 
-    // Cập nhật UI ngay lập tức (Optimistic Update)
+    // Update UI immediately
     const postToUpdate = groupPosts.value.find(p => p.postId === post.postId)
     if (postToUpdate) {
       if (!Array.isArray(postToUpdate.comments)) {
         postToUpdate.comments = []
       }
       postToUpdate.comments = [optimisticComment, ...postToUpdate.comments]
-      // Force reactivity update
       groupPosts.value = [...groupPosts.value]
     }
 
-    // Reset input ngay lập tức
-    newComment.value = ''
+    // Reset input for this specific post
+    commentInputs[post.postId] = ''
 
-    // Gọi API để lưu comment
+    // Call API
     const response = await createComment(commentData)
     console.log('API response for createComment:', response)
 
-    // Cập nhật lại comment với ID thật từ server
+    // Update with real comment data if needed
     if (postToUpdate) {
       const commentIndex = postToUpdate.comments.findIndex(c => c.id === optimisticComment.id)
       if (commentIndex !== -1) {
@@ -1241,30 +1425,29 @@ async function addComment(post) {
           ...optimisticComment,
           id: response.id
         }
-        // Force reactivity update again
         groupPosts.value = [...groupPosts.value]
       }
     }
 
-    toast.success('Đã thêm bình luận!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.success('Đã thêm bình luận!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   } catch (error) {
     console.error('Lỗi khi thêm bình luận:', error)
-    // Nếu có lỗi, rollback lại UI
+    // Rollback UI if error occurs
     const postToUpdate = groupPosts.value.find(p => p.postId === post.postId)
     if (postToUpdate) {
       postToUpdate.comments = postToUpdate.comments.filter(c => c.id !== optimisticComment.id)
       groupPosts.value = [...groupPosts.value]
     }
     
-    toast.error('Có lỗi xảy ra khi thêm bình luận!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.error('Có lỗi xảy ra khi thêm bình luận!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   }
 }
 
@@ -1471,11 +1654,11 @@ async function submitReply(comment) {
     replyInputs[comment.id] = ''
     replyingCommentId.value = null
 
-    toast.success('Đã thêm trả lời!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.success('Đã thêm trả lời!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   } catch (error) {
     console.error('Lỗi khi trả lời bình luận:', error)
     toast.error('Có lỗi xảy ra khi trả lời bình luận!', {
@@ -1487,6 +1670,192 @@ async function submitReply(comment) {
 }
 
 // Cập nhật template phần modal comments
+
+// Add this computed property to check if user is post owner
+const isPostOwner = (post) => {
+  return user.value?.id === post.accountId;
+}
+
+// Add delete post handler
+const handleDeletePost = (postId) => {
+  openDeleteConfirm(postId)
+}
+
+// Hàm xác nhận xóa bài viết
+const confirmDeletePost = async () => {
+  try {
+    await deletePost(postToDelete.value)
+    
+    // Remove post from local state
+    groupPosts.value = groupPosts.value.filter(post => post.postId !== postToDelete.value)
+    
+    // Đóng popup
+    closeDeleteConfirm()
+
+    toast.success('Xóa bài viết thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+  } catch (error) {
+    console.error('Lỗi khi xóa bài viết:', error)
+    toast.error('Có lỗi xảy ra khi xóa bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+  }
+}
+
+// ... existing code ...
+
+// Thêm state cho form chỉnh sửa bài viết
+const showEditPostPopup = ref(false);
+const editPostForm = reactive({
+  content: '',
+  images: [],
+  scope: 'PUBLIC',
+});
+const editImagePreviews = ref([]);
+const editingPostId = ref(null);
+
+// Hàm mở form chỉnh sửa
+const handleEditPost = (post) => {
+  editingPostId.value = post.postId;
+  editPostForm.content = post.content;
+  editPostForm.scope = post.scope || 'PUBLIC';
+  editImagePreviews.value = post.postMedias
+    ?.filter(media => media.mediaType === 'IMAGE')
+    .map(media => media.mediaUrl) || [];
+  showEditPostPopup.value = true;
+  activeMenuPostId.value = null; // Đóng dropdown menu
+};
+
+// Hàm đóng form chỉnh sửa
+const closeEditPostForm = () => {
+  showEditPostPopup.value = false;
+  editingPostId.value = null;
+  editPostForm.content = '';
+  editPostForm.images = [];
+  editImagePreviews.value = [];
+};
+
+const handleEditPostImageChange = (event) => {
+  const files = Array.from(event.target.files);
+  const validImageFiles = files.filter(file => file.type.startsWith('image/'));
+  
+  if (validImageFiles.length > 0) {
+    editPostForm.images.push(...validImageFiles);
+    const newPreviews = validImageFiles.map(file => URL.createObjectURL(file));
+    editImagePreviews.value.push(...newPreviews);
+  }
+};
+
+const removeEditPostImage = (index) => {
+  editPostForm.images.splice(index, 1);
+  editImagePreviews.value.splice(index, 1);
+};
+
+// Cập nhật bài viết
+const handleUpdatePost = async () => {
+  try {
+    if (!editPostForm.content.trim()) {
+      toast.error('Vui lòng nhập nội dung bài viết!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('content', editPostForm.content.trim());
+    formData.append('ownerId', user.value.id);
+    formData.append('scope', editPostForm.scope);
+    formData.append('groupId', route.params.id);
+
+    // Thêm ảnh vào formData
+    editPostForm.images.forEach(image => {
+      formData.append('images', image);
+    });
+
+    await updatePost(editingPostId.value, formData);
+
+    // Refresh posts list
+    await fetchGroupPosts();
+
+    // Đóng form và reset state
+    closeEditPostForm();
+
+    toast.success('Cập nhật bài viết thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
+  } catch (error) {
+    console.error('Lỗi khi cập nhật bài viết:', error);
+    toast.error('Có lỗi xảy ra khi cập nhật bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    });
+  }
+};
+
+// ... existing code ...
+
+const searchQuery = ref('')
+const isSearching = ref(false)
+const showSearchResults = ref(false)
+
+// Computed property for filtered posts
+const searchResults = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return []
+  }
+  
+  const query = searchQuery.value.toLowerCase()
+  return groupPosts.value.filter(post => {
+    const usernameMatch = post.user?.toLowerCase().includes(query)
+    const contentMatch = post.content?.toLowerCase().includes(query)
+    return usernameMatch || contentMatch
+  })
+})
+
+// Handle search input
+const handleSearch = () => {
+  isSearching.value = true
+  showSearchResults.value = true
+  
+  // Debounce search to avoid too many updates
+  setTimeout(() => {
+    isSearching.value = false
+  }, 300)
+}
+
+// Close search results when clicking outside
+const closeSearchResults = (event) => {
+  if (!event.target.closest('.search-container')) {
+    showSearchResults.value = false
+  }
+}
+
+// Thêm state cho popup xác nhận xóa
+const showDeleteConfirm = ref(false)
+const postToDelete = ref(null)
+
+// Hàm mở popup xác nhận xóa
+const openDeleteConfirm = (postId) => {
+  postToDelete.value = postId
+  showDeleteConfirm.value = true
+  activeMenuPostId.value = null // Đóng dropdown menu
+}
+
+// Hàm đóng popup xác nhận xóa
+const closeDeleteConfirm = () => {
+  showDeleteConfirm.value = false
+  postToDelete.value = null
+}
 </script>
 
 <style scoped>
@@ -1514,11 +1883,107 @@ body {
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
 .search {
-  padding: 6px 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 24px;
+  font-size: 15px;
+  outline: none;
+  background: #f0f2f5;
+  transition: all 0.3s ease;
+}
+
+.search:focus {
+  background: #fff;
+  border-color: #1a73e8;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.search-loading {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
   border-radius: 8px;
-  border: 1px solid #000;
-  width: 350px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  margin-top: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.searching-message,
+.no-results {
+  padding: 16px;
+  text-align: center;
+  color: #65676b;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+  background-color: #f0f2f5;
+}
+
+.result-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.result-info {
+  flex: 1;
+}
+
+.result-username {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.result-content {
+  color: #65676b;
+  font-size: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #1a73e8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* --- Ảnh bìa --- */
@@ -1792,20 +2257,22 @@ body {
 }
 .menu-container {
   position: relative;
+  display: inline-block;
 }
 .menu {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
-  font-size: 20px;
+  padding: 8px;
+  border-radius: 50%;
   transition: background-color 0.2s;
+  
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 10px;
+    padding-top: 10px;
+
 }
 .menu:hover {
-  background-color: #f5f5f5;
+  background-color: #f0f2f5;
 }
 .report-dropdown {
   position: absolute;
@@ -1814,22 +2281,32 @@ body {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 100;
+  z-index: 1000;
   min-width: 180px;
   padding: 8px 0;
 }
 .report-dropdown button {
   width: 100%;
   padding: 8px 16px;
-  border: none;
-  background: none;
   text-align: left;
-  font-size: 14px;
+  background: none;
+  border: none;
+  color: #333;
   cursor: pointer;
+  font-size: 14px;
 }
 .report-dropdown button:hover {
   background-color: #f5f5f5;
 }
+.report-dropdown button:not(:last-child) {
+  border-bottom: 1px solid #eee;
+}
+
+/* Add color for delete button */
+.report-dropdown button:first-child {
+  color: #dc3545;
+}
+
 /* .post-content {
   font-size: 15px;
   line-height: 1.5;
@@ -2214,6 +2691,7 @@ body {
   width: 32px;
   height: 32px;
   transition: background-color 0.2s;
+  
 }
 
 .close-btn:hover {
@@ -2644,6 +3122,9 @@ body {
   width: 32px;
   height: 32px;
   transition: background-color 0.2s;
+  
+    padding-top: 4px;
+
 }
 
 .close-btn:hover {
@@ -3322,6 +3803,7 @@ body {
   text-decoration: underline;
 }
 
+
 @media (min-width: 1025px) {
   .header {
     padding: 15px 80px;
@@ -3427,6 +3909,173 @@ body {
     width: 90%;
     padding: 16px;
   }
+}
+
+.edit-post-form {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.edit-post-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin: 16px 0;
+  font-size: 15px;
+  resize: vertical;
+}
+
+.preview-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.preview-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.remove-preview {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-post-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.media-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.scope-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.update-button {
+  background: #f9a825;
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.update-button:hover {
+  background: #f57c00;
+}
+
+.update-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Styles cho popup xác nhận xóa */
+.delete-confirm-popup {
+  background: white;
+  width: 400px;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.popup-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #1a1a1a;
+}
+
+.popup-content {
+  margin-bottom: 24px;
+}
+
+.popup-content p {
+  margin: 0 0 8px;
+  color: #333;
+}
+
+.warning-text {
+  color: #dc3545;
+  font-size: 14px;
+}
+
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #f5f5f5;
+}
+
+.confirm-delete-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #dc3545;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-delete-btn:hover {
+  background: #c82333;
 }
 
 </style>

@@ -1,4 +1,5 @@
 import apiService from '@/api/apiService'
+import axios from 'axios'
 
 export const createPost = async (formData) => {
   try {
@@ -54,4 +55,30 @@ export async function unlikePost(accountId, postId) {
   console.log('📥 Response UNLIKE:', res.data)
   return res.data
 }
+
+export const deletePost = async (postId) => {
+  try {
+    console.log("postid nam trong ham call ne",postId)
+    const response = await apiService.delete(`/v1/posts/${postId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updatePost = async (postId, formData) => {
+  try {
+    
+    const response = await apiService.put(`/v1/posts/${postId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    // console.log('log ne cu',response)
+    return response.data;
+  } catch (error) {
+    console.error('Error updating post:', error);
+    throw error;
+  }
+};
 

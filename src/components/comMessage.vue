@@ -133,10 +133,22 @@ import { getFriendList } from '@/service/friendService'
 import { getMessageList,createMessage  } from '@/service/messageService'
 import { getAccountById } from '@/service/authService'
 import { getProfileByAccountId } from '@/service/profileService'
+
 // import socket from '@/socket'
 
 
 const currentUserAvatar = ref('/image/avata.jpg')
+
+import socket from '@/socket'
+import { getNotificationList } from '@/service/notificationService'
+import { createNotification } from '@/service/notificationService' // thêm import
+
+const notifications = ref({
+  unread: [],
+  new: [],
+  old: []
+})
+
 const friends = ref([])
 const messages = ref({})
 const selectedFriend = ref(null)
@@ -147,6 +159,8 @@ const showSidebar = ref(true)
 const newMessage = ref('') 
 
 const currentUserId = JSON.parse(localStorage.getItem('user'))?.id
+const currentUser = ref({ id: null, name: 'Ẩn danh', avatar: '/image/avata.jpg' })
+
 
 const handleResize = () => {
   isMobile.value = window.innerWidth <= 432
@@ -243,6 +257,16 @@ onMounted(async () => {
     const rawUser = localStorage.getItem('user')
     if (!rawUser) return
     const currentUserId = JSON.parse(rawUser)?.id
+    const account = await getAccountById(currentUserId)
+    const profile = await getProfileByAccountId(currentUserId)
+
+    currentUser.value.name = profile?.fullName?.trim()
+      ? profile.fullName
+      : account?.username || 'Ẩn danh'
+
+    currentUser.value.avatar = profile?.avatarUrl?.trim()
+      ? profile.avatarUrl
+      : account?.avatar || '/image/avata.jpg'
     if (!currentUserId) return
 
     const res = await getFriendList(currentUserId)
@@ -296,13 +320,16 @@ const sendMessage = async () => {
 
   try {
     const sent = await createMessage(formData)
-
-    // Nếu chưa có mảng tin nhắn cho bạn này, khởi tạo
+    await createNotification({
+      actorId: currentUserId,
+      receptorId: selectedFriend.value.id,
+      content: `Đã gửi tin nhắn mới đến cho bạn `,
+      objectType: 'MESSAGE'
+    })
     if (!messages.value[selectedFriend.value.id]) {
       messages.value[selectedFriend.value.id] = []
     }
 
-    // Thêm tin nhắn mới vào cuối mảng
     messages.value[selectedFriend.value.id].push({
       id: sent.id,
       fromMe: true,
@@ -310,17 +337,37 @@ const sendMessage = async () => {
       image: sent.imageUrl || '',
       status: sent.status || 'sent'
     })
-    // Xoá nội dung input và cuộn xuống
-    newMessage.value = ''
 
-    await nextTick() // Đợi DOM cập nhật xong
-    setTimeout(() => {
-      scrollToBottom()
-    }, 50) // Trì hoãn nhẹ để đảm bảo scroll chính xác
+    newMessage.value = ''
+    await nextTick()
+    setTimeout(() => scrollToBottom(), 50)
   } catch (err) {
     console.error('❌ Lỗi khi gửi tin nhắn:', err)
   }
 }
+socket.on('notification', async (data) => {
+  // data: { actorId, receptorId, content, objectType, createdAt }
+
+  try {
+    const [account, profile] = await Promise.all([
+      getAccountById(data.actorId),
+      getProfileByAccountId(data.actorId)
+    ])
+
+    const name = profile?.fullName || account?.username || 'Ẩn danh'
+    const avatar = profile?.avatarUrl || account?.avatar || '/image/avata.jpg'
+
+    notifications.value.unread.unshift({
+      actorId: data.actorId,
+      name,
+      text: data.content,
+      time: 'Vừa xong',
+      avatar
+    })
+  } catch (err) {
+    console.error('❌ Lỗi khi nhận thông báo socket:', err)
+  }
+})
 onMounted(() => {
   const userId = JSON.parse(localStorage.getItem('user'))?.id
   if (userId) {
