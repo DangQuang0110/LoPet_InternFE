@@ -367,7 +367,7 @@
                     type="text"
                     class="comment-box"
                     placeholder="Viết bình luận..."
-                    v-model="newComment"
+                    v-model="commentInputs[post.postId]"
                     @keyup.enter="addComment(post)"
                   />
                   <button class="btn-send groupCommnent" @click="addComment(post)">
@@ -421,26 +421,25 @@
                                 </button>
                               </div>
 
-                              <!-- Reply Input Section -->
+                              <!-- Reply Input Section - Chỉ hiển thị khi comment này được chọn để trả lời -->
                               <div v-if="replyingCommentId === comment.id" class="reply-input-section">
-  <div class="reply-input-wrapper">
-    <input
-      type="text"
-      class="reply-input"
-      v-model="replyInputs[comment.id]"
-      @keyup.enter="submitReply(comment)"
-      :placeholder="'@' + (comment.account?.profile?.fullName || 'Người dùng')"
-    />
-    <button 
-      class="btn-send-reply" 
-      @click="submitReply(comment)"
-      :disabled="!replyInputs[comment.id]?.trim()"
-    >
-      Gửi
-    </button>
-  </div>
-</div>
-
+                                <div class="reply-input-wrapper">
+                                  <input
+                                    type="text"
+                                    class="reply-input"
+                                    v-model="replyInputs[comment.id]"
+                                    @keyup.enter="submitReply(comment)"
+                                    :placeholder="'@' + (comment.account?.profile?.fullName || 'Người dùng')"
+                                  />
+                                  <button 
+                                    class="btn-send-reply" 
+                                    @click="submitReply(comment)"
+                                    :disabled="!replyInputs[comment.id]?.trim()"
+                                  >
+                                    Gửi
+                                  </button>
+                                </div>
+                              </div>
 
                               <!-- Display Replies -->
                               <div v-if="comment.replies && comment.replies.length > 0" class="replies-section">
@@ -461,7 +460,6 @@
                                     </div>
                                     <div class="reply-footer">
                                       <span class="reply-time">{{ formatCommentTime(reply.createdAt) }}</span>
-                                      <span class="reply-action" @click="prepareReply(comment)">Trả lời</span>
                                     </div>
                                   </div>
                                 </div>
@@ -479,7 +477,7 @@
                           type="text"
                           class="comment-input-modal"
                           placeholder="Viết bình luận..."
-                          v-model="newComment"
+                          v-model="commentInputs[post.postId]"
                           @keyup.enter="addComment(post)"
                         />
                         <button class="send-btn-modal" @click="addComment(post)">Gửi</button>
@@ -505,13 +503,12 @@
               <div v-else class="recent-post" v-for="post in recentPosts" :key="post.postId">
                 <img
                   class="recent-avatar"
-                  :src="post.userSrc || 'https://i.pravatar.cc/100'"
-                  :alt="post.user?.fullName || 'Người dùng'"
+                  :src="post.userSrc || '/image/avata.jpg'"
+                  :alt="post.user || 'Người dùng'"
                 />
                 <div class="recent-info">
                   <div class="recent-name">
-                    <strong>{{ post.user?.fullName || 'Người dùng' }}</strong> đã đăng một bài viết
-                    mới
+                    <strong>{{ post.user }}</strong> đã đăng một bài viết mới
                   </div>
                   <div class="recent-content">
                     {{ post.content.substring(0, 50) }}{{ post.content.length > 50 ? '...' : '' }}
@@ -584,6 +581,24 @@
       </div>
     </div>
   </div>
+
+  <!-- Thêm popup xác nhận xóa bài viết -->
+  <div v-if="showDeleteConfirm" class="overlay">
+    <div class="delete-confirm-popup">
+      <div class="popup-header">
+        <h3>Xóa bài viết</h3>
+        <button class="close-btn" @click="closeDeleteConfirm">×</button>
+      </div>
+      <div class="popup-content">
+        <p>Bạn có chắc chắn muốn xóa bài viết này không?</p>
+        <p class="warning-text">Hành động này không thể hoàn tác.</p>
+      </div>
+      <div class="popup-actions">
+        <button class="cancel-btn" @click="closeDeleteConfirm">Hủy</button>
+        <button class="confirm-delete-btn" @click="confirmDeletePost">Xóa bài viết</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -637,7 +652,6 @@ const selectedPreviewImage = ref(null)
 const expandedPosts = ref({})
 const showCommentPopup = ref(false)
 const activePost = ref(null)
-const newComment = ref('')
 const showSharePopup = ref(false)
 const selectedPost = ref(null)
 const copied = ref(false)
@@ -645,6 +659,7 @@ const shareUrlInput = ref(null)
 
 // Thêm reactive state cho comments
 const postComments = ref({})
+const commentInputs = reactive({})
 
 // Cập nhật state
 const currentUserAvatar = ref('/image/avata.jpg')
@@ -807,12 +822,28 @@ const handleCreatePost = async () => {
       formData.append('images', selectedImage.value)
     }
 
-    // Log formData after all data has been appended
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value)
+    const response = await createPostGroup(formData)
+
+    // Tạo bài viết mới với thông tin cần thiết
+    const newPost = {
+      postId: response.data.postId,
+      content: newPostContent.value.trim(),
+      createdAt: new Date().toISOString(),
+      accountId: user.value.id,
+      user: currentUserName.value,
+      userSrc: currentUserAvatar.value,
+      likes: 0,
+      comments: [],
+      liked: false,
+      postLikes: [],
+      postMedias: selectedImage.value ? [{
+        mediaType: 'IMAGE',
+        mediaUrl: URL.createObjectURL(selectedImage.value)
+      }] : []
     }
 
-    await createPostGroup(formData)
+    // Thêm bài viết mới vào đầu mảng
+    groupPosts.value = [newPost, ...groupPosts.value]
 
     // Reset form
     newPostContent.value = ''
@@ -820,9 +851,6 @@ const handleCreatePost = async () => {
     imagePreview.value = null
     const input = document.querySelector('.file-input')
     if (input) input.value = ''
-
-    // Refresh posts
-    await fetchGroupPosts()
 
     toast.success('Đăng bài viết thành công!', {
       position: toast.POSITION.TOP_RIGHT,
@@ -893,6 +921,9 @@ async function fetchGroupPosts() {
         console.error('Error processing post:', error)
       }
     }
+
+    // Sắp xếp bài viết theo thời gian tạo mới nhất
+    processedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
     // Cập nhật state với spread operator để đảm bảo reactivity
     groupPosts.value = [...processedPosts]
@@ -1296,18 +1327,18 @@ async function toggleLike(post) {
       groupPosts.value[postIndex] = { ...post }
     }
 
-    toast.success(post.liked ? 'Đã thích bài viết!' : 'Đã bỏ thích bài viết!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.success(post.liked ? 'Đã thích bài viết!' : 'Đã bỏ thích bài viết!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   } catch (error) {
     console.error('Lỗi khi thực hiện like/unlike:', error)
-    toast.error('Có lỗi xảy ra!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.error('Có lỗi xảy ra!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   }
 }
 
@@ -1319,6 +1350,10 @@ function toggleCommentPopup(post = null) {
   } else {
     activePost.value = post
     showCommentPopup.value = true
+    // Khởi tạo input rỗng cho post này nếu chưa có
+    if (!commentInputs[post.postId]) {
+      commentInputs[post.postId] = ''
+    }
   }
 }
 
@@ -1327,34 +1362,35 @@ async function addComment(post) {
   try {
     const user = JSON.parse(localStorage.getItem('user'))
     if (!user?.id) {
-      toast.error('Vui lòng đăng nhập để bình luận!', {
-        position: toast.POSITION.TOP_RIGHT,
-        autoClose: 3000,
-        theme: 'colored',
-      })
+      // toast.error('Vui lòng đăng nhập để bình luận!', {
+      //   position: toast.POSITION.TOP_RIGHT,
+      //   autoClose: 3000,
+      //   theme: 'colored',
+      // })
       return
     }
 
-    if (!newComment.value.trim()) {
-      toast.error('Vui lòng nhập nội dung bình luận!', {
-        position: toast.POSITION.TOP_RIGHT,
-        autoClose: 3000,
-        theme: 'colored',
-      })
+    const commentText = commentInputs[post.postId]?.trim()
+    if (!commentText) {
+      // toast.error('Vui lòng nhập nội dung bình luận!', {
+      //   position: toast.POSITION.TOP_RIGHT,
+      //   autoClose: 3000,
+      //   theme: 'colored',
+      // })
       return
     }
 
     const commentData = {
       postId: post.postId,
       accountId: user.id,
-      content: newComment.value.trim(),
+      content: commentText,
       replyCommentId: null,
     }
 
-    // Tạo comment mới trước khi gọi API
+    // Create optimistic comment
     const optimisticComment = {
-      id: Date.now(), // Temporary ID
-      content: newComment.value.trim(),
+      id: Date.now(),
+      content: commentText,
       createdAt: new Date().toISOString(),
       account: {
         profile: {
@@ -1364,25 +1400,24 @@ async function addComment(post) {
       },
     }
 
-    // Cập nhật UI ngay lập tức (Optimistic Update)
+    // Update UI immediately
     const postToUpdate = groupPosts.value.find(p => p.postId === post.postId)
     if (postToUpdate) {
       if (!Array.isArray(postToUpdate.comments)) {
         postToUpdate.comments = []
       }
       postToUpdate.comments = [optimisticComment, ...postToUpdate.comments]
-      // Force reactivity update
       groupPosts.value = [...groupPosts.value]
     }
 
-    // Reset input ngay lập tức
-    newComment.value = ''
+    // Reset input for this specific post
+    commentInputs[post.postId] = ''
 
-    // Gọi API để lưu comment
+    // Call API
     const response = await createComment(commentData)
     console.log('API response for createComment:', response)
 
-    // Cập nhật lại comment với ID thật từ server
+    // Update with real comment data if needed
     if (postToUpdate) {
       const commentIndex = postToUpdate.comments.findIndex(c => c.id === optimisticComment.id)
       if (commentIndex !== -1) {
@@ -1390,30 +1425,29 @@ async function addComment(post) {
           ...optimisticComment,
           id: response.id
         }
-        // Force reactivity update again
         groupPosts.value = [...groupPosts.value]
       }
     }
 
-    toast.success('Đã thêm bình luận!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.success('Đã thêm bình luận!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   } catch (error) {
     console.error('Lỗi khi thêm bình luận:', error)
-    // Nếu có lỗi, rollback lại UI
+    // Rollback UI if error occurs
     const postToUpdate = groupPosts.value.find(p => p.postId === post.postId)
     if (postToUpdate) {
       postToUpdate.comments = postToUpdate.comments.filter(c => c.id !== optimisticComment.id)
       groupPosts.value = [...groupPosts.value]
     }
     
-    toast.error('Có lỗi xảy ra khi thêm bình luận!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.error('Có lỗi xảy ra khi thêm bình luận!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   }
 }
 
@@ -1620,11 +1654,11 @@ async function submitReply(comment) {
     replyInputs[comment.id] = ''
     replyingCommentId.value = null
 
-    toast.success('Đã thêm trả lời!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    })
+    // toast.success('Đã thêm trả lời!', {
+    //   position: toast.POSITION.TOP_RIGHT,
+    //   autoClose: 3000,
+    //   theme: 'colored',
+    // })
   } catch (error) {
     console.error('Lỗi khi trả lời bình luận:', error)
     toast.error('Có lỗi xảy ra khi trả lời bình luận!', {
@@ -1643,33 +1677,33 @@ const isPostOwner = (post) => {
 }
 
 // Add delete post handler
-const handleDeletePost = async (postId) => {
-  console.log("bug nè: ", postId)
-  try {
-    if (!confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
-      return;
-    }
+const handleDeletePost = (postId) => {
+  openDeleteConfirm(postId)
+}
 
-    await deletePost(postId);
+// Hàm xác nhận xóa bài viết
+const confirmDeletePost = async () => {
+  try {
+    await deletePost(postToDelete.value)
     
     // Remove post from local state
-    groupPosts.value = groupPosts.value.filter(post => post.postId !== postId);
+    groupPosts.value = groupPosts.value.filter(post => post.postId !== postToDelete.value)
     
-    // Close the menu
-    showReportMenu.value = null;
+    // Đóng popup
+    closeDeleteConfirm()
 
     toast.success('Xóa bài viết thành công!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
       theme: 'colored',
-    });
+    })
   } catch (error) {
-    console.error('Lỗi khi xóa bài viết:', error);
+    console.error('Lỗi khi xóa bài viết:', error)
     toast.error('Có lỗi xảy ra khi xóa bài viết!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
       theme: 'colored',
-    });
+    })
   }
 }
 
@@ -1804,6 +1838,23 @@ const closeSearchResults = (event) => {
   if (!event.target.closest('.search-container')) {
     showSearchResults.value = false
   }
+}
+
+// Thêm state cho popup xác nhận xóa
+const showDeleteConfirm = ref(false)
+const postToDelete = ref(null)
+
+// Hàm mở popup xác nhận xóa
+const openDeleteConfirm = (postId) => {
+  postToDelete.value = postId
+  showDeleteConfirm.value = true
+  activeMenuPostId.value = null // Đóng dropdown menu
+}
+
+// Hàm đóng popup xác nhận xóa
+const closeDeleteConfirm = () => {
+  showDeleteConfirm.value = false
+  postToDelete.value = null
 }
 </script>
 
@@ -3804,5 +3855,75 @@ body {
 .update-button:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+
+/* Styles cho popup xác nhận xóa */
+.delete-confirm-popup {
+  background: white;
+  width: 400px;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.popup-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #1a1a1a;
+}
+
+.popup-content {
+  margin-bottom: 24px;
+}
+
+.popup-content p {
+  margin: 0 0 8px;
+  color: #333;
+}
+
+.warning-text {
+  color: #dc3545;
+  font-size: 14px;
+}
+
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #f5f5f5;
+}
+
+.confirm-delete-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #dc3545;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-delete-btn:hover {
+  background: #c82333;
 }
 </style>
