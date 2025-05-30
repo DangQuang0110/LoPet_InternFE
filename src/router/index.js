@@ -29,6 +29,9 @@ import AdminLopetAdvertisement from "@/components/admin/AdminLopetAdvertisement.
 // Phần admin
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
 
+
+
+
 const routes=[
     {
         path: "/friend",

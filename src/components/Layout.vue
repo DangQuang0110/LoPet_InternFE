@@ -2,6 +2,7 @@
   <div class="layout-wrapper">
     <aside class="sidebar">
       <div class="logo">
+      <div class="logo">
         <img src="/assets/logoPetGram.png" alt="LOPET Logo" class="logo-img" />
       </div>
       <div class="menu-container">
@@ -257,14 +258,18 @@ onMounted(async () => {
 .logo {
   position: relative;
   text-align: center;
+  text-align: center;
   margin-bottom: 10px;
 }
 
 .logo-img {
+.logo-img {
   position: absolute;
+  top: -12px;
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
+  width: 100px;
   width: 100px;
   height: 80px;
   z-index: 1;
@@ -287,6 +292,7 @@ onMounted(async () => {
 .nav-item {
   display: flex;
   align-items: center;
+  padding: 8px 4px;
   padding: 8px 4px;
   cursor: pointer;
   color: #000;
