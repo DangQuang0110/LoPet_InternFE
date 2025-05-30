@@ -139,7 +139,7 @@ import { getProfileByAccountId } from '@/service/profileService'
 
 const currentUserAvatar = ref('/image/avata.jpg')
 
-import socket from '@/socket'
+// import socket from '@/socket'
 import { getNotificationList } from '@/service/notificationService'
 import { createNotification } from '@/service/notificationService' // thêm import
 

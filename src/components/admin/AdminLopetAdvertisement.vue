@@ -13,20 +13,24 @@
           <th>Tiêu đề</th>
           <th>Nội dung</th>
           <th>Url</th>
+          <th>Tác giả</th>
+          <th>Ngày tạo</th>
           <th>Hành động</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="ad in ads" :key="ad.id">
+        <tr v-for="ad in paginatedAds" :key="ad.id">
           <td>{{ ad.id }}</td>
           <td><img :src="ad.image" alt="Ad Image" class="ad-image" /></td>
           <td>{{ ad.title }}</td>
           <td>{{ ad.content }}</td>
           <td>{{ ad.url }}</td>
+          <td>{{ ad.author.username }}</td>
+          <td>{{ new Date(ad.createdAt).toLocaleDateString() }}</td>
           <td>
             <button class="action-btn detail-btn" @click="showDetails(ad)">Chi tiết</button>
             <button class="action-btn edit-btn" @click="openEditModal(ad)">Sửa</button>
-            <button class="action-btn delete-btn" @click="openDeleteModal(ad.id)">Xóa</button>
+            <button class="action-btn delete-btn" @click="openDeleteModal(ad)">Xóa</button>
           </td>
         </tr>
       </tbody>
@@ -38,21 +42,31 @@
         <h2>Thêm quảng cáo</h2>
         <div class="form-container">
           <div class="form-group">
-            <label>Hình ảnh</label>
-            <input type="file" accept="image/*" @change="handleImageUpload($event, 'new')" />
-            <img v-if="newAd.image" :src="newAd.image" alt="Preview" class="image-preview" />
+            <label>Hình ảnh <span class="required">*</span></label>
+            <input
+              type="file"
+              accept="image/*"
+              @change="handleImageUpload($event, 'new')"
+              required
+            />
+            <img
+              v-if="newAd.image"
+              :src="URL.createObjectURL(newAd.image)"
+              alt="Preview"
+              class="image-preview"
+            />
           </div>
           <div class="form-group">
-            <label>Tiêu đề</label>
-            <input type="text" v-model="newAd.title" placeholder="Nhập tiêu đề" />
+            <label>Tiêu đề <span class="required">*</span></label>
+            <input type="text" v-model="newAd.title" placeholder="Nhập tiêu đề" required />
           </div>
           <div class="form-group">
-            <label>Nội dung</label>
-            <input type="text" v-model="newAd.content" placeholder="Nhập nội dung" />
+            <label>Nội dung <span class="required">*</span></label>
+            <textarea v-model="newAd.description" placeholder="Nhập nội dung" required></textarea>
           </div>
           <div class="form-group">
-            <label>Url</label>
-            <input type="text" v-model="newAd.url" placeholder="Nhập URL" />
+            <label>Link tham chiếu <span class="required">*</span></label>
+            <input type="url" v-model="newAd.linkRef" placeholder="Nhập URL" required />
           </div>
         </div>
         <div class="form-actions">
@@ -67,21 +81,30 @@
       <div class="modal-content">
         <h2>Sửa quảng cáo</h2>
         <div class="form-group">
-          <label>Hình ảnh</label>
+          <label>Hình ảnh hiện tại</label>
+          <img :src="editAd.oldImage" alt="Current Image" class="image-preview" />
+        </div>
+        <div class="form-group">
+          <label>Thay đổi hình ảnh</label>
           <input type="file" accept="image/*" @change="handleImageUpload($event, 'edit')" />
-          <img v-if="editAd.image" :src="editAd.image" alt="Preview" class="image-preview" />
+          <img
+            v-if="editAd.image"
+            :src="URL.createObjectURL(editAd.image)"
+            alt="Preview"
+            class="image-preview"
+          />
         </div>
         <div class="form-group">
-          <label>Tiêu đề</label>
-          <input type="text" v-model="editAd.title" placeholder="Tiêu đề" />
+          <label>Tiêu đề <span class="required">*</span></label>
+          <input type="text" v-model="editAd.title" placeholder="Tiêu đề" required />
         </div>
         <div class="form-group">
-          <label>Nội dung</label>
-          <input type="text" v-model="editAd.content" placeholder="Nội dung" />
+          <label>Nội dung <span class="required">*</span></label>
+          <textarea v-model="editAd.description" placeholder="Nội dung" required></textarea>
         </div>
         <div class="form-group">
-          <label>Url</label>
-          <input type="text" v-model="editAd.url" placeholder="Url" />
+          <label>Link tham chiếu <span class="required">*</span></label>
+          <input type="url" v-model="editAd.linkRef" placeholder="URL" required />
         </div>
         <div class="form-actions">
           <button class="submit-btn" @click="updateAd">Cập nhật</button>
@@ -92,28 +115,64 @@
 
     <!-- Modal for viewing advertisement details -->
     <div v-if="showDetailsModal" class="modal-overlay">
-      <div class="modal-content">
+      <div class="modal-content details-modal">
         <h2>Chi tiết quảng cáo</h2>
-        <div class="form-group">
-          <label>ID</label>
-          <input type="text" :value="selectedAd.id" readonly />
-        </div>
-        <div class="form-group">
-          <label>Hình ảnh</label>
+
+        <div class="image-container">
           <img :src="selectedAd.image" alt="Ad Image" class="image-preview" />
         </div>
-        <div class="form-group">
-          <label>Tiêu đề</label>
-          <input type="text" :value="selectedAd.title" readonly />
+
+        <div class="info-grid">
+          <div class="basic-info">
+            <div class="form-group">
+              <label>ID</label>
+              <input type="text" :value="selectedAd.id" readonly />
+            </div>
+            <div class="form-group">
+              <label>Tiêu đề</label>
+              <input type="text" :value="selectedAd.title" readonly />
+            </div>
+            <div class="form-group">
+              <label>Nội dung</label>
+              <input type="text" :value="selectedAd.content" readonly />
+            </div>
+            <div class="form-group">
+              <label>URL</label>
+              <input type="text" :value="selectedAd.url" readonly />
+            </div>
+          </div>
+
+          <div class="additional-info">
+            <div class="author-info">
+              <div class="info-title">Thông tin tác giả</div>
+              <div class="info-item">
+                <span class="info-label">Tên:</span>
+                <span class="info-value">{{ selectedAd.author?.username }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Email:</span>
+                <span class="info-value">{{ selectedAd.author?.email }}</span>
+              </div>
+            </div>
+
+            <div class="dates-info">
+              <div class="info-title">Thông tin thời gian</div>
+              <div class="info-item">
+                <span class="info-label">Ngày tạo:</span>
+                <span class="info-value">{{
+                  new Date(selectedAd.createdAt).toLocaleString()
+                }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Cập nhật lần cuối:</span>
+                <span class="info-value">{{
+                  new Date(selectedAd.updatedAt).toLocaleString()
+                }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Nội dung</label>
-          <input type="text" :value="selectedAd.content" readonly />
-        </div>
-        <div class="form-group">
-          <label>Url</label>
-          <input type="text" :value="selectedAd.url" readonly />
-        </div>
+
         <div class="form-actions">
           <button class="cancel-btn" @click="showDetailsModal = false">Đóng</button>
         </div>
@@ -122,129 +181,386 @@
 
     <!-- Modal for delete confirmation -->
     <div v-if="showDeleteModal" class="modal-overlay">
-      <div class="modal-content">
+      <div class="modal-content delete-modal">
+        <div class="delete-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
         <h2>Xác nhận xóa</h2>
-        <p>Bạn có chắc chắn muốn xóa quảng cáo này?</p>
-        <div class="form-actions">
-          <button class="submit-btn" @click="confirmDelete">Xóa</button>
+        <p class="delete-message">
+          Bạn có chắc chắn muốn xóa quảng cáo "<span class="highlight">{{ deleteAd.title }}</span
+          >"?
+        </p>
+        <p class="delete-warning">Hành động này không thể hoàn tác!</p>
+        <div class="form-actions delete-actions">
+          <button class="delete-confirm-btn" @click="confirmDelete">Xóa</button>
           <button class="cancel-btn" @click="showDeleteModal = false">Hủy</button>
         </div>
       </div>
+    </div>
+
+    <!-- Pagination controls -->
+    <div class="pagination">
+      <button @click="prevPage" :disabled="currentPage === 1">Trang trước</button>
+      <span
+        v-for="page in displayedPages"
+        :key="page"
+        @click="goToPage(page)"
+        :class="{ active: currentPage === page }"
+      >
+        {{ page }}
+      </span>
+      <button @click="nextPage" :disabled="currentPage === totalPages">Trang sau</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-
-// Static ad data
-const AD_CONSTANT = [
-  { id: 1, image: 'placeholder-image-1.jpg', title: 'Trà sữa toyo', content: 'Trà sữa thơm ngon', url: 'toto.com.vn' },
-  { id: 2, image: 'placeholder-image-2.jpg', title: 'Free FPS game', content: 'Free FPS', url: 'fps.com.vn' },
-  { id: 3, image: 'placeholder-image-3.jpg', title: 'Best Movie', content: 'Best Movie', url: 'movie.com.vn' },
-  { id: 4, image: 'placeholder-image-4.jpg', title: 'Trà sữa toyo', content: 'Trà sữa thơm ngon', url: 'toto.com.vn' },
-];
+import { ref, onMounted, computed } from 'vue'
+import { getListAds, createAds, updateAds, delAds } from '@/service/admin/AdsService'
+import { toast } from 'vue3-toastify'
+import 'vue3-toastify/dist/index.css'
 
 // Reactive data
-const ads = ref([]);
-const showModal = ref(false);
-const showEditModal = ref(false);
-const showDetailsModal = ref(false);
-const showDeleteModal = ref(false);
-const deleteAdId = ref(null);
-const newAd = ref({
-  image: '',
+const ads = ref([])
+const currentPage = ref(1)
+const itemsPerPage = ref(5)
+const showModal = ref(false)
+const showEditModal = ref(false)
+const showDetailsModal = ref(false)
+const showDeleteModal = ref(false)
+const deleteAd = ref({
+  id: null,
   title: '',
-  content: '',
-  url: ''
-});
+})
+
+const newAd = ref({
+  title: '',
+  description: '',
+  linkRef: '',
+  image: null, // Lưu file hình ảnh
+})
 const editAd = ref({
   id: null,
-  image: '',
+  image: null,
   title: '',
-  content: '',
-  url: ''
-});
-const selectedAd = ref({});
+  description: '',
+  linkRef: '',
+  oldImage: '', // Lưu URL hình ảnh cũ
+})
+const selectedAd = ref({})
 
-onMounted(() => {
-  ads.value = [...AD_CONSTANT];
-});
+// Tính toán tổng số trang
+const totalPages = computed(() => Math.ceil(ads.value.length / itemsPerPage.value))
+
+// Lấy danh sách quảng cáo cho trang hiện tại
+const paginatedAds = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return ads.value.slice(start, end)
+})
+
+// Các hàm điều hướng trang
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+  }
+}
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+  }
+}
+
+// Tạo mảng các số trang để hiển thị
+const displayedPages = computed(() => {
+  const delta = 2 // Số trang hiển thị ở mỗi bên của trang hiện tại
+  const range = []
+  const rangeWithDots = []
+  let l
+
+  range.push(1)
+
+  for (let i = currentPage.value - delta; i <= currentPage.value + delta; i++) {
+    if (i < totalPages.value && i > 1) {
+      range.push(i)
+    }
+  }
+
+  range.push(totalPages.value)
+
+  for (let i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1)
+      } else if (i - l !== 1) {
+        rangeWithDots.push('...')
+      }
+    }
+    rangeWithDots.push(i)
+    l = i
+  }
+
+  return rangeWithDots
+})
+
+const mapApiDataToDisplay = (apiData) => {
+  return apiData.map((item) => ({
+    id: item.id,
+    image: item.imageUrl,
+    title: item.title,
+    content: item.description,
+    url: item.linkReferfence,
+    author: item.author,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  }))
+}
+
+onMounted(async () => {
+  try {
+    // Lấy user từ localStorage
+    const userStr = localStorage.getItem('user')
+    if (!userStr) {
+      console.error('Không tìm thấy ID người dùng')
+      return
+    }
+
+    const user = JSON.parse(userStr)
+    const response = await getListAds(user.id)
+    ads.value = mapApiDataToDisplay(response.data)
+  } catch (error) {
+    console.error('Error fetching ads:', error)
+    // You might want to show an error message to the user here
+  }
+})
 
 const handleImageUpload = (event, mode) => {
-  const file = event.target.files[0];
+  const file = event.target.files[0]
   if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (mode === 'new') {
-        newAd.value.image = e.target.result;
-      } else if (mode === 'edit') {
-        editAd.value.image = e.target.result;
-      }
-    };
-    reader.readAsDataURL(file);
+    if (mode === 'new') {
+      newAd.value.image = file
+    } else if (mode === 'edit') {
+      editAd.value.image = file
+    }
   }
-};
+}
 
-const addNewAd = () => {
-  if (newAd.value.title && newAd.value.content && newAd.value.url) {
-    const newId = ads.value.length ? ads.value[ads.value.length - 1].id + 1 : 1;
-    ads.value.push({
-      id: newId,
-      image: newAd.value.image || 'default-image.jpg',
-      title: newAd.value.title,
-      content: newAd.value.content,
-      url: newAd.value.url
-    });
-    // Reset form and close modal
-    newAd.value = { image: '', title: '', content: '', url: '' };
-    showModal.value = false;
-  } else {
-    alert('Vui lòng điền đầy đủ các trường bắt buộc!');
+//  thêm quảng cáo
+const addNewAd = async () => {
+  try {
+    if (
+      !newAd.value.title ||
+      !newAd.value.description ||
+      !newAd.value.linkRef ||
+      !newAd.value.image
+    ) {
+      toast.error('Vui lòng điền đầy đủ thông tin!', {
+        autoClose: 3000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
+      return
+    }
+
+    const userStr = localStorage.getItem('user')
+    if (!userStr) {
+      toast.error('Không tìm thấy thông tin người dùng!', {
+        autoClose: 3000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
+      return
+    }
+
+    const user = JSON.parse(userStr)
+
+    // Tạo FormData object
+    const formData = new FormData()
+    formData.append('accountId', user.id)
+    formData.append('title', newAd.value.title)
+    formData.append('description', newAd.value.description)
+    formData.append('linkRef', newAd.value.linkRef)
+    formData.append('image', newAd.value.image)
+
+    // Hiển thị loading toast
+    const loadingToastId = toast.loading('Đang thêm quảng cáo...', {
+      position: toast.POSITION.TOP_RIGHT,
+    })
+
+    // Gọi API tạo quảng cáo
+    await createAds(formData)
+
+    // Refresh danh sách quảng cáo
+    const response = await getListAds(user.id)
+    ads.value = mapApiDataToDisplay(response.data)
+
+    // Reset form và đóng modal
+    newAd.value = {
+      title: '',
+      description: '',
+      linkRef: '',
+      image: null,
+    }
+    showModal.value = false
+
+    // Cập nhật toast thành công
+    toast.update(loadingToastId, {
+      render: 'Thêm quảng cáo thành công!',
+      type: toast.TYPE.SUCCESS,
+      autoClose: 3000,
+      isLoading: false,
+    })
+  } catch (error) {
+    console.error('Error creating advertisement:', error)
+    toast.error('Có lỗi xảy ra khi thêm quảng cáo!', {
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+    })
   }
-};
+}
 
 const openEditModal = (ad) => {
-  editAd.value = { ...ad };
-  showEditModal.value = true;
-};
+  editAd.value = {
+    id: ad.id,
+    title: ad.title,
+    description: ad.content,
+    linkRef: ad.url,
+    image: null,
+    oldImage: ad.image,
+  }
+  showEditModal.value = true
+}
 
-const updateAd = () => {
-  if (editAd.value.title && editAd.value.content && editAd.value.url) {
-    const index = ads.value.findIndex(ad => ad.id === editAd.value.id);
-    if (index !== -1) {
-      ads.value[index] = {
-        id: editAd.value.id,
-        image: editAd.value.image || 'default-image.jpg',
-        title: editAd.value.title,
-        content: editAd.value.content,
-        url: editAd.value.url
-      };
-      showEditModal.value = false;
-      editAd.value = { id: null, image: '', title: '', content: '', url: '' };
+const updateAd = async () => {
+  try {
+    if (!editAd.value.title || !editAd.value.description || !editAd.value.linkRef) {
+      toast.error('Vui lòng điền đầy đủ thông tin!', {
+        autoClose: 3000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
+      return
     }
-  } else {
-    alert('Vui lòng điền đầy đủ các trường bắt buộc!');
-  }
-};
 
-const openDeleteModal = (id) => {
-  deleteAdId.value = id;
-  showDeleteModal.value = true;
-};
+    const userStr = localStorage.getItem('user')
+    if (!userStr) {
+      toast.error('Không tìm thấy thông tin người dùng!', {
+        autoClose: 3000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
+      return
+    }
 
-const confirmDelete = () => {
-  if (deleteAdId.value !== null) {
-    ads.value = ads.value.filter(ad => ad.id !== deleteAdId.value);
-    showDeleteModal.value = false;
-    deleteAdId.value = null;
+    const user = JSON.parse(userStr)
+    const formData = new FormData()
+    formData.append('accountId', user.id)
+    formData.append('title', editAd.value.title)
+    formData.append('description', editAd.value.description)
+    formData.append('linkReferfence', editAd.value.linkRef)
+
+    // Chỉ append image nếu có chọn file mới
+    if (editAd.value.image) {
+      formData.append('image', editAd.value.image)
+    }
+
+    // Log để kiểm tra dữ liệu trong FormData
+    console.log('=== FormData Content ===')
+    console.log('adsId:', editAd.value.id)
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value)
+    }
+    console.log('=====================')
+
+    // Hiển thị loading toast
+    const loadingToastId = toast.loading('Đang cập nhật quảng cáo...', {
+      position: toast.POSITION.TOP_RIGHT,
+    })
+
+    // Gọi API cập nhật
+    await updateAds(editAd.value.id, formData)
+
+    // Refresh danh sách
+    const response = await getListAds(user.id)
+    ads.value = mapApiDataToDisplay(response.data)
+
+    // Đóng modal và reset form
+    showEditModal.value = false
+    editAd.value = {
+      id: null,
+      image: null,
+      title: '',
+      description: '',
+      linkRef: '',
+      oldImage: '',
+    }
+
+    // Cập nhật toast thành công
+    toast.update(loadingToastId, {
+      render: 'Cập nhật quảng cáo thành công!',
+      type: toast.TYPE.SUCCESS,
+      autoClose: 3000,
+      isLoading: false,
+    })
+  } catch (error) {
+    console.error('Error updating advertisement:', error)
+    toast.error('Có lỗi xảy ra khi cập nhật quảng cáo!', {
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+    })
   }
-};
+}
+
+const openDeleteModal = (ad) => {
+  deleteAd.value = {
+    id: ad.id,
+    title: ad.title,
+  }
+  showDeleteModal.value = true
+}
+
+const confirmDelete = async () => {
+  try {
+    // Hiển thị loading toast
+    const loadingToastId = toast.loading('Đang xóa quảng cáo...', {
+      position: toast.POSITION.TOP_RIGHT,
+    })
+
+    await delAds(deleteAd.value.id)
+
+    // Refresh danh sách
+    const userStr = localStorage.getItem('user')
+    const user = JSON.parse(userStr)
+    const response = await getListAds(user.id)
+    ads.value = mapApiDataToDisplay(response.data)
+
+    // Đóng modal
+    showDeleteModal.value = false
+    deleteAd.value = { id: null, title: '' }
+
+    // Cập nhật toast thành công
+    toast.update(loadingToastId, {
+      render: 'Xóa quảng cáo thành công!',
+      type: toast.TYPE.SUCCESS,
+      autoClose: 3000,
+      isLoading: false,
+    })
+  } catch (error) {
+    console.error('Error deleting advertisement:', error)
+    toast.error('Có lỗi xảy ra khi xóa quảng cáo!', {
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+    })
+  }
+}
 
 const showDetails = (ad) => {
-  selectedAd.value = { ...ad };
-  showDetailsModal.value = true;
-};
+  selectedAd.value = { ...ad }
+  showDetailsModal.value = true
+}
 </script>
 
 <style scoped>
@@ -291,7 +607,9 @@ h1 {
   font-size: clamp(0.8rem, 1.2vw, 0.9rem);
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
+  transition:
+    background 0.3s ease,
+    transform 0.2s ease;
 }
 
 .add-btn:hover {
@@ -318,7 +636,7 @@ h1 {
 }
 
 .ad-table th {
-  background: #A59A9A;
+  background: #a59a9a;
   color: #2c3e50;
   font-weight: 600;
   text-transform: uppercase;
@@ -368,7 +686,9 @@ h1 {
   border-radius: 6px;
   font-size: clamp(0.7rem, 1vw, 0.9rem);
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
+  transition:
+    background 0.3s ease,
+    transform 0.2s ease;
   margin-right: 0.5rem;
 }
 
@@ -419,8 +739,12 @@ h1 {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -439,8 +763,14 @@ h1 {
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .modal-content h2 {
@@ -472,15 +802,17 @@ h1 {
   text-align: left;
 }
 
-.form-group input[type="text"],
-.form-group input[type="file"] {
+.form-group input[type='text'],
+.form-group input[type='file'] {
   width: 100%;
   padding: clamp(0.6rem, 1.2vw, 0.8rem);
   border: 2px solid #e0e0e0;
   border-radius: 6px;
   font-size: clamp(0.9rem, 1.3vw, 1rem);
   background: #fff;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .form-group input[readonly] {
@@ -488,20 +820,20 @@ h1 {
   cursor: not-allowed;
 }
 
-.form-group input[type="text"]:focus,
-.form-group input[type="file"]:focus {
+.form-group input[type='text']:focus,
+.form-group input[type='file']:focus {
   border-color: #f39c12;
   outline: none;
   box-shadow: 0 0 6px rgba(243, 156, 18, 0.3);
 }
 
-.form-group input[type="file"] {
+.form-group input[type='file'] {
   padding: clamp(0.4rem, 0.8vw, 0.6rem);
   background: #f9f9f9;
   cursor: pointer;
 }
 
-.form-group input[type="file"]::-webkit-file-upload-button {
+.form-group input[type='file']::-webkit-file-upload-button {
   background: #f39c12;
   color: white;
   border: none;
@@ -512,7 +844,7 @@ h1 {
   transition: background 0.3s ease;
 }
 
-.form-group input[type="file"]::-webkit-file-upload-button:hover {
+.form-group input[type='file']::-webkit-file-upload-button:hover {
   background: #e67e22;
 }
 
@@ -547,7 +879,9 @@ h1 {
   font-size: clamp(0.8rem, 1.2vw, 0.9rem);
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
+  transition:
+    background 0.3s ease,
+    transform 0.2s ease;
   min-width: 120px;
 }
 
@@ -669,6 +1003,267 @@ h1 {
   .cancel-btn {
     padding: clamp(0.4rem, 0.8vw, 0.6rem) clamp(0.8rem, 1.5vw, 1rem);
     font-size: clamp(0.7rem, 1vw, 0.8rem);
+  }
+}
+
+.required {
+  color: red;
+  margin-left: 4px;
+}
+
+textarea {
+  width: 100%;
+  padding: clamp(0.6rem, 1.2vw, 0.8rem);
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: clamp(0.9rem, 1.3vw, 1rem);
+  background: #fff;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  min-height: 100px;
+  resize: vertical;
+}
+
+textarea:focus {
+  border-color: #f39c12;
+  outline: none;
+  box-shadow: 0 0 6px rgba(243, 156, 18, 0.3);
+}
+
+/* Pagination styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.pagination button {
+  padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 1.8vw, 1.2rem);
+  border: none;
+  border-radius: 6px;
+  font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.3s ease,
+    transform 0.2s ease;
+  margin: 0 0.5rem;
+}
+
+.pagination button:hover {
+  background: #e67e22;
+  transform: translateY(-2px);
+}
+
+.pagination button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 1.8vw, 1.2rem);
+  border: none;
+  border-radius: 6px;
+  font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0 0.5rem;
+}
+
+.pagination span.active {
+  background: #f39c12;
+  color: white;
+}
+
+/* Modal responsive styles */
+.modal-content.details-modal {
+  max-width: clamp(320px, 90vw, 600px);
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.details-modal .form-group {
+  margin-bottom: clamp(1rem, 2vw, 1.5rem);
+}
+
+.details-modal label {
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  margin-bottom: clamp(0.3rem, 1vw, 0.5rem);
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.details-modal input {
+  font-size: clamp(0.85rem, 1.4vw, 1rem);
+  padding: clamp(0.5rem, 1.2vw, 0.8rem);
+  background-color: #f8f9fa;
+}
+
+.details-modal .image-container {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  margin-bottom: clamp(1rem, 2vw, 1.5rem);
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.details-modal .image-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: clamp(0.5rem, 1vw, 1rem);
+}
+
+.details-modal .info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.details-modal .author-info,
+.details-modal .dates-info {
+  background-color: #f8f9fa;
+  padding: clamp(0.8rem, 1.5vw, 1.2rem);
+  border-radius: 8px;
+  margin-top: clamp(1rem, 2vw, 1.5rem);
+}
+
+.details-modal .info-title {
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  color: #2c3e50;
+  margin-bottom: clamp(0.5rem, 1vw, 0.8rem);
+  font-weight: 600;
+}
+
+.details-modal .info-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: clamp(0.4rem, 0.8vw, 0.6rem);
+}
+
+.details-modal .info-label {
+  font-weight: 500;
+  color: #6c757d;
+  margin-right: 0.5rem;
+  font-size: clamp(0.8rem, 1.3vw, 0.95rem);
+}
+
+.details-modal .info-value {
+  color: #2c3e50;
+  font-size: clamp(0.8rem, 1.3vw, 0.95rem);
+}
+
+@media screen and (max-width: 768px) {
+  .details-modal .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .details-modal .image-container {
+    padding-top: 75%; /* 4:3 Aspect Ratio for mobile */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .details-modal {
+    padding: 1rem;
+  }
+
+  .details-modal .form-group {
+    margin-bottom: 0.8rem;
+  }
+
+  .details-modal label {
+    font-size: 0.9rem;
+  }
+
+  .details-modal input {
+    font-size: 0.85rem;
+    padding: 0.5rem;
+  }
+}
+
+/* Delete modal styles */
+.delete-modal {
+  max-width: clamp(300px, 90vw, 400px);
+  text-align: center;
+  padding: clamp(1.5rem, 3vw, 2rem);
+}
+
+.delete-icon {
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+.delete-message {
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.delete-warning {
+  font-size: clamp(0.8rem, 1.3vw, 0.95rem);
+  color: #dc3545;
+  margin-bottom: 1.5rem;
+}
+
+.highlight {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.delete-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.delete-confirm-btn {
+  padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 1.8vw, 1.2rem);
+  border: none;
+  border-radius: 6px;
+  font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  background: #dc3545;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.delete-confirm-btn:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+}
+
+@media screen and (max-width: 480px) {
+  .delete-modal {
+    padding: 1rem;
+  }
+
+  .delete-message {
+    font-size: 0.9rem;
+  }
+
+  .delete-warning {
+    font-size: 0.8rem;
+  }
+
+  .delete-actions {
+    flex-direction: column;
+  }
+
+  .delete-confirm-btn,
+  .cancel-btn {
+    width: 100%;
+    margin: 0.25rem 0;
   }
 }
 </style>
