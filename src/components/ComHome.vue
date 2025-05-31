@@ -6,7 +6,7 @@
         <header class="topbar">
           <div class="search-box">
             <span class="material-icons">search</span>
-            <input v-model="search" type="text" placeholder="Tìm kiếm" />
+          <input v-model="search" type="text" placeholder="Tìm kiếm" />
           </div>
         <transition name="fade">
             <div v-if="showDeleteConfirm" class="modal-overlay">
@@ -41,7 +41,7 @@
         <!-- Feed -->
         <div class="content">
           <div class="feed">
-            <div class="post-card" v-for="post in posts" :key="post.id">
+          <div class="post-card" v-for="post in filteredPosts" :key="post.id">
               <!-- Header -->
               <div class="post-header">
                 <img :src="post.userSrc" alt="avatar" class="avatar" />
@@ -344,7 +344,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted,reactive } from 'vue'
+import { ref, onMounted,reactive,computed  } from 'vue'
 import Layout from '@/components/Layout.vue'
 import CreatePost from '@/components/CreatePost.vue'
 import ReportModal from '@/components/ReportModal.vue'
@@ -399,7 +399,16 @@ function getRandomAds(list, count = 3) {
   return shuffled.slice(0, count)
 }
 
+const filteredPosts = computed(() => {
+  if (!search.value.trim()) return posts.value
 
+  const keyword = search.value.toLowerCase()
+
+  return posts.value.filter(post =>
+    post.text.toLowerCase().includes(keyword) ||
+    post.user.toLowerCase().includes(keyword)
+  )
+})
 
 async function refreshData() {
   try {

@@ -30,7 +30,11 @@
     <aside class="sidebar" v-show="!isMobile || showSidebar">
       <div class="search-bar">
         <img src="/image/tim.png" alt="Tìm kiếm" />
-        <input type="text" placeholder="Tìm kiếm" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Tìm kiếm bạn bè..."
+        />
       </div>
         <div class="tab-section" v-show="!isMobile || showSidebar">
           <button class="tab-btn" :class="{ active: activeTab === 'all' }" @click="switchTab('all')">
@@ -43,7 +47,7 @@
         </div>
         <div class="friend-section">
           <div
-            v-for="friend in friends"
+            v-for="friend in filteredFriends"
             :key="friend.id"
             class="friend-item"
             :class="{ active: selectedFriend?.id === friend.id }"
@@ -157,10 +161,17 @@ const activeTab = ref('all')
 const isMobile = ref(window.innerWidth <= 426)
 const showSidebar = ref(true)
 const newMessage = ref('') 
+const searchQuery = ref('')
+
 
 const currentUserId = JSON.parse(localStorage.getItem('user'))?.id
 const currentUser = ref({ id: null, name: 'Ẩn danh', avatar: '/image/avata.jpg' })
 
+const filteredFriends = computed(() =>
+  friends.value.filter((f) =>
+    f.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())
+  )
+)
 
 const handleResize = () => {
   isMobile.value = window.innerWidth <= 432
