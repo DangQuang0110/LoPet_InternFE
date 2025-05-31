@@ -24,7 +24,16 @@
           <td><img :src="ad.image" alt="Ad Image" class="ad-image" /></td>
           <td>{{ ad.title }}</td>
           <td>{{ ad.content }}</td>
-          <td>{{ ad.url }}</td>
+          <td>
+            <a 
+              :href="ad.url" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="ad-link"
+            >
+              {{ ad.url }}
+            </a>
+          </td>
           <td>{{ ad.author.username }}</td>
           <td>{{ new Date(ad.createdAt).toLocaleDateString() }}</td>
           <td>
@@ -50,8 +59,8 @@
               required
             />
             <img
-              v-if="newAd.image"
-              :src="URL.createObjectURL(newAd.image)"
+              v-if="newAd.imagePreview"
+              :src="newAd.imagePreview"
               alt="Preview"
               class="image-preview"
             />
@@ -88,8 +97,8 @@
           <label>Thay đổi hình ảnh</label>
           <input type="file" accept="image/*" @change="handleImageUpload($event, 'edit')" />
           <img
-            v-if="editAd.image"
-            :src="URL.createObjectURL(editAd.image)"
+            v-if="editAd.imagePreview"
+            :src="editAd.imagePreview"
             alt="Preview"
             class="image-preview"
           />
@@ -237,7 +246,8 @@ const newAd = ref({
   title: '',
   description: '',
   linkRef: '',
-  image: null, // Lưu file hình ảnh
+  image: null,
+  imagePreview: null
 })
 const editAd = ref({
   id: null,
@@ -245,7 +255,8 @@ const editAd = ref({
   title: '',
   description: '',
   linkRef: '',
-  oldImage: '', // Lưu URL hình ảnh cũ
+  oldImage: '',
+  imagePreview: null,
 })
 const selectedAd = ref({})
 
@@ -280,7 +291,7 @@ const prevPage = () => {
 
 // Tạo mảng các số trang để hiển thị
 const displayedPages = computed(() => {
-  const delta = 2 // Số trang hiển thị ở mỗi bên của trang hiện tại
+  const delta = 2
   const range = []
   const rangeWithDots = []
   let l
@@ -346,8 +357,10 @@ const handleImageUpload = (event, mode) => {
   if (file) {
     if (mode === 'new') {
       newAd.value.image = file
+      newAd.value.imagePreview = URL.createObjectURL(file)
     } else if (mode === 'edit') {
       editAd.value.image = file
+      editAd.value.imagePreview = URL.createObjectURL(file)
     }
   }
 }
@@ -405,6 +418,7 @@ const addNewAd = async () => {
       description: '',
       linkRef: '',
       image: null,
+      imagePreview: null
     }
     showModal.value = false
 
@@ -432,6 +446,7 @@ const openEditModal = (ad) => {
     linkRef: ad.url,
     image: null,
     oldImage: ad.image,
+    imagePreview: null,
   }
   showEditModal.value = true
 }
@@ -496,6 +511,7 @@ const updateAd = async () => {
       description: '',
       linkRef: '',
       oldImage: '',
+      imagePreview: null,
     }
 
     // Cập nhật toast thành công
@@ -561,6 +577,17 @@ const showDetails = (ad) => {
   selectedAd.value = { ...ad }
   showDetailsModal.value = true
 }
+
+const resetNewAdForm = () => {
+  newAd.value = {
+    title: '',
+    description: '',
+    linkRef: '',
+    image: null,
+    imagePreview: null
+  }
+  showModal.value = false
+}
 </script>
 
 <style scoped>
@@ -599,7 +626,7 @@ h1 {
 }
 
 .add-btn {
-  background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+  background: #F8D070;
   color: white;
   padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 1.8vw, 1.2rem);
   border: none;
@@ -755,6 +782,83 @@ h1 {
   max-width: clamp(320px, 80vw, 450px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
   animation: scaleIn 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar styles */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #f39c12;
+  border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #e67e22;
+}
+
+/* For Firefox */
+.modal-content {
+  scrollbar-width: thin;
+
+}
+
+/* Responsive repo styles */
+.form-group textarea {
+  width: 100%;
+  min-height: clamp(100px, 20vh, 200px);
+  max-height: clamp(200px, 40vh, 400px);
+  padding: clamp(0.6rem, 1.2vw, 0.8rem);
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: clamp(0.9rem, 1.3vw, 1rem);
+  background: #fff;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.form-group textarea:focus {
+  border-color: #f39c12;
+  outline: none;
+  box-shadow: 0 0 6px rgba(243, 156, 18, 0.3);
+}
+
+/* Mobile optimization */
+@media screen and (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 85vh;
+    padding: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .form-group textarea {
+    min-height: clamp(80px, 15vh, 150px);
+    max-height: clamp(150px, 30vh, 300px);
+    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .modal-content {
+    width: 98%;
+    max-height: 80vh;
+    padding: clamp(0.8rem, 1.5vw, 1.2rem);
+  }
+
+  .form-group textarea {
+    min-height: clamp(60px, 12vh, 120px);
+    max-height: clamp(120px, 25vh, 250px);
+    font-size: clamp(0.7rem, 1.1vw, 0.8rem);
+  }
 }
 
 .add-ad-modal {
@@ -1105,7 +1209,7 @@ textarea:focus {
 .details-modal .image-container {
   position: relative;
   width: 100%;
-  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  padding-top: 34%;
   margin-bottom: clamp(1rem, 2vw, 1.5rem);
   background-color: #f8f9fa;
   border-radius: 8px;
@@ -1264,6 +1368,143 @@ textarea:focus {
   .cancel-btn {
     width: 100%;
     margin: 0.25rem 0;
+  }
+}
+
+.form-group input[type='url'] {
+  width: 100%;
+  padding: clamp(0.6rem, 1.2vw, 0.8rem);
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: clamp(0.9rem, 1.3vw, 1rem);
+  background: #fff;
+  transition: all 0.3s ease;
+  color: #2c3e50;
+}
+
+.form-group input[type='url']:focus {
+  border-color: #f39c12;
+  outline: none;
+  box-shadow: 0 0 6px rgba(243, 156, 18, 0.3);
+}
+
+.form-group input[type='url']::placeholder {
+  color: #95a5a6;
+  opacity: 0.8;
+}
+
+.form-group input[type='url']:hover {
+  border-color: #f39c12;
+}
+
+/* URL input validation styles */
+.form-group input[type='url']:valid {
+  border-color: #2ecc71;
+}
+
+.form-group input[type='url']:invalid:not(:placeholder-shown) {
+  border-color: #e74c3c;
+}
+
+/* Mobile responsive */
+@media screen and (max-width: 768px) {
+  .form-group input[type='url'] {
+    font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+    padding: clamp(0.5rem, 1vw, 0.7rem);
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .form-group input[type='url'] {
+    font-size: clamp(0.7rem, 1.1vw, 0.8rem);
+    padding: clamp(0.4rem, 0.8vw, 0.6rem);
+  }
+}
+
+.modal-content.add-ad-modal {
+  background: white;
+  padding: clamp(1.2rem, 2.5vw, 1.8rem);
+  border-radius: 10px;
+  width: 90%;
+  max-width: clamp(320px, 80vw, 450px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content.add-ad-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content.add-ad-modal::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.modal-content.add-ad-modal::-webkit-scrollbar-thumb {
+  background: #f39c12;
+  border-radius: 4px;
+}
+
+.modal-content.add-ad-modal::-webkit-scrollbar-thumb:hover {
+  background: #e67e22;
+}
+
+/* For Firefox */
+.modal-content.add-ad-modal {
+  scrollbar-width: thin;
+  
+}
+
+@media screen and (max-width: 768px) {
+  .modal-content.add-ad-modal {
+    width: 95%;
+    max-height: 85vh;
+    padding: clamp(1rem, 2vw, 1.5rem);
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .modal-content.add-ad-modal {
+    width: 98%;
+    max-height: 80vh;
+    padding: clamp(0.8rem, 1.5vw, 1.2rem);
+  }
+}
+
+.ad-link {
+  color: #3498db;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: block;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.ad-link:hover {
+  color: #2980b9;
+  background: rgba(52, 152, 219, 0.1);
+  text-decoration: underline;
+}
+
+.ad-link:active {
+  transform: translateY(1px);
+}
+
+@media screen and (max-width: 768px) {
+  .ad-link {
+    max-width: 200px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .ad-link {
+    max-width: 150px;
   }
 }
 </style>
