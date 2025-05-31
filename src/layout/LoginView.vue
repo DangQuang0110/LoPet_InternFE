@@ -66,7 +66,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { loginUser } from '@/service/authService'
+import { loginUser, getAccountById} from '@/service/authService'
 
 const email = ref('')
 const password = ref('')
@@ -130,16 +130,35 @@ const handleLogin = async () => {
   if (!isFormValid.value) return
 
   try {
-    const response = await loginUser({
+    const loginResponse = await loginUser({
       username: email.value,
       password: password.value
-    })
-    localStorage.setItem('user', JSON.stringify({ id: response.userId, username: response.username }))
-    router.push('/home')
+    });
+
+    const { userId } = loginResponse;
+
+    const account = await getAccountById(userId);
+    const roleNames = account.roles || []; // ✅ Sửa tại đây
+
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ id: userId, username: account.username, roles: roleNames })
+    );
+
+    const hasAdminRole = roleNames.includes('ADMIN');
+    const hasAdsRole = roleNames.includes('ADS');
+
+    if (hasAdminRole || hasAdsRole) {
+      router.push('/admin');
+    } else {
+      router.push('/home');
+    }
+
   } catch (err) {
-    alert(err.response?.data?.message || 'Đăng nhập thất bại')
+    alert(err.response?.data?.message || 'Đăng nhập thất bại');
   }
-}
+};
+
 </script>
 
 <style scoped>
