@@ -135,117 +135,157 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from 'vue'
+import { getReports, updateReportStatus } from '@/service/reportService'
+import { getPostById, deletePost } from '@/service/postService'
+import { getProfileByAccountId } from '@/service/profileService'
 
-// Static ad data
-const AD_CONSTANT = [
-  { id: 1, image: 'placeholder-image-1.jpg', title: 'Trà sữa toyo', content: 'Trà sữa thơm ngon', url: 'toto.com.vn' },
-  { id: 2, image: 'placeholder-image-2.jpg', title: 'Free FPS game', content: 'Free FPS', url: 'fps.com.vn' },
-  { id: 3, image: 'placeholder-image-3.jpg', title: 'Best Movie', content: 'Best Movie', url: 'movie.com.vn' },
-  { id: 4, image: 'placeholder-image-4.jpg', title: 'Trà sữa toyo', content: 'Trà sữa thơm ngon', url: 'toto.com.vn' },
-];
+const reports = ref([])
+const showModal = ref(false)
+const selectedReport = ref(null)
+const showDeleteConfirmModal = ref(false)
+const showRemoveConfirmModal = ref(false)
+const reportIdToDelete = ref(null)
+const reportIdToRemove = ref(null)
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const postMap = ref({}) // map lưu postId theo reportId để gọi xóa
 
-// Reactive data
-const ads = ref([]);
-const showModal = ref(false);
-const showEditModal = ref(false);
-const showDetailsModal = ref(false);
-const showDeleteModal = ref(false);
-const deleteAdId = ref(null);
-const newAd = ref({
-  image: '',
-  title: '',
-  content: '',
-  url: ''
-});
-const editAd = ref({
-  id: null,
-  image: '',
-  title: '',
-  content: '',
-  url: ''
-});
-const selectedAd = ref({});
+// Gọi API khi mounted
+onMounted(async () => {
+  try {
+    const res = await getReports({ type: 'POST' })
+    console.log('📥 Dữ liệu gốc từ backend:', res.data)
 
-onMounted(() => {
-  ads.value = [...AD_CONSTANT];
-});
+    const list = (res.data?.data || []).filter(item => item.action === 'PENDING' || item.action === 0)
+    console.log('🧹 Dữ liệu sau khi lọc (PENDING):', list)
 
-const handleImageUpload = (event, mode) => {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (mode === 'new') {
-        newAd.value.image = e.target.result;
-      } else if (mode === 'edit') {
-        editAd.value.image = e.target.result;
-      }
-    };
-    reader.readAsDataURL(file);
+    const mappedReports = await Promise.all(
+      list.map(async (item) => {
+        let image = '/image/default.jpg'
+        let content = '(Không có nội dung)'
+        let authorName = 'Ẩn danh'
+        const postId = item.targetId
+
+        try {
+          const post = await getPostById(postId)
+          image = post?.postMedias?.[0]?.mediaUrl || image
+          content = post?.content || content
+
+          const accountId = post?.accountId
+          if (accountId) {
+            const profile = await getProfileByAccountId(accountId)
+            authorName = profile?.fullName || 'Ẩn danh'
+          }
+
+          postMap.value[item.id || item.reportId] = postId
+        } catch (e) {
+          console.warn('⚠️ Không lấy được bài viết hoặc profile:', e)
+        }
+
+        return {
+          id: item.id || item.reportId,
+          reporter: authorName,
+          image,
+          reason: item.reason,
+          status: item.action === 'PENDING' || item.action === 0 ? 'Chưa xử lý' : 'Đã xử lý',
+          date: new Date(item.createdAt).toLocaleString(),
+          content
+        }
+      })
+    )
+    reports.value = mappedReports
+    console.log('✅ Danh sách reports hiển thị:', reports.value)
+  } catch (err) {
+    console.error('❌ Lỗi khi load danh sách báo cáo:', err)
   }
-};
+})
 
-const addNewAd = () => {
-  if (newAd.value.title && newAd.value.content && newAd.value.url) {
-    const newId = ads.value.length ? ads.value[ads.value.length - 1].id + 1 : 1;
-    ads.value.push({
-      id: newId,
-      image: newAd.value.image || 'default-image.jpg',
-      title: newAd.value.title,
-      content: newAd.value.content,
-      url: newAd.value.url
-    });
-    // Reset form and close modal
-    newAd.value = { image: '', title: '', content: '', url: '' };
-    showModal.value = false;
-  } else {
-    alert('Vui lòng điền đầy đủ các trường bắt buộc!');
-  }
-};
+const openReviewModal = (report) => {
+  selectedReport.value = { ...report }
+  showModal.value = true
+}
 
-const openEditModal = (ad) => {
-  editAd.value = { ...ad };
-  showEditModal.value = true;
-};
+const openDeleteConfirmModal = (reportId) => {
+  reportIdToDelete.value = reportId
+  showDeleteConfirmModal.value = true
+}
 
-const updateAd = () => {
-  if (editAd.value.title && editAd.value.content && editAd.value.url) {
-    const index = ads.value.findIndex(ad => ad.id === editAd.value.id);
-    if (index !== -1) {
-      ads.value[index] = {
-        id: editAd.value.id,
-        image: editAd.value.image || 'default-image.jpg',
-        title: editAd.value.title,
-        content: editAd.value.content,
-        url: editAd.value.url
-      };
-      showEditModal.value = false;
-      editAd.value = { id: null, image: '', title: '', content: '', url: '' };
+const openRemoveConfirmModal = (reportId) => {
+  reportIdToRemove.value = reportId
+  showRemoveConfirmModal.value = true
+}
+const confirmDelete = async () => {
+  const reportId = reportIdToDelete.value
+  const report = reports.value.find(r => r.id === reportId)
+  const postId = postMap.value[reportId]
+
+  try {
+    // 1. Xóa bài viết
+    await deletePost(postId)
+
+    // 2. Gửi update status (sử dụng đúng targetId để backend hiểu)
+    const payload = {
+      type: 'POST',
+      action: 'APPROVED'
     }
-  } else {
-    alert('Vui lòng điền đầy đủ các trường bắt buộc!');
+
+    await updateReportStatus(postId, payload) // ✅ Gửi postId = targetId (khớp API backend)
+
+    // 3. Cập nhật UI
+    reports.value = reports.value.filter(r => r.id !== reportId)
+    notificationMessage.value = `✅ Đã xóa bài viết ID ${postId} và đánh dấu báo cáo là đã xử lý.`
+  } catch (err) {
+    console.error('❌ Lỗi khi xóa bài viết hoặc cập nhật báo cáo:', err)
+    notificationMessage.value = `❌ Lỗi khi xóa bài viết hoặc cập nhật báo cáo.`
   }
-};
 
-const openDeleteModal = (id) => {
-  deleteAdId.value = id;
-  showDeleteModal.value = true;
-};
+  showNotification.value = true
+  setTimeout(() => (showNotification.value = false), 3000)
+  closeDeleteConfirmModal()
+}
 
-const confirmDelete = () => {
-  if (deleteAdId.value !== null) {
-    ads.value = ads.value.filter(ad => ad.id !== deleteAdId.value);
-    showDeleteModal.value = false;
-    deleteAdId.value = null;
+const confirmRemove = async () => {
+  const reportId = reportIdToRemove.value
+  const report = reports.value.find(r => r.id === reportId)
+
+  try {
+    const payload = {
+      type: 'POST',
+      action: 'CANCELLED'
+    }
+
+    await updateReportStatus(postMap.value[reportId], payload) // ✅ Gửi targetId đúng là postId
+
+    reports.value = reports.value.filter(r => String(r.id) !== String(reportId))
+    notificationMessage.value = `✅ Đã gỡ tố cáo với ID: ${reportId}.`
+  } catch (err) {
+    console.error('❌ Lỗi gỡ báo cáo:', err?.response?.data || err)
+    notificationMessage.value = `❌ Không thể gỡ tố cáo ID: ${reportId}.`
   }
-};
 
-const showDetails = (ad) => {
-  selectedAd.value = { ...ad };
-  showDetailsModal.value = true;
-};
+  showNotification.value = true
+  setTimeout(() => (showNotification.value = false), 3000)
+  closeRemoveConfirmModal()
+}
+
+// Đóng modal
+const closeDeleteConfirmModal = () => {
+  showDeleteConfirmModal.value = false
+  reportIdToDelete.value = null
+}
+
+const closeRemoveConfirmModal = () => {
+  showRemoveConfirmModal.value = false
+  reportIdToRemove.value = null
+}
+
+const closeModal = () => {
+  showModal.value = false
+  selectedReport.value = null
+}
 </script>
+
 
 <style scoped>
 .admin-ad {

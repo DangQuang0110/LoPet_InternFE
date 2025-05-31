@@ -1,13 +1,13 @@
-import apiService from "@/api/apiService";
+// src/service/reportService.js
+import apiService from '@/api/apiService'
 
+export async function createReport(payload) {
+  return await apiService.post('/v1/reports', payload)
+}
+export function getReports(params) {
+  return apiService.get('/v1/reports', { params })
+}
 
-// tạo cái báo cáo tố cáo thằng vi phạm nè cầu
-export const sendReport = async (reportData) => {
-  try {
-    const response = await apiService.post(`/v1/reports`, reportData);
-    return response.data;
-  } catch (error) {
-    console.error('Error sending report:', error);
-    throw error;
-  }
+export async function updateReportStatus(targetId, payload) {
+  return apiService.put(`/v1/reports/${targetId}`, payload)
 }

@@ -93,31 +93,6 @@ const stats = ref({
     rejected: 10
   }
 })
-
-// Fetch statistics data on mount
-onMounted(async () => {
-  if (route.path === '/admin') {
-    try {
-      // Replace with your actual API endpoint
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      const data = await response.json()
-      stats.value = {
-        totalUsers: data.totalUsers || 1200,
-        totalDenunciations: data.totalDenunciations || 80,
-        totalAds: data.totalAds || 150,
-        userGrowth: data.userGrowth || stats.value.userGrowth,
-        denunciationStatus: data.denunciationStatus || stats.value.denunciationStatus
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error)
-    }
-  }
-})
-
 // Handle logout
 const handleLogout = () => {
   router.push('/')

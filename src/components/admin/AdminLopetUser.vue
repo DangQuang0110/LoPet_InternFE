@@ -49,11 +49,12 @@
         <h2 id="modal-title">Cập nhật vai trò người dùng</h2>
         <div class="form-group">
           <label for="role-select">Chọn Vai trò:</label>
-          <select v-model="selectedUser.role" id="role-select">
-            <option value="Quản trị viên">Quản trị viên</option>
-            <option value="Người dùng">Người dùng</option>
-            <option value="Biên tập viên">Quản trị quảng cáo</option>
-          </select>
+            <select v-model="selectedUser.role" id="role-select">
+              <option value="Người dùng">Người dùng</option>
+              <option v-for="role in roleOptions" :key="role.id" :value="role.name">
+                {{ role.name }}
+              </option>
+            </select>
         </div>
         <div class="modal-buttons">
           <button class="modal-update-btn" @click="saveUserRole">Cập nhật</button>
@@ -61,55 +62,123 @@
         </div>
       </div>
     </div>
+    <div v-if="showConfirmModal" class="modal-overlay">
+      <div class="modal-content">
+        <h2>Xác nhận</h2>
+        <p>
+          Bạn có chắc chắn muốn 
+          {{ confirmAction === 'ban' ? 'khóa' : 'mở khóa' }}
+          tài khoản "<strong>{{ confirmUser?.name }}</strong>" không?
+        </p>
+        <div class="modal-buttons">
+          <button class="modal-update-btn" @click="handleConfirmedAction">Xác nhận</button>
+          <button class="modal-cancel-btn" @click="showConfirmModal = false">Hủy</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick } from 'vue'
+import {
+  getAccountList,
+  banAccount,
+  unbanAccount,
+  getRolesList,
+  setRolesToAccount
+} from '@/service/authService'
 
-const USER_CONSTANT = [
-  { id: 1, name: 'Phem', email: 'phem12@gmail.com', role: 'Quản trị viên', status: 'Đã khóa' },
-  { id: 2, name: 'Câu', email: 'cau21@gmail.com', role: 'Người dùng', status: 'Hoạt động' },
-  { id: 3, name: 'Trương', email: '0123456789', role: 'Người dùng', status: 'Đã khóa' },
-  { id: 4, name: 'Vũ', email: '0123456789', role: 'Biên tập viên', status: 'Đã khóa' }
-];
+const users = ref([])
+const showModal = ref(false)
+const selectedUser = ref(null)
 
-const users = ref([]);
-const showModal = ref(false);
-const selectedUser = ref(null);
+const roleOptions = ref([]) // 👉 Danh sách vai trò từ API
+const confirmUser = ref(null)
+const showConfirmModal = ref(false)
+const confirmAction = ref('')
 
-onMounted(() => {
-  users.value = [...USER_CONSTANT];
-});
+onMounted(async () => {
+  await loadUsers()
+  roleOptions.value = await getRolesList()
+})
+
+const loadUsers = async () => {
+  const data = await getAccountList()
+  users.value = data.map(u => ({
+    id: u.id,
+    name: u.username,
+    email: u.email,
+    role: u.roles?.map(r => r.name).join(', ') || 'Người dùng',
+    status: u.isBanned === 1 ? 'Đã khóa' : 'Hoạt động'
+  }))
+}
 
 const toggleStatus = (user) => {
-  user.status = user.status === 'Đã khóa' ? 'Hoạt động' : 'Đã khóa';
-};
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  if (currentUser.id === user.id) {
+    alert('⛔ Không thể tự khóa tài khoản của chính mình.')
+    return
+  }
+
+  confirmUser.value = user
+  confirmAction.value = user.status === 'Đã khóa' ? 'unban' : 'ban'
+  showConfirmModal.value = true
+}
+
+const handleConfirmedAction = async () => {
+  const user = confirmUser.value
+  try {
+    if (confirmAction.value === 'ban') {
+      await banAccount(user.id)
+      user.status = 'Đã khóa'
+    } else {
+      await unbanAccount(user.id)
+      user.status = 'Hoạt động'
+    }
+  } catch (error) {
+    console.error('Lỗi khi cập nhật trạng thái người dùng:', error)
+    alert('⚠️ Có lỗi xảy ra.')
+  } finally {
+    showConfirmModal.value = false
+    confirmUser.value = null
+    confirmAction.value = ''
+  }
+}
 
 const openUpdateModal = (user) => {
-  selectedUser.value = { ...user };
-  showModal.value = true;
-  document.body.style.overflow = 'hidden';
+  selectedUser.value = { ...user }
+  showModal.value = true
+  document.body.style.overflow = 'hidden'
   nextTick(() => {
-    document.querySelector('.modal-content').focus();
-  });
-};
+    document.querySelector('.modal-content')?.focus()
+  })
+}
 
-const saveUserRole = () => {
-  const userIndex = users.value.findIndex(u => u.id === selectedUser.value.id);
-  if (userIndex !== -1) {
-    users.value[userIndex].role = selectedUser.value.role;
+const saveUserRole = async () => {
+  try {
+    const roleToSet = selectedUser.value.role === 'Người dùng' ? [] : [selectedUser.value.role]
+
+    await setRolesToAccount(selectedUser.value.id, roleToSet)
+
+    const userIndex = users.value.findIndex(u => u.id === selectedUser.value.id)
+    if (userIndex !== -1) {
+      users.value[userIndex].role = selectedUser.value.role
+    }
+
+    closeModal()
+  } catch (error) {
+    alert('⚠️ Không thể cập nhật vai trò.')
   }
-  closeModal();
-};
+}
+
 
 const closeModal = () => {
-  showModal.value = false;
-  selectedUser.value = null;
-  document.body.style.overflow = '';
-};
+  showModal.value = false
+  selectedUser.value = null
+  document.body.style.overflow = ''
+}
 </script>
-
 <style scoped>
 .admin-user {
   padding: 2rem;
@@ -320,6 +389,43 @@ h1 {
 
 .modal-cancel-btn:hover {
   background-color: #c82333;
+}
+/* Hiệu ứng transition cho modal */
+.modal-overlay {
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  animation: slideUp 0.3s ease;
+  text-align: center;
+}
+
+.modal-content p {
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  color: #343a40;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.modal-content strong {
+  color: #007bff;
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from { background: rgba(0, 0, 0, 0); }
+  to { background: rgba(0, 0, 0, 0.5); }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @media screen and (max-width: 768px) {

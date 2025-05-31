@@ -29,7 +29,6 @@
             </div>
           </transition>
         </header>
-
         <!-- Composer -->
         <div class="composer" @click="showCreate = true">
           <img class="composer-avatar" :src="currentUserAvatar" alt="User Avatar" />
@@ -56,12 +55,11 @@
                   </button>
                   <div v-if="openedMenuPostId === post.id" class="post-menu" @click.stop>
                     <ul>
-                      <li @click="showReport = true">Báo cáo bài viết</li>
+                      <li @click="openReport(post)">Báo cáo bài viết</li>
                     </ul>
                   </div>
                 </div>
               </div>
-
               <!-- Content -->
               <div class="post-content">
                 <p>
@@ -72,7 +70,6 @@
                   <!-- Nếu mở rộng hoặc nội dung ngắn thì hiển thị toàn bộ -->
                   <span v-else>{{ post.text }}</span>
                 </p>
-
                 <!-- Nút xem thêm / thu gọn -->
                 <button
                   v-if="post.text.length > 200"
@@ -104,7 +101,6 @@
                   <img src="/images/share.png" alt="Share" class="icon-img-share" />
                 </button>
               </div>
-
               <!-- Comments Popup -->
               <transition name="fade">
                 <div v-if="showCommentPopup" class="comments-overlay" @click.self="toggleCommentPopup">
@@ -193,7 +189,6 @@
             </div>
           </div>
         </div>
-
         <hr />
 
         <h3>Gợi ý cho bạn</h3>
@@ -217,8 +212,12 @@
       <!-- CreatePost Modal -->
       <CreatePost v-if="showCreate" @close="handleCreatePostClose" @refresh="refreshData" />
       <!-- ReportModal -->
-      <ReportModal v-if="showReport" @close="showReport = false" @report="onReport" />
-
+      <ReportModal
+  v-if="showReport"
+  :postId="openedMenuPostId"
+  @close="showReport = false"
+  @report="onReport"
+/>
       <!-- Comments Modal -->
       <transition name="fade">
         <div v-if="showCommentsModal" class="comments-overlay">
@@ -366,6 +365,7 @@ import { getAccountById } from '@/service/authService'
 import { getSuggestedFriends, getFriendList } from '@/service/friendService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
 import { getProfileByAccountId } from '@/service/profileService'
+import { createReport } from '@/service/reportService'
 // import Sendbutton from "@/assets/Sendbutton.svg"
 
 const search = ref('')
@@ -583,10 +583,6 @@ async function addComment(post) {
   }
 }
 
-function onReport(reason) {
-  console.log('Báo cáo vì:', reason)
-}
-
 async function fetchPosts() {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -718,6 +714,39 @@ async function fetchPosts() {
     }
   }
 }
+function onReport() {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (!user?.id || !openedMenuPostId.value) return
+
+  const post = posts.value.find(p => p.postId === openedMenuPostId.value)
+
+  if (!post || !post.postId) {
+    alert('❌ Không thể xác định bài viết cần báo cáo.')
+    return
+  }
+
+  const reason = prompt('Nhập lý do báo cáo bài viết này:')
+  if (!reason || reason.trim().length === 0) {
+    alert('⚠️ Lý do không được để trống!')
+    return
+  }
+
+  createReport({
+    accountId: user.id,
+    targetId: post.postId,
+    type: 'POST',
+    reason: reason.trim()
+  })
+    .then(() => {
+      alert('✅ Báo cáo đã được gửi thành công!')
+      showReport.value = false
+      openedMenuPostId.value = null
+    })
+    .catch((error) => {
+      console.error('❌ Lỗi gửi báo cáo:', error)
+      alert('❌ Không thể gửi báo cáo. Vui lòng thử lại sau.')
+    })
+}
 
 onMounted(async () => {
   await refreshData()
@@ -731,6 +760,10 @@ onMounted(async () => {
     suggestions.value = suggest
   }
 })
+function openReport(post) {
+  openedMenuPostId.value = post.postId // phải dùng đúng post.postId
+  showReport.value = true
+}
 </script>
 
 <style scoped>
