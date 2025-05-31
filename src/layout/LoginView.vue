@@ -58,6 +58,12 @@
         <p class="footer">
           Chưa có tài khoản? <router-link to="/register">Đăng ký ngay</router-link>
         </p>
+        <p
+          v-if="loginMessage"
+          :class="['login-notification', messageType]"
+        >
+          {{ loginMessage }}
+        </p>
       </div>
     </div>
   </div>
@@ -392,7 +398,6 @@ const handleLogin = async () => {
   width: 20px;
   height: 20px;
   stroke: #888; 
-  margin-top: -30px;   /* màu nhạt khi chưa tương tác */
 }
 .password-group input:focus ~ .toggle-password svg,
 .toggle-password:hover svg {

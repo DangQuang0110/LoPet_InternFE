@@ -86,11 +86,11 @@
               <!-- Actions -->
               <div class="post-actions">
                 <button class="btn-icon like-btn" @click="toggleLike(post)">
-                  <img
-                    :src="post.liked ? '/assets/liked.png' : '/assets/like.png'"
-                    alt="Like"
-                    class="icon-img-like"
-                  />
+                <img
+                  :src="getLikeIcon(post)"
+                  alt="Like"
+                  class="icon-img-like"
+                />
                 </button>
                 <span class="count">{{ post.likes }}</span>
                 <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">
@@ -163,28 +163,12 @@
         <div class="ads">
           <h3>Quảng cáo</h3>
           <div class="ad-list">
-            <div class="ad-card">
-              <img src="/assets/ad1.png" alt="Trà sữa Toyo" />
+            <div class="ad-card" v-for="ad in advertisements" :key="ad.id">
+              <img :src="ad.imageUrl" :alt="ad.title" />
               <div class="ad-info">
-                <h4 class="ad-title">Trà sữa Toyo</h4>
-                <p class="ad-desc">Trà sữa thơm ngon bổ dưỡng</p>
-                <!-- <span class="ad-domain">toto.com.vn</span> -->
-              </div>
-            </div>
-            <div class="ad-card">
-              <img src="/assets/ad2.jpg" alt="Free FPS game" />
-              <div class="ad-info">
-                <h4 class="ad-title">Free FPS game</h4>
-                <p class="ad-desc">Best FPS game ever</p>
-                <!-- <span class="ad-domain">fps.com.vn</span> -->
-              </div>
-            </div>
-            <div class="ad-card">
-              <img src="/assets/ad3.jpg" alt="Best Movie" />
-              <div class="ad-info">
-                <h4 class="ad-title">Best Movie</h4>
-                <p class="ad-desc">Best movie</p>
-                <!-- <span class="ad-domain">movie.com.vn</span> -->
+                <h4 class="ad-title">{{ ad.title }}</h4>
+                <p class="ad-desc">{{ ad.description }}</p>
+                <a :href="ad.linkReferfence" target="_blank" class="ad-link">{{ ad.linkReferfence }}</a>
               </div>
             </div>
           </div>
@@ -213,11 +197,11 @@
       <CreatePost v-if="showCreate" @close="handleCreatePostClose" @refresh="refreshData" />
       <!-- ReportModal -->
       <ReportModal
-  v-if="showReport"
-  :postId="openedMenuPostId"
-  @close="showReport = false"
-  @report="onReport"
-/>
+        v-if="showReport"
+        :postId="openedMenuPostId"
+        @close="showReport = false"
+        @report="onReport"
+      />
       <!-- Comments Modal -->
       <transition name="fade">
         <div v-if="showCommentsModal" class="comments-overlay">
@@ -366,6 +350,7 @@ import { getSuggestedFriends, getFriendList } from '@/service/friendService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
 import { getProfileByAccountId } from '@/service/profileService'
 import { createReport } from '@/service/reportService'
+import { getListAds } from '@/service/admin/AdsService'
 // import Sendbutton from "@/assets/Sendbutton.svg"
 
 const search = ref('')
@@ -377,6 +362,8 @@ const suggestions = ref([])
 const openedMenuPostId = ref(null)
 const showDeleteConfirm = ref(false)
 const deleteTargetId = ref(null)
+const advertisements = ref([])
+
 
 const showSharePopup = ref(false)
 const showPrivacy = ref(false)
@@ -398,6 +385,15 @@ const replyInputs = reactive({})
 const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
 
+
+function getRandomAds(list, count = 3) {
+  if (!Array.isArray(list)) {
+    console.warn('⚠️ getRandomAds nhận dữ liệu không phải mảng:', list)
+    return []
+  }
+  const shuffled = [...list].sort(() => 0.5 - Math.random())
+  return shuffled.slice(0, count)
+}
 
 
 
@@ -455,6 +451,10 @@ function handleCreatePostClose() {
   showCreate.value = false
   refreshData()
 }
+function getLikeIcon(post) {
+  return post.liked ? '/assets/liked.png' : '/assets/like.png'
+}
+
 
 function toggleExpand(postId) {
   expandedPosts.value[postId] = !expandedPosts.value[postId]
@@ -489,8 +489,6 @@ async function toggleLike(post) {
       if (!Array.isArray(post.postLikes)) post.postLikes = []
       post.postLikes.push({ accountId: user.id })
     }
-    
-    await refreshData() // Refresh after toggling like
   } catch (error) {
     console.error('❌ Lỗi khi xử lý like/unlike:', error)
   }
@@ -685,8 +683,11 @@ async function fetchPosts() {
             }
           }
           const comments = Object.values(commentMap)
-          const isLiked = post.postLikes?.some(like => like.accountId === user.id)
-
+          const liked =
+            Array.isArray(post.postLikes) &&
+            post.postLikes.some(like =>
+              like.accountId === user.id || like.account?.id === user.id
+            )
           postResults.push({
             postId: post.postId,
             user: username,
@@ -697,7 +698,7 @@ async function fetchPosts() {
             likes: post.likeAmount || 0,
             commentsList: comments,
             postLikes: post.postLikes || [],
-            liked: isLiked
+            liked
           })
         }
       } catch (postError) {
@@ -752,14 +753,41 @@ onMounted(async () => {
   await refreshData()
   setInterval(refreshData, 60000)
 })
-
+onMounted(async () => {
+  const ads = await getListAds()
+  advertisements.value = getRandomAds(ads, 3)
+})
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (user.id) {
     const suggest = await getSuggestedFriends(user.id, 4)
-    suggestions.value = suggest
+
+    const enrichedSuggestions = await Promise.all(suggest.map(async (s) => {
+      try {
+        const [acc, prof] = await Promise.all([
+          getAccountById(s.id),
+          getProfileByAccountId(s.id)
+        ])
+
+        return {
+          id: s.id,
+          name: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+          src: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg'
+        }
+      } catch (err) {
+        console.error(`❌ Không thể lấy thông tin cho userId ${s.id}`, err)
+        return {
+          id: s.id,
+          name: 'Ẩn danh',
+          src: '/image/avata.jpg'
+        }
+      }
+    }))
+
+    suggestions.value = enrichedSuggestions
   }
 })
+
 function openReport(post) {
   openedMenuPostId.value = post.postId // phải dùng đúng post.postId
   showReport.value = true
