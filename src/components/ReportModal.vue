@@ -15,7 +15,7 @@
         </div>
       </div>
       <footer class="report-footer">
-        <button class="confirm-btn" @click="confirm">Xác nhận</button>
+        <button class="confirm-btn" @click="submitReport">Xác nhận</button>
       </footer>
     </div>
   </div>
@@ -23,14 +23,23 @@
 
 <script setup>
 import { ref } from 'vue'
-const emit = defineEmits(['close', 'report'])
+import { createReport } from '@/service/reportService'
+
+const props = defineProps({
+  postId: {
+    type: [Number, String], // chấp nhận cả Number và String từ cha
+    required: true
+  }
+})
+
+const emit = defineEmits(['close', 'done'])
 
 const options = [
   { value: 'false_info', label: 'Thông tin sai sự thật, lừa đảo hoặc gian lận' },
   { value: 'intellectual_property', label: 'Quyền sở hữu trí tuệ' },
   { value: 'under_18', label: 'Vấn đề liên quan tới người dưới 18 tuổi' },
   { value: 'self_harm', label: 'Tự tử hoặc gây thương tích' },
-  { value: 'harassment', label: 'Bắt nạt, quấy rối hoặc lăng mạ / lạm dụng / ngược đãi' },
+  { value: 'harassment', label: 'Bắt nạt, quấy rối hoặc lăng mạ / lạm dụng / ngược đãi' }
 ]
 
 const selected = ref(options[0].value)
@@ -39,9 +48,40 @@ function close() {
   emit('close')
 }
 
-function confirm() {
-  emit('report', selected.value)
-  close()
+async function submitReport() {
+  const reasonMap = {
+    false_info: 'Thông tin sai sự thật, lừa đảo hoặc gian lận',
+    intellectual_property: 'Quyền sở hữu trí tuệ',
+    under_18: 'Vấn đề liên quan tới người dưới 18 tuổi',
+    self_harm: 'Tự tử hoặc gây thương tích',
+    harassment: 'Bắt nạt, quấy rối hoặc lăng mạ / lạm dụng / ngược đãi'
+  }
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const userId = user?.id
+  const postId = Number(props.postId)
+
+  if (!userId || !postId) {
+    console.error('❌ Thiếu thông tin:', { userId, postId })
+    alert('Không đủ thông tin để báo cáo.')
+    return
+  }
+
+  try {
+    await createReport({
+      accountId: userId,
+      targetId: postId,
+      type: 'POST',
+      reason: reasonMap[selected.value]
+    })
+
+    alert('✅ Báo cáo đã được gửi thành công!')
+    emit('done')
+    close()
+  } catch (err) {
+    console.error('❌ Lỗi gửi báo cáo:', err)
+    alert('❌ Không thể gửi báo cáo. Vui lòng thử lại.')
+  }
 }
 </script>
 

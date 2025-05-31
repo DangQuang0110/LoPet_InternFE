@@ -107,134 +107,157 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from 'vue'
+import { getReports, updateReportStatus } from '@/service/reportService'
+import { getPostById, deletePost } from '@/service/postService'
+import { getProfileByAccountId } from '@/service/profileService'
 
-// Static report data updated to include date, content, and image
-const REPORT_CONSTANT = [
-  { 
-    id: 1, 
-    reporter: 'Phem', 
-    date: 'Thứ 7 ngày 5 lịch 15:48', 
-    content: 'adsadssdassadsss', 
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c', // Example image URL
-    reason: 'Hình ảnh không phù hợp', 
-    status: 'Chưa xử lý' 
-  },
-  { 
-    id: 2, 
-    reporter: 'Cậu', 
-    date: 'Thứ 7 ngày 5 lịch 15:48', 
-    content: 'Bình luận xúc phạm', 
-    image: 'https://via.placeholder.com/50', 
-    reason: 'Bình luận xúc phạm', 
-    status: 'Chưa xử lý' 
-  },
-  { 
-    id: 3, 
-    reporter: 'Trường', 
-    date: 'Thứ 7 ngày 5 lịch 15:48', 
-    content: 'Spam quảng cáo', 
-    image: 'https://via.placeholder.com/50', 
-    reason: 'Spam quảng cáo', 
-    status: 'Chưa xử lý' 
-  },
-  { 
-    id: 4, 
-    reporter: 'Vũ', 
-    date: 'Thứ 7 ngày 5 lịch 15:48', 
-    content: 'Hành vi quấy rối', 
-    image: 'https://via.placeholder.com/50', 
-    reason: 'Hành vi quấy rối', 
-    status: 'Chưa xử lý' 
+const reports = ref([])
+const showModal = ref(false)
+const selectedReport = ref(null)
+const showDeleteConfirmModal = ref(false)
+const showRemoveConfirmModal = ref(false)
+const reportIdToDelete = ref(null)
+const reportIdToRemove = ref(null)
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const postMap = ref({}) // map lưu postId theo reportId để gọi xóa
+
+// Gọi API khi mounted
+onMounted(async () => {
+  try {
+    const res = await getReports({ type: 'POST' })
+    console.log('📥 Dữ liệu gốc từ backend:', res.data)
+
+    const list = (res.data?.data || []).filter(item => item.action === 'PENDING' || item.action === 0)
+    console.log('🧹 Dữ liệu sau khi lọc (PENDING):', list)
+
+    const mappedReports = await Promise.all(
+      list.map(async (item) => {
+        let image = '/image/default.jpg'
+        let content = '(Không có nội dung)'
+        let authorName = 'Ẩn danh'
+        const postId = item.targetId
+
+        try {
+          const post = await getPostById(postId)
+          image = post?.postMedias?.[0]?.mediaUrl || image
+          content = post?.content || content
+
+          const accountId = post?.accountId
+          if (accountId) {
+            const profile = await getProfileByAccountId(accountId)
+            authorName = profile?.fullName || 'Ẩn danh'
+          }
+
+          postMap.value[item.id || item.reportId] = postId
+        } catch (e) {
+          console.warn('⚠️ Không lấy được bài viết hoặc profile:', e)
+        }
+
+        return {
+          id: item.id || item.reportId,
+          reporter: authorName,
+          image,
+          reason: item.reason,
+          status: item.action === 'PENDING' || item.action === 0 ? 'Chưa xử lý' : 'Đã xử lý',
+          date: new Date(item.createdAt).toLocaleString(),
+          content
+        }
+      })
+    )
+    reports.value = mappedReports
+    console.log('✅ Danh sách reports hiển thị:', reports.value)
+  } catch (err) {
+    console.error('❌ Lỗi khi load danh sách báo cáo:', err)
   }
-];
+})
 
-// Reactive data
-const reports = ref([]);
-const showModal = ref(false);
-const selectedReport = ref(null);
-const showDeleteConfirmModal = ref(false);
-const showRemoveConfirmModal = ref(false);
-const reportIdToDelete = ref(null);
-const reportIdToRemove = ref(null);
-const showNotification = ref(false);
-const notificationMessage = ref('');
-
-onMounted(() => {
-  reports.value = [...REPORT_CONSTANT];
-});
-
-// Open modal and set the selected report
 const openReviewModal = (report) => {
-  selectedReport.value = { ...report };
-  showModal.value = true;
-};
+  selectedReport.value = { ...report }
+  showModal.value = true
+}
 
-// Open delete confirmation modal
 const openDeleteConfirmModal = (reportId) => {
-  reportIdToDelete.value = reportId;
-  showDeleteConfirmModal.value = true;
-};
+  reportIdToDelete.value = reportId
+  showDeleteConfirmModal.value = true
+}
 
-// Open remove confirmation modal
 const openRemoveConfirmModal = (reportId) => {
-  reportIdToRemove.value = reportId;
-  showRemoveConfirmModal.value = true;
-};
+  reportIdToRemove.value = reportId
+  showRemoveConfirmModal.value = true
+}
+const confirmDelete = async () => {
+  const reportId = reportIdToDelete.value
+  const report = reports.value.find(r => r.id === reportId)
+  const postId = postMap.value[reportId]
 
-// Confirm delete action (delete the violating post)
-const confirmDelete = () => {
-  if (reportIdToDelete.value) {
-    reports.value = reports.value.filter(r => r.id !== reportIdToDelete.value);
+  try {
+    // 1. Xóa bài viết
+    await deletePost(postId)
+
+    // 2. Gửi update status (sử dụng đúng targetId để backend hiểu)
+    const payload = {
+      type: 'POST',
+      action: 'APPROVED'
+    }
+
+    await updateReportStatus(postId, payload) // ✅ Gửi postId = targetId (khớp API backend)
+
+    // 3. Cập nhật UI
+    reports.value = reports.value.filter(r => r.id !== reportId)
+    notificationMessage.value = `✅ Đã xóa bài viết ID ${postId} và đánh dấu báo cáo là đã xử lý.`
+  } catch (err) {
+    console.error('❌ Lỗi khi xóa bài viết hoặc cập nhật báo cáo:', err)
+    notificationMessage.value = `❌ Lỗi khi xóa bài viết hoặc cập nhật báo cáo.`
   }
-  closeDeleteConfirmModal();
-};
 
-// Confirm remove action (remove the report status of the post)
-const confirmRemove = () => {
-  if (reportIdToRemove.value) {
-    reports.value = reports.value.map(report => 
-      report.id === reportIdToRemove.value 
-        ? { ...report, status: 'Đã xử lý' }
-        : report
-    );
-    notificationMessage.value = `Tố cáo với ID ${reportIdToRemove.value} đã được gỡ.`;
-    showNotification.value = true;
-    setTimeout(() => {
-      showNotification.value = false;
-    }, 3000); // Hide notification after 3 seconds
+  showNotification.value = true
+  setTimeout(() => (showNotification.value = false), 3000)
+  closeDeleteConfirmModal()
+}
+
+const confirmRemove = async () => {
+  const reportId = reportIdToRemove.value
+  const report = reports.value.find(r => r.id === reportId)
+
+  try {
+    const payload = {
+      type: 'POST',
+      action: 'CANCELLED'
+    }
+
+    await updateReportStatus(postMap.value[reportId], payload) // ✅ Gửi targetId đúng là postId
+
+    reports.value = reports.value.filter(r => String(r.id) !== String(reportId))
+    notificationMessage.value = `✅ Đã gỡ tố cáo với ID: ${reportId}.`
+  } catch (err) {
+    console.error('❌ Lỗi gỡ báo cáo:', err?.response?.data || err)
+    notificationMessage.value = `❌ Không thể gỡ tố cáo ID: ${reportId}.`
   }
-  closeRemoveConfirmModal();
-};
 
-// Close delete confirmation modal
+  showNotification.value = true
+  setTimeout(() => (showNotification.value = false), 3000)
+  closeRemoveConfirmModal()
+}
+
+// Đóng modal
 const closeDeleteConfirmModal = () => {
-  showDeleteConfirmModal.value = false;
-  reportIdToDelete.value = null;
-};
+  showDeleteConfirmModal.value = false
+  reportIdToDelete.value = null
+}
 
-// Close remove confirmation modal
 const closeRemoveConfirmModal = () => {
-  showRemoveConfirmModal.value = false;
-  reportIdToRemove.value = null;
-};
+  showRemoveConfirmModal.value = false
+  reportIdToRemove.value = null
+}
 
-// Close modal
 const closeModal = () => {
-  showModal.value = false;
-  selectedReport.value = null;
-};
-
-// Delete report (handled via confirmation modal)
-const deleteReport = (reportId) => {
-  openDeleteConfirmModal(reportId);
-};
-
-// Remove content (handled via confirmation modal)
-const removeContent = (reportId) => {
-  openRemoveConfirmModal(reportId);
-};
+  showModal.value = false
+  selectedReport.value = null
+}
 </script>
+
 
 <style scoped>
 .admin-report {

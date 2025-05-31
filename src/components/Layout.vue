@@ -14,8 +14,11 @@
                 </router-link>
               </li>
               <li class="nav-item">
-                <a class="nav-link" @click.prevent="toggleNotifications">
-                  <img src="../assets/notification.png" alt="Thông báo" class="nav-icon" />
+                <a class="nav-link notification-wrapper" @click.prevent="toggleNotifications">
+                  <div class="icon-with-badge">
+                    <img src="../assets/notification.png" alt="Thông báo" class="nav-icon" />
+                    <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
+                  </div>
                   <span>Thông báo</span>
                 </a>
               </li>
@@ -80,35 +83,37 @@
           <template v-if="activeTab === 'all'">
             <p class="section-title">Mới</p>
 <!-- Click để mở chat -->
-            <div
-              v-for="(item,k) in notifications.unread"
-              :key="k"
-              :class="['notification-item', { unread: !item.isRead }]"
-              @click="goToChat(item.actorId)"
-            >
-              <div class="avatar-wrapper">
-                <img class="avatar" :src="item.avatar" alt="avatar" />
+              <div
+                v-for="(item, k) in notifications.unread"
+                :key="k"
+                :class="['notification-item', { unread: !item.isRead }]"
+                @click="handleNotificationClick(item, k)"
+              >
+                <!-- Di chuyển sự kiện click từ item-content lên notification-item -->
+                <div class="avatar-wrapper">
+                  <img class="avatar" :src="item.avatar" alt="avatar" />
+                </div>
+                <div class="item-content">
+                  <p>
+                    <span class="username">{{ item.name }}</span> {{ item.text }}
+                    <span v-if="!item.isRead" class="dot"></span>
+                  </p>
+                  <p class="timestamp">{{ item.time }}</p>
+                </div>
+                <!-- SỬA i => k -->
+                <button class="more-btn" @click.stop="toggleMenu(k)">
+                  <i class="fas fa-ellipsis-h"></i>
+                </button>
+
+                <div v-if="openMenuIdx === k" class="item-menu">
+                  <ul>
+                    <li @click="markAsRead(k)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
+                    <li @click="deleteNotification(k)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
+                    <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về “{{ item.name }}”</li>
+                    <li @click="reportIssue(k)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
+                  </ul>
+                </div>
               </div>
-              <div class="item-content">
-              <p>
-                <span class="username">{{ item.name }}</span> {{ item.text }}
-                <span v-if="!item.isRead" class="dot"></span>
-              </p>
-                <p class="timestamp">{{ item.time }}</p>
-              </div>
-              <button class="more-btn" @click.stop="toggleMenu(i)">
-                <i class="fas fa-ellipsis-h"></i>
-              </button>
-              <!-- Context Menu -->
-              <div v-if="openMenuIdx === i" class="item-menu">
-                <ul>
-                  <li @click="markAsRead(i)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
-                  <li @click="deleteNotification(i)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                  <li @click="muteTopic(i)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
-                  <li @click="reportIssue(i)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
-                </ul>
-              </div>
-            </div>
               <div
                 v-for="(item,j) in notifications.read"
                 :key="j"
@@ -174,8 +179,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted,computed,watch  } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { logoutUser, getAccountById } from '@/service/authService'
 import { getProfileByAccountId } from '@/service/profileService'
 import { getNotificationList } from '@/service/notificationService'
@@ -184,16 +189,23 @@ import { updateNotificationStatus } from '@/service/notificationService'
 const showNotifications = ref(false)
 const activeTab = ref('all')
 const router = useRouter()
+const route = useRoute()
 const openMenuIdx = ref(null)
 const showLogoutMenu = ref(false)
 const currentUser = ref({ name: '', avatar: '' })
 const friends = ref([])
+const unreadCount = computed(() => notifications.value.unread.length)
 
 const notifications = ref({
   unread: [],
   read: []
 })
-
+watch(() => route.query.friendId, (newVal) => {
+  if (newVal && route.query.fromNotification) {
+    // Tự động chọn người bạn từ thông báo
+    selectFriend(Number(newVal))
+  }
+})
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
   openMenuIdx.value = null
@@ -217,64 +229,88 @@ function handleLogout() {
   logoutUser()
   router.push('/login')
 }
-async function markAsRead(idx) {
-  const item = notifications.value.unread[idx]
+async function markAsRead(index) {
+  const item = notifications.value.unread[index]
   if (!item) return
 
   try {
     await updateNotificationStatus(item.notificationId, 'READ')
     item.isRead = true
-
-    // Di chuyển từ unread sang read
-    notifications.value.unread.splice(idx, 1)
-    notifications.value.read.unshift({ ...item, type: 'read' })
-
+    notifications.value.unread.splice(index, 1)
+    notifications.value.read.unshift({ ...item })
     openMenuIdx.value = null
   } catch (err) {
     console.error('❌ Lỗi khi cập nhật trạng thái thông báo:', err)
   }
 }
-function goToChat(actorId) {
-  router.push('/message')
+// async function goToChat(actorId) {
+//   const idx = notifications.value.unread.findIndex(n => n.actorId === actorId)
+//   const item = notifications.value.unread[idx]
 
-  setTimeout(() => {
-    const friend = friends.value.find(f => f.id === actorId)
-    if (friend) {
-      selectedFriend.value = friend
-      showSidebar.value = false
-      showNotifications.value = false // ✅ Ẩn popup khi mở chat
-    } else {
-      console.warn('⚠️ Không tìm thấy người tạo thông báo trong friends:', actorId)
-    }
-  }, 300)
-}
+//   if (item && !item.isRead) {
+//     try {
+//       await updateNotificationStatus(item.notificationId, 'READ')
+//       item.isRead = true
+//       notifications.value.unread.splice(idx, 1)
+//       notifications.value.read.unshift({ ...item, type: 'read' })
+//     } catch (err) {
+//       console.error('❌ Lỗi cập nhật trạng thái khi click:', err)
+//     }
+//   }
+//   try {
+//     await router.push('/message')
+//     console.log('✅ Đã chuyển sang trang message')
+//   } catch (e) {
+//     console.error('❌ Không thể chuyển sang message:', e)
+//   }
+// }
 // Nhận socket 'notification'
 socket.on('notification', async (data) => {
-  // data: { actorId, receptorId, content, objectType, createdAt }
-
   try {
     const [account, profile] = await Promise.all([
       getAccountById(data.actorId),
       getProfileByAccountId(data.actorId)
     ])
 
-    const name = profile?.fullName || account?.username || 'Ẩn danh'
-    const avatar = profile?.avatarUrl || account?.avatar || '/image/avata.jpg'
-
     notifications.value.unread.unshift({
-      notificationId: data.notificationId || Date.now(),
+      notificationId: data.notificationId,
       actorId: data.actorId,
-      name,
+      name: profile?.fullName || account?.username || 'Ẩn danh',
       text: data.content,
       time: 'Vừa xong',
-      avatar,
-      isRead: false, // luôn gán là chưa đọc khi vừa nhận
-      type: 'unread'
+      avatar: profile?.avatarUrl || '/image/avata.jpg',
+      isRead: false, // Luôn là chưa đọc khi mới nhận
+      type: data.type || 'MESSAGE' // Loại thông báo
     })
   } catch (err) {
     console.error('❌ Lỗi khi nhận thông báo socket:', err)
   }
 })
+// Thêm hàm xử lý khi click vào thông báo
+async function handleNotificationClick(item, index) {
+  try {
+        console.log('🔔 Click thông báo:', item)
+    // Nếu chưa đọc thì cập nhật trạng thái
+    if (!item.isRead) {
+      await updateNotificationStatus(item.notificationId, 'READ')
+      item.isRead = true
+      notifications.value.unread.splice(index, 1)
+      notifications.value.read.unshift({ ...item })
+    }
+
+    // Chuyển hướng đến trang message với query params
+    await router.push({
+      path: '/message',
+      query: { 
+        friendId: item.actorId,
+        fromNotification: true 
+      }
+    })
+    
+  } catch (err) {
+    console.error('❌ Lỗi khi xử lý click vào thông báo:', err)
+  }
+}
 
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -696,5 +732,35 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
   background-color: #00b300; /* xanh lá hoặc #009DFF nếu thích */
   border-radius: 50%;
   margin-left: 6px;
+}
+.icon-with-badge {
+  position: relative;
+  display: inline-block;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: red;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 50%;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1;
+}
+.notification-item {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+}
+
+.item-content {
+  flex-grow: 1; /* Chiếm hết không gian còn lại */
 }
 </style>

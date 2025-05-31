@@ -1,5 +1,5 @@
 import apiService from '@/api/apiService'
-import axios from 'axios'
+
 
 export const createPost = async (formData) => {
   try {
@@ -14,6 +14,16 @@ export const createPost = async (formData) => {
     throw error
   }
 }
+export const deletePost = async (postId) => {
+  const res = await apiService.delete(`/v1/posts/${postId}`)
+  return res.data
+}
+
+export const getPostById = async (postId) => {
+  const res = await apiService.get(`/v1/posts/${postId}`)
+  return res.data.data
+}
+
 export const getPosts = async () => {
   try {
     const response = await apiService.get('/v1/posts')
@@ -55,17 +65,6 @@ export async function unlikePost(accountId, postId) {
   console.log('📥 Response UNLIKE:', res.data)
   return res.data
 }
-
-export const deletePost = async (postId) => {
-  try {
-    console.log("postid nam trong ham call ne",postId)
-    const response = await apiService.delete(`/v1/posts/${postId}`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
 export const updatePost = async (postId, formData) => {
   try {
     
