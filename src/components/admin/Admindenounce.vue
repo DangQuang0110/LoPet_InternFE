@@ -1,107 +1,135 @@
 <template>
-  <div class="admin-report">
-    <h1>Quản lý tố cáo</h1>
-    <p class="section-title">Danh sách bị việt bị cáo</p>
-    <div class="table-wrapper">
-      <table class="report-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tác Giả</th>
-            <th>Hình Ảnh</th>
-            <th>Lý Do Tố Cáo</th>
-            <th>Hành Động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="report in reports" :key="report.id">
-            <td>{{ report.id }}</td>
-            <td>{{ report.reporter }}</td>
-            <td><img :src="report.image" alt="Hình ảnh" class="report-image" /></td>
-            <td>{{ report.reason }}</td>
-            <td class="action-column">
-              <button class="action-btn review-btn" @click="openReviewModal(report)">
-                Chi tiết
-              </button>
-              <button class="action-btn delete-btn" @click="openDeleteConfirmModal(report.id)">
-                Xóa
-              </button>
-              <button class="action-btn remove-btn" @click="openRemoveConfirmModal(report.id)">
-                Gỡ
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <div class="admin-ad">
+    <h1>Quản lý quảng cáo</h1>
+    <div class="header-section">
+      <p class="section-title">Danh sách quảng cáo</p>
+      <button class="add-btn" @click="showModal = true">Thêm quảng cáo</button>
+    </div>
+    <table class="ad-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Hình ảnh</th>
+          <th>Tiêu đề</th>
+          <th>Nội dung</th>
+          <th>Url</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="ad in ads" :key="ad.id">
+          <td>{{ ad.id }}</td>
+          <td><img :src="ad.image" alt="Ad Image" class="ad-image" /></td>
+          <td>{{ ad.title }}</td>
+          <td>{{ ad.content }}</td>
+          <td>{{ ad.url }}</td>
+          <td>
+            <button class="action-btn detail-btn" @click="showDetails(ad)">Chi tiết</button>
+            <button class="action-btn edit-btn" @click="openEditModal(ad)">Sửa</button>
+            <button class="action-btn delete-btn" @click="openDeleteModal(ad.id)">Xóa</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Modal for adding new advertisement -->
+    <div v-if="showModal" class="modal-overlay">
+      <div class="modal-content add-ad-modal">
+        <h2>Thêm quảng cáo</h2>
+        <div class="form-container">
+          <div class="form-group">
+            <label>Hình ảnh</label>
+            <input type="file" accept="image/*" @change="handleImageUpload($event, 'new')" />
+            <img v-if="newAd.image" :src="newAd.image" alt="Preview" class="image-preview" />
+          </div>
+          <div class="form-group">
+            <label>Tiêu đề</label>
+            <input type="text" v-model="newAd.title" placeholder="Nhập tiêu đề" />
+          </div>
+          <div class="form-group">
+            <label>Nội dung</label>
+            <input type="text" v-model="newAd.content" placeholder="Nhập nội dung" />
+          </div>
+          <div class="form-group">
+            <label>Url</label>
+            <input type="text" v-model="newAd.url" placeholder="Nhập URL" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="submit-btn" @click="addNewAd">Thêm</button>
+          <button class="cancel-btn" @click="showModal = false">Hủy</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Modal for reviewing report details -->
-    <div v-if="showModal" class="modal-overlay">
+    <!-- Modal for editing advertisement -->
+    <div v-if="showEditModal" class="modal-overlay">
       <div class="modal-content">
-        <h2>Chi tiết tố cáo</h2>
+        <h2>Sửa quảng cáo</h2>
         <div class="form-group">
-          <label>Người tố cáo:</label>
-          <p>{{ selectedReport.reporter }}</p>
+          <label>Hình ảnh</label>
+          <input type="file" accept="image/*" @change="handleImageUpload($event, 'edit')" />
+          <img v-if="editAd.image" :src="editAd.image" alt="Preview" class="image-preview" />
         </div>
         <div class="form-group">
-          <label>Ngày bị tố cáo:</label>
-          <p>{{ selectedReport.date }}</p>
+          <label>Tiêu đề</label>
+          <input type="text" v-model="editAd.title" placeholder="Tiêu đề" />
         </div>
         <div class="form-group">
-          <label>Nội dung:</label>
-          <p>{{ selectedReport.content }}</p>
+          <label>Nội dung</label>
+          <input type="text" v-model="editAd.content" placeholder="Nội dung" />
         </div>
         <div class="form-group">
-          <label>Hình ảnh:</label>
-          <img :src="selectedReport.image" alt="Hình ảnh" class="report-image" />
+          <label>Url</label>
+          <input type="text" v-model="editAd.url" placeholder="Url" />
+        </div>
+        <div class="form-actions">
+          <button class="submit-btn" @click="updateAd">Cập nhật</button>
+          <button class="cancel-btn" @click="showEditModal = false">Hủy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for viewing advertisement details -->
+    <div v-if="showDetailsModal" class="modal-overlay">
+      <div class="modal-content">
+        <h2>Chi tiết quảng cáo</h2>
+        <div class="form-group">
+          <label>ID</label>
+          <input type="text" :value="selectedAd.id" readonly />
         </div>
         <div class="form-group">
-          <label>Lý do tố cáo:</label>
-          <p>{{ selectedReport.reason }}</p>
+          <label>Hình ảnh</label>
+          <img :src="selectedAd.image" alt="Ad Image" class="image-preview" />
         </div>
         <div class="form-group">
-          <label>Trạng thái:</label>
-          <p>{{ selectedReport.status }}</p>
+          <label>Tiêu đề</label>
+          <input type="text" :value="selectedAd.title" readonly />
         </div>
-        <div class="modal-buttons">
-          <button class="modal-close-btn" @click="closeModal">Đóng</button>
+        <div class="form-group">
+          <label>Nội dung</label>
+          <input type="text" :value="selectedAd.content" readonly />
+        </div>
+        <div class="form-group">
+          <label>Url</label>
+          <input type="text" :value="selectedAd.url" readonly />
+        </div>
+        <div class="form-actions">
+          <button class="cancel-btn" @click="showDetailsModal = false">Đóng</button>
         </div>
       </div>
     </div>
 
     <!-- Modal for delete confirmation -->
-    <div v-if="showDeleteConfirmModal" class="modal-overlay">
-      <div class="delete-confirm-modal">
-        <h2>Xác nhận</h2>
-        <div class="confirm-icon">
-          <span class="checkmark">✔</span>
-        </div>
-        <p>Xóa bài viết vi phạm</p>
-        <div class="confirm-buttons">
-          <button class="confirm-btn" @click="confirmDelete">Xác nhận</button>
-          <button class="cancel-btn" @click="closeDeleteConfirmModal">Hủy</button>
+    <div v-if="showDeleteModal" class="modal-overlay">
+      <div class="modal-content">
+        <h2>Xác nhận xóa</h2>
+        <p>Bạn có chắc chắn muốn xóa quảng cáo này?</p>
+        <div class="form-actions">
+          <button class="submit-btn" @click="confirmDelete">Xóa</button>
+          <button class="cancel-btn" @click="showDeleteModal = false">Hủy</button>
         </div>
       </div>
-    </div>
-
-    <!-- Modal for remove confirmation -->
-    <div v-if="showRemoveConfirmModal" class="modal-overlay">
-      <div class="remove-confirm-modal">
-        <h2>Xác nhận</h2>
-        <div class="confirm-icon">
-          <span class="checkmark">✔</span>
-        </div>
-        <p>Gỡ tố cáo bài viết</p>
-        <div class="confirm-buttons">
-          <button class="confirm-btn" @click="confirmRemove">Xác nhận</button>
-          <button class="cancel-btn" @click="closeRemoveConfirmModal">Hủy</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Notification Form -->
-    <div v-if="showNotification" class="notification">
-      <p>{{ notificationMessage }}</p>
     </div>
   </div>
 </template>
@@ -260,7 +288,7 @@ const closeModal = () => {
 
 
 <style scoped>
-.admin-report {
+.admin-ad {
   padding: 2rem;
   max-width: 95vw;
   margin: 0 auto;
@@ -268,122 +296,151 @@ const closeModal = () => {
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
   min-height: 400px;
-  position: relative;
 }
 
 h1 {
   color: #2c3e50;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.5rem;
   font-size: clamp(1.5rem, 2.8vw, 2rem);
   font-weight: 700;
   text-align: left;
   letter-spacing: 0.3px;
 }
 
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+
 .section-title {
   font-size: clamp(1rem, 1.8vw, 1.2rem);
   color: #6c757d;
-  margin-bottom: 1.2rem;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  margin-bottom: 1.5rem;
+.add-btn {
+  background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+  color: white;
+  padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 1.8vw, 1.2rem);
+  border: none;
+  border-radius: 6px;
+  font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
-.report-table {
+.add-btn:hover {
+  background: #e67e22;
+  transform: translateY(-2px);
+}
+
+.ad-table {
   width: 100%;
-  min-width: 600px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: #ffffff;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
-.report-table th,
-.report-table td {
+.ad-table th,
+.ad-table td {
   padding: clamp(0.8rem, 1.8vw, 1.2rem);
-  /* border-bottom: 5px solid #e9ecef; */
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
   font-size: clamp(0.8rem, 1.3vw, 1rem);
 }
 
-.report-table th {
+.ad-table th {
   background: #A59A9A;
   color: #2c3e50;
   font-weight: 600;
+  text-transform: uppercase;
   font-size: clamp(0.7rem, 1.3vw, 0.9rem);
+  letter-spacing: 0.5px;
 }
 
-.report-table td {
+.ad-table td {
   color: #2c3e50;
   font-weight: 400;
 }
 
-.report-table tr:hover {
+.ad-table tr:hover {
   background-color: #f8f9fa;
 }
 
-.report-image {
+.ad-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ad-table td:first-child {
+  font-weight: 500;
+  color: #495057;
+}
+
+.ad-table td:nth-child(3) {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.ad-image {
   width: clamp(50px, 3vw, 60px);
   height: clamp(50px, 3vw, 60px);
   object-fit: cover;
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #e0e0e0;
+  transition: transform 0.3s ease;
 }
 
-.action-column {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
-  align-items: center;
-  white-space: nowrap;
+.ad-image:hover {
+  transform: scale(1.05);
 }
 
 .action-btn {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   padding: clamp(0.4rem, 1vw, 0.6rem) clamp(0.8rem, 1.5vw, 1rem);
   border: none;
   border-radius: 6px;
   font-size: clamp(0.7rem, 1vw, 0.9rem);
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  flex: 1;
+  transition: background 0.3s ease, transform 0.2s ease;
+  margin-right: 0.5rem;
 }
 
 .action-btn:hover {
   transform: translateY(-2px);
 }
 
-.review-btn {
-  background-color: #007bff;
+.detail-btn {
+  background: #007bff;
   color: white;
 }
 
-.review-btn:hover {
-  background-color: #0056b3;
+.detail-btn:hover {
+  background: #0056b3;
+}
+
+.edit-btn {
+  background: #28a745;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #1c7d33;
 }
 
 .delete-btn {
-  background-color: #dc3545;
+  background: #dc3545;
   color: white;
 }
 
 .delete-btn:hover {
-  background-color: #b02a37;
-}
-
-.remove-btn {
-  background-color: #28a745;
-  color: white;
-}
-
-.remove-btn:hover {
-  background-color: #1c7d33;
+  background: #b02a37;
 }
 
 /* Modal styles */
@@ -416,6 +473,11 @@ h1 {
   animation: scaleIn 0.3s ease-out;
 }
 
+.add-ad-modal {
+  max-width: clamp(600px, 90vw, 800px);
+  padding: clamp(1.5rem, 2.8vw, 2rem);
+}
+
 @keyframes scaleIn {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
@@ -428,185 +490,164 @@ h1 {
   text-align: center;
 }
 
+.form-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
 .form-group {
-  margin-bottom: clamp(1rem, 1.8vw, 1.2rem);
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
   display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #34495e;
   font-size: clamp(0.9rem, 1.3vw, 1rem);
-  color: #495057;
-  margin-bottom: 0.4rem;
+  text-align: left;
 }
 
-.form-group p {
-  font-size: clamp(0.9rem, 1.3vw, 1rem);
-  color: #2c3e50;
-  margin: 0;
-}
-
-.modal-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 0.8rem;
-}
-
-.modal-close-btn {
-  padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 1.8vw, 1.2rem);
-  border: none;
+.form-group input[type="text"],
+.form-group input[type="file"] {
+  width: 100%;
+  padding: clamp(0.6rem, 1.2vw, 0.8rem);
+  border: 2px solid #e0e0e0;
   border-radius: 6px;
-  font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  font-size: clamp(0.9rem, 1.3vw, 1rem);
+  background: #fff;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input[readonly] {
+  background: #f0f0f0;
+  cursor: not-allowed;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="file"]:focus {
+  border-color: #f39c12;
+  outline: none;
+  box-shadow: 0 0 6px rgba(243, 156, 18, 0.3);
+}
+
+.form-group input[type="file"] {
+  padding: clamp(0.4rem, 0.8vw, 0.6rem);
+  background: #f9f9f9;
   cursor: pointer;
-  background-color: #6c757d;
+}
+
+.form-group input[type="file"]::-webkit-file-upload-button {
+  background: #f39c12;
   color: white;
-  width: 50%;
-  transition: background-color 0.3s ease;
+  border: none;
+  padding: clamp(0.4rem, 0.8vw, 0.6rem) clamp(0.8rem, 1.5vw, 1rem);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  transition: background 0.3s ease;
 }
 
-.modal-close-btn:hover {
-  background-color: #5a6268;
+.form-group input[type="file"]::-webkit-file-upload-button:hover {
+  background: #e67e22;
 }
 
-/* Delete Confirmation Modal Styles */
-.delete-confirm-modal {
-  background: white;
-  padding: clamp(1.2rem, 2.5vw, 1.8rem);
-  border-radius: 10px;
-  width: 90%;
-  max-width: clamp(280px, 65vw, 320px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-  text-align: center;
-  animation: scaleIn 0.3s ease-out;
+.image-preview {
+  width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  margin-top: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 0.4rem;
+  background: #f9f9f9;
+  transition: transform 0.3s ease;
 }
 
-.delete-confirm-modal h2 {
-  font-size: clamp(1.2rem, 1.8vw, 1.4rem);
-  color: #2c3e50;
-  margin-bottom: 0.8rem;
+.image-preview:hover {
+  transform: scale(1.03);
 }
 
-.confirm-icon {
-  margin: 1.2rem 0;
-}
-
-.checkmark {
+.form-actions {
   display: flex;
   justify-content: center;
-  align-items: center;
-  width: 60px;
-  height: 60px;
-  background-color: #28a745;
-  color: white;
-  font-size: 28px;
-  border-radius: 50%;
-  margin: 0 auto;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 
-.delete-confirm-modal p {
-  font-size: clamp(1rem, 1.5vw, 1.1rem);
-  color: #2c3e50;
-  margin-bottom: 1.2rem;
-}
-
-.confirm-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 0.8rem;
-}
-
-.confirm-btn,
+.submit-btn,
 .cancel-btn {
   padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 1.8vw, 1.2rem);
   border: none;
   border-radius: 6px;
   font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  width: 45%;
+  transition: background 0.3s ease, transform 0.2s ease;
+  min-width: 120px;
 }
 
-.confirm-btn {
-  background-color: #dc3545;
+.submit-btn {
+  background: #f39c12;
   color: white;
 }
 
-.confirm-btn:hover {
-  background-color: #b02a37;
+.submit-btn:hover {
+  background: #e67e22;
+  transform: translateY(-2px);
 }
 
 .cancel-btn {
-  background-color: #6c757d;
+  background: #6c757d;
   color: white;
 }
 
 .cancel-btn:hover {
-  background-color: #5a6268;
+  background: #5a6268;
+  transform: translateY(-2px);
 }
 
-/* Remove Confirmation Modal Styles */
-.remove-confirm-modal {
-  background: white;
-  padding: clamp(1.2rem, 2.5vw, 1.8rem);
-  border-radius: 10px;
-  width: 90%;
-  max-width: clamp(280px, 65vw, 320px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-  text-align: center;
-  animation: scaleIn 0.3s ease-out;
-}
-
-.remove-confirm-modal h2 {
-  font-size: clamp(1.2rem, 1.8vw, 1.4rem);
-  color: #2c3e50;
-  margin-bottom: 0.8rem;
-}
-
-.remove-confirm-modal p {
+.modal-content p {
   font-size: clamp(1rem, 1.5vw, 1.1rem);
-  color: #2c3e50;
+  color: #34495e;
+  text-align: center;
   margin-bottom: 1.2rem;
 }
 
-/* Notification Styles */
-.notification {
-  position: fixed;
-  top: 30px;
-  right: 30px;
-  background-color: #28a745;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  z-index: 2000;
-  animation: slideInOut 3.5s ease-in-out forwards;
-}
-
-@keyframes slideInOut {
-  0% { opacity: 0; transform: translateX(20px); }
-  10% { opacity: 1; transform: translateX(0); }
-  90% { opacity: 1; transform: translateX(0); }
-  100% { opacity: 0; transform: translateX(20px); }
+/* Adjusted action buttons styling */
+.ad-table td:last-child {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  flex-wrap: nowrap;
 }
 
 /* Media Queries */
 @media screen and (max-width: 1024px) {
-  .admin-report {
+  .admin-ad {
     padding: 1.5rem;
     max-width: 98vw;
   }
 
-  .report-table {
+  .ad-table {
     min-width: 500px;
   }
 
-  .action-btn {
-    padding: clamp(0.3rem, 0.8vw, 0.5rem) clamp(0.6rem, 1.2vw, 0.8rem);
-    font-size: clamp(0.6rem, 0.9vw, 0.8rem);
+  .add-ad-modal {
+    max-width: clamp(500px, 85vw, 600px);
+  }
+
+  .form-group {
+    min-width: 180px;
   }
 }
 
 @media screen and (max-width: 768px) {
-  .admin-report {
+  .admin-ad {
     padding: 1rem;
     max-width: 100vw;
   }
@@ -619,34 +660,34 @@ h1 {
     font-size: clamp(0.9rem, 1.4vw, 1.1rem);
   }
 
-  .report-table th,
-  .report-table td {
+  .ad-table th,
+  .ad-table td {
     padding: clamp(0.6rem, 1.2vw, 0.9rem);
     font-size: clamp(0.7rem, 1.1vw, 0.9rem);
   }
 
-  .report-image {
+  .ad-image {
     width: clamp(40px, 2.5vw, 50px);
     height: clamp(40px, 2.5vw, 50px);
   }
 
-  .modal-content {
-    max-width: clamp(280px, 80vw, 360px);
-    padding: clamp(1rem, 1.8vw, 1.4rem);
+  .action-btn {
+    padding: clamp(0.3rem, 0.8vw, 0.5rem) clamp(0.6rem, 1.2vw, 0.8rem);
+    font-size: clamp(0.6rem, 0.9vw, 0.8rem);
   }
 }
 
 @media screen and (max-width: 480px) {
-  .admin-report {
+  .admin-ad {
     padding: 0.8rem;
   }
 
-  .report-table {
+  .ad-table {
     min-width: 320px;
   }
 
-  .report-table th,
-  .report-table td {
+  .ad-table th,
+  .ad-table td {
     padding: clamp(0.5rem, 1vw, 0.7rem);
     font-size: clamp(0.6rem, 0.9vw, 0.8rem);
   }
@@ -656,11 +697,18 @@ h1 {
     font-size: clamp(0.5rem, 0.8vw, 0.7rem);
   }
 
-  .modal-close-btn,
-  .confirm-btn,
+  .form-group {
+    min-width: 100%;
+  }
+
+  .add-ad-modal {
+    max-width: clamp(280px, 90vw, 320px);
+  }
+
+  .submit-btn,
   .cancel-btn {
-    padding: clamp(0.3rem, 0.6vw, 0.5rem) clamp(0.6rem, 1vw, 0.8rem);
-    font-size: clamp(0.6rem, 0.8vw, 0.8rem);
+    padding: clamp(0.4rem, 0.8vw, 0.6rem) clamp(0.8rem, 1.5vw, 1rem);
+    font-size: clamp(0.7rem, 1vw, 0.8rem);
   }
 }
 </style>

@@ -41,7 +41,7 @@
                 </router-link>
               </li>
               <li class="nav-item">
-                <router-link to="/profile" class="nav-link">
+                <router-link to="/profile/me" class="nav-link">
                   <img src="../assets/user.png" alt="Profile" class="nav-icon" />
                   <span>Profile</span>
                 </router-link>
@@ -57,9 +57,10 @@
                   <li @click.stop="handleLogout" class="logout-option">
                     <img src="../assets/log-out.png" alt="Đăng xuất" class="nav-icon" /> Đăng xuất
                   </li>
-                  <li @click.stop="resetpassword" class="resetpassword">
-                    <img src="../assets/security-password.png" alt="" class="nav-icon" /> Đổi lại mật khẩu
-                  </li>
+                  <router-link to="/resetNewPassword" class="nav-link">
+    <img src="../assets/security-password.png" class="nav-icon" />
+    Đổi lại mật khẩu
+  </router-link>
                 </ul>
               </div>
             </div>
@@ -134,6 +135,7 @@
               </button>
               <div v-if="openMenuIdx === j + notifications.unread.length" class="item-menu">
                 <ul>
+
                   <li @click="markAsRead(j + notifications.unread.length)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
                   <li @click="deleteNotification(j + notifications.unread.length)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
                   <li @click="muteTopic(j + notifications.unread.length)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
@@ -163,7 +165,7 @@
                 <ul>
                   <li @click="markAsRead(k)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
                   <li @click="deleteNotification(k)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                  <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
+                  <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về "{{item.name}}"</li>
                   <li @click="reportIssue(k)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
                 </ul>
               </div>
@@ -185,6 +187,7 @@ import { logoutUser, getAccountById } from '@/service/authService'
 import { getProfileByAccountId } from '@/service/profileService'
 import { getNotificationList } from '@/service/notificationService'
 import { updateNotificationStatus } from '@/service/notificationService'
+
 
 const showNotifications = ref(false)
 const activeTab = ref('all')
@@ -312,6 +315,10 @@ async function handleNotificationClick(item, index) {
   }
 }
 
+function resetNewPassword() {
+  router.push('/resetNewPassword')
+}
+
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (!user?.id) return
@@ -402,14 +409,18 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 .logo {
   position: relative;
   text-align: center;
+  text-align: center;
   margin-bottom: 10px;
 }
+
 
 .logo-img {
   position: absolute;
   top: -12px;
+  top: -12px;
   left: 50%;
   transform: translateX(-50%);
+  width: 100px;
   width: 100px;
   height: 80px;
   z-index: 1;
@@ -432,6 +443,7 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 .nav-item {
   display: flex;
   align-items: center;
+  padding: 8px 4px;
   padding: 8px 4px;
   cursor: pointer;
   color: #000;
@@ -462,7 +474,7 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
   /* bỏ flex, chuyển thành block để xếp thẳng hàng dọc */
   display: block;
   
-  /* padding “mỏng” hơn */
+  /* padding "mỏng" hơn */
   padding: 4px 0;
   
   /* ấn định width bé hơn, không cần min-width lớn */

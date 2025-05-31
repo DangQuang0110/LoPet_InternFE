@@ -74,12 +74,12 @@
         </div>
       </div>
     </div>
-  </layout>
+  </layout> 
 </template>
 
 <script>
 import { getFriendList, getListRequestF, acceptFriendRequest, rejectFriendReq, getSuggestedFriends, sendFriendRequest, deleteFriend } from '@/service/friendService';
-// import { getProfileById } from '@/service/profileService';
+import { getProfileByAccountId } from '@/service/profileService';
 
 import Layout from '@/components/Layout.vue'
 import { toast } from 'vue3-toastify';
@@ -104,11 +104,11 @@ export default {
       const friendsWithProfiles = await Promise.all(
         friends.map(async (friend) => {
           try {
-            const profile = await getProfileById(friend.id);
+            const profile = await getProfileByAccountId(friend.id);
             return {
               ...friend,
-              avatarUrl: profile?.avatarUrl,
-              fullName: profile?.fullName,
+              avatarUrl: profile?.avatarUrl || null,
+              fullName: profile?.fullName || friend.username,
               bio: profile?.bio
             };
           } catch (error) {

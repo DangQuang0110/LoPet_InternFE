@@ -106,9 +106,6 @@ const sendLink = async () => {
         username,
         password,
         confirmPassword
-        // sex,
-        // dateOfBirth,
-        // homeTown,
       })
 
       const accountId = accountRes?.data?.id || JSON.parse(localStorage.getItem('user'))?.id
@@ -118,6 +115,7 @@ const sendLink = async () => {
           fullName: username,
           phoneNumber: '',
           bio: ''
+          // Không cần avatarUrl, coverUrl nữa vì backend tự xử lý rỗng
         })
       // 3. Gán profile vào account
       await setProfileToAccount(profile.id, accountId)

@@ -17,6 +17,8 @@ import Message from '@/components/comMessage.vue';
 import CreatePost from '@/components/CreatePost.vue'
 import GroupPage from "@/layout/GroupPage.vue";
 import GroupJoinedView from "@/layout/GroupJoinedView.vue";
+import ResetNewPassword from "@/layout/ResetNewPassword.vue";
+
 
 
 
@@ -27,6 +29,9 @@ import AdminLopetAdvertisement from "@/components/admin/AdminLopetAdvertisement.
 // Phần admin
 //import AdminLayout from '@/components/admin/AdminLayout.vue';
 
+
+
+
 const routes=[
     {
         path: "/friend",
@@ -34,9 +39,19 @@ const routes=[
         component: FriendPage,
     },
     {
+        path: "/profile/me",
+        name: "OwnProfile",
+        component: LopetProfile
+    },
+    {
         path: "/profile",
-        name: "LopetProfile",
+        redirect: "/profile/me"
+    },
+    {
+        path: "/profile/:profileId",
+        name: "UserProfile",
         component: LopetProfile,
+        props: true
     },
     {
         path: "/about",
@@ -122,6 +137,13 @@ const routes=[
     name: 'verificationCode',
     component: VerificationCode,
   },
+
+{
+    path: '/resetNewPassword',
+    name: 'resetNewPassword',
+    component: ResetNewPassword,
+  },
+
   {
     path: "/admin",
     component: AdminLayout,
@@ -150,5 +172,3 @@ const router = createRouter({
   routes,
 })
 export default router
-
-
