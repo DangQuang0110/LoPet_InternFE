@@ -559,31 +559,56 @@ function closeComments() {
 async function addComment(post) {
   try {
     const user = JSON.parse(localStorage.getItem('user'))
+    if (!user?.id || !newComment.value.trim()) return
+
     const target = post || selectedPost.value
 
-    if (!newComment.value.trim()) return
-
-    const res = await createComment({
+    // 1. Tạo bình luận mới
+    await createComment({
       postId: target.postId,
       accountId: user.id,
       content: newComment.value,
       replyCommentId: ''
     })
 
-    if (!Array.isArray(target.commentsList)) {
-      target.commentsList = []
+    // 2. Gọi lại comment từ backend để đồng bộ
+    const commentRes = await getCommentsByPostId(target.postId)
+
+    const commentMap = {}
+    const repliesMap = {}
+    for (const c of commentRes.comments) {
+      const [acc, prof] = await Promise.all([
+        getAccountById(c.account.id),
+        getProfileByAccountId(c.account.id)
+      ])
+      const commentData = {
+        id: c.id,
+        user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+        userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
+        text: c.content,
+        createdAt: c.createdAt,
+        replyToCommentId: c.replyToCommentId || null,
+        replies: []
+      }
+      if (!commentData.replyToCommentId) {
+        commentMap[commentData.id] = commentData
+      } else {
+        if (!repliesMap[commentData.replyToCommentId]) {
+          repliesMap[commentData.replyToCommentId] = []
+        }
+        repliesMap[commentData.replyToCommentId].push(commentData)
+      }
     }
 
-    target.commentsList.push({
-      id: res.id,
-      user: currentUserName.value,
-      userSrc: currentUserAvatar.value,
-      text: res.content,
-      time: 'Vừa xong'
-    })
+    // Gắn reply vào comment gốc
+    for (const parentId in repliesMap) {
+      if (commentMap[parentId]) {
+        commentMap[parentId].replies = repliesMap[parentId]
+      }
+    }
 
+    target.commentsList = Object.values(commentMap)
     newComment.value = ''
-    await refreshData() // Refresh after adding comment
   } catch (error) {
     console.error('❌ Lỗi khi thêm bình luận:', error)
     alert('Không thể gửi bình luận. Vui lòng thử lại.')
