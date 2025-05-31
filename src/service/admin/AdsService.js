@@ -1,8 +1,8 @@
 import apiService from "@/api/apiService";
 
 // Lấy danh sách quảng cáo 
-export const getListAds = async(accountId) => {
-    const response = await apiService.get(`/v1/advertisements?accountId=${accountId}`)
+export const getListAds = async() => {
+    const response = await apiService.get(`/v1/advertisements`)
     console.log(response.data)
     return response.data;
 }
