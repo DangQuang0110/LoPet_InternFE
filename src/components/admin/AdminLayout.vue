@@ -222,7 +222,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+  background: #F8D070;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -339,7 +339,7 @@ body {
 }
 
 .sidebar a.router-link-active {
-  background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+  background: #F8D070;
   color: white;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }

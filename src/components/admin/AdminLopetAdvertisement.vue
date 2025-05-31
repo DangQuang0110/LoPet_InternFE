@@ -626,7 +626,7 @@ h1 {
 }
 
 .add-btn {
-  background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+  background: #F8D070;
   color: white;
   padding: clamp(0.5rem, 1vw, 0.7rem) clamp(1rem, 1.8vw, 1.2rem);
   border: none;
