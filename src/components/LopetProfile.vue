@@ -2,10 +2,10 @@
   <layout>
   <div class="lopet-app-new">
     <!-- Header with Search Bar -->
-    <div class="search-box">
+    <!-- <div class="search-box">
       <span class="material-icons">search</span>
       <input v-model="search" type="text" placeholder="Tìm kiếm" />
-    </div>
+    </div> -->
 
     <!-- Notification section -->
     <div class="notification-container">

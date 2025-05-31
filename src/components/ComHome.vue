@@ -389,7 +389,6 @@ const replyInputs = reactive({})
 const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
 
-
 function getRandomAds(list, count = 3) {
   if (!Array.isArray(list)) {
     console.warn('⚠️ getRandomAds nhận dữ liệu không phải mảng:', list)
@@ -426,28 +425,59 @@ async function submitReplyModal(cmt) {
   if (!user?.id) return
 
   try {
-    const res = await createComment({
+    // Gửi reply lên server
+    await createComment({
       postId: activePost.value.postId,
       accountId: user.id,
       content: text,
-      replyCommentId: cmt.id // đây là phần quan trọng!
+      replyCommentId: cmt.id
     })
 
-    if (!Array.isArray(cmt.replies)) cmt.replies = []
+    // Gọi lại toàn bộ comment từ backend để đảm bảo dữ liệu đồng bộ
+    const commentRes = await getCommentsByPostId(activePost.value.postId)
 
-    cmt.replies.push({
-      id: res.id,
-      user: currentUserName.value,
-      userSrc: currentUserAvatar.value,
-      text: res.content,
-      time: 'Vừa xong',
-      replyToUser: cmt.user
-    })
+    const commentMap = {}
+    const repliesMap = {}
 
+    for (const c of commentRes.comments) {
+      const [acc, prof] = await Promise.all([
+        getAccountById(c.account.id),
+        getProfileByAccountId(c.account.id)
+      ])
+
+      const commentData = {
+        id: c.id,
+        user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+        userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
+        text: c.content,
+        createdAt: c.createdAt,
+        replyToCommentId: c.replyToCommentId || null,
+        replies: []
+      }
+
+      if (!commentData.replyToCommentId) {
+        commentMap[commentData.id] = commentData
+      } else {
+        if (!repliesMap[commentData.replyToCommentId]) {
+          repliesMap[commentData.replyToCommentId] = []
+        }
+        repliesMap[commentData.replyToCommentId].push(commentData)
+      }
+    }
+
+    // Gắn replies vào comment gốc
+    for (const parentId in repliesMap) {
+      if (commentMap[parentId]) {
+        commentMap[parentId].replies = repliesMap[parentId]
+      }
+    }
+
+    // Gán lại danh sách comment đã xử lý cho bài viết đang mở
+    activePost.value.commentsList = Object.values(commentMap)
+
+    // Reset input reply
     replyInputs[cmt.id] = ''
     replyingCommentId.value = null
-
-    await refreshData() // làm mới để đồng bộ dữ liệu
   } catch (error) {
     console.error('❌ Lỗi khi gửi reply:', error)
     alert('Không thể gửi phản hồi. Vui lòng thử lại.')
@@ -563,37 +593,61 @@ function closeComments() {
 async function addComment(post) {
   try {
     const user = JSON.parse(localStorage.getItem('user'))
+    if (!user?.id || !newComment.value.trim()) return
+
     const target = post || selectedPost.value
 
-    if (!newComment.value.trim()) return
-
-    const res = await createComment({
+    // 1. Tạo bình luận mới
+    await createComment({
       postId: target.postId,
       accountId: user.id,
       content: newComment.value,
       replyCommentId: ''
     })
 
-    if (!Array.isArray(target.commentsList)) {
-      target.commentsList = []
+    // 2. Gọi lại comment từ backend để đồng bộ
+    const commentRes = await getCommentsByPostId(target.postId)
+
+    const commentMap = {}
+    const repliesMap = {}
+    for (const c of commentRes.comments) {
+      const [acc, prof] = await Promise.all([
+        getAccountById(c.account.id),
+        getProfileByAccountId(c.account.id)
+      ])
+      const commentData = {
+        id: c.id,
+        user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+        userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
+        text: c.content,
+        createdAt: c.createdAt,
+        replyToCommentId: c.replyToCommentId || null,
+        replies: []
+      }
+      if (!commentData.replyToCommentId) {
+        commentMap[commentData.id] = commentData
+      } else {
+        if (!repliesMap[commentData.replyToCommentId]) {
+          repliesMap[commentData.replyToCommentId] = []
+        }
+        repliesMap[commentData.replyToCommentId].push(commentData)
+      }
     }
 
-    target.commentsList.push({
-      id: res.id,
-      user: currentUserName.value,
-      userSrc: currentUserAvatar.value,
-      text: res.content,
-      time: 'Vừa xong'
-    })
+    // Gắn reply vào comment gốc
+    for (const parentId in repliesMap) {
+      if (commentMap[parentId]) {
+        commentMap[parentId].replies = repliesMap[parentId]
+      }
+    }
 
+    target.commentsList = Object.values(commentMap)
     newComment.value = ''
-    await refreshData() // Refresh after adding comment
   } catch (error) {
     console.error('❌ Lỗi khi thêm bình luận:', error)
     alert('Không thể gửi bình luận. Vui lòng thử lại.')
   }
-}
-
+} 
 async function fetchPosts() {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')

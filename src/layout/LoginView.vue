@@ -378,31 +378,33 @@ const handleLogin = async () => {
 }
 
 /* 2. Cố định kích thước và căn giữa icon trong vùng click */
+/* Container đặt icon mắt bên trong ô input */
 .toggle-password {
   position: absolute;
-  top: 50%;
+  top: 0;
+  bottom: 0;
   right: 12px;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 100%;
   cursor: pointer;
-  transition: background-color 0.2s ease;
   border-radius: 4px;
+  transition: background-color 0.2s ease;
+  z-index: 2;
 }
 
-/* 3. Thay đổi màu stroke mặc định cho SVG */
+/* Kích thước và màu icon SVG */
 .toggle-password svg {
   width: 20px;
   height: 20px;
-  stroke: #888; 
+  stroke: #888;
+  margin-top: 54px ;
 }
-.password-group input:focus ~ .toggle-password svg,
-.toggle-password:hover svg {
-  stroke: #888; /* màu cam nổi bật */
-  margin-top: -30px;
-}
+
+/* Hiệu ứng khi focus input hoặc hover vào icon */
+
+
 
 </style>  

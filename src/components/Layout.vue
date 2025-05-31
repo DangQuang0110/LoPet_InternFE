@@ -724,7 +724,7 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 .item-menu li i { margin-right: 8px; font-size: 1rem; }
 .item-menu li:hover { background: #bbbbbb; }
 
-.main-content { flex: 1; overflow-y: hidden; background: #F9F9F9; box-sizing: border-box; }
+.main-content { flex: 1; background: #F9F9F9; box-sizing: border-box; }
 
 .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
 .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
