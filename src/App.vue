@@ -14,6 +14,7 @@ if (token) {
 #vite-devtools-toggle {
   display: none !important;
 }
+
 html, body, #app {
   margin: 0;
     overflow-x: hidden; /* ✅ chặn luôn tràn ngang */
