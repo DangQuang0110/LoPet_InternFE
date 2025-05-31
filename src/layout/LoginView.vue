@@ -10,61 +10,50 @@
       <div class="right-side">
         <img src="@/assets/logoPetGram.png" alt="LOPET" class="logo" />
 
-        <!-- Email -->
+        <!-- Username -->
         <div class="input-group">
           <input
             type="text"
             v-model="email"
             @focus="emailFocus = true"
-            @blur="emailFocus = false"
+            @blur="() => { emailFocus = false; validateEmail() }"
+            @input="validateEmail"
+            placeholder=" "
           />
           <label :class="{ active: emailFocus || email }">Tên Người dùng</label>
+            <p v-if="errors.email" class="error">{{ errors.email }}</p>
         </div>
-        <!-- Mật khẩu có con mắt -->
+      
+
+        <!-- Password -->
         <div class="input-group password-group">
           <input
             :type="showPassword ? 'text' : 'password'"
             v-model="password"
             @focus="passwordFocus = true"
-            @blur="passwordFocus = false"
+            @blur="() => { passwordFocus = false; validatePassword() }"
+            @input="validatePassword"
             placeholder=" "
           />
           <label :class="{ active: passwordFocus || password }">Mật khẩu</label>
           <span class="toggle-password" @click="togglePassword">
-            <svg
-              v-if="!showPassword"
-              xmlns="http://www.w3.org/2000/svg"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#888"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
+            <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M1 1l22 22" />
               <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.5 0-10-4.5-10-10 0-2.5 1-4.7 2.64-6.36" />
               <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
               <path d="M12 4c4.5 0 8.3 2.7 9.54 6.36" />
             </svg>
-            <svg
-              v-else
-              xmlns="http://www.w3.org/2000/svg"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#888"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+            <svg class="svg-icon" v-else xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path class="hideeyes-icon" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
           </span>
+          <p v-if="errors.password" class="error">{{ errors.password }}</p>
         </div>
+        
+
         <a href="/resetPassword" class="forgot">Quên mật khẩu?</a>
-        <button class="btn" @click="handleLogin">Đăng nhập</button>
+        <button class="btn" :disabled="!isFormValid" @click="handleLogin">Đăng nhập</button>
         <div class="or-divider">Hoặc</div>
         <p class="footer">
           Chưa có tài khoản? <router-link to="/register">Đăng ký ngay</router-link>
@@ -75,15 +64,60 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { loginUser, getAccountById} from '@/service/authService'
 
 const email = ref('')
 const password = ref('')
-const showPassword = ref(false)
 const emailFocus = ref(false)
 const passwordFocus = ref(false)
+const showPassword = ref(false)
+
+// Regex: tên đn gồm ít nhất 1 chữ + 1 số, chỉ gồm chữ & số
+const usernameRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/
+
+// Regex: 8-16 ký tự, ít nhất 1 in hoa, 1 số, 1 đặc biệt
+const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,16}$/
+
+const errors = reactive({
+  email: '',
+  password: ''
+})
+
+const validateEmail = () => {
+  const value = email.value
+
+  if (!value) {
+    errors.email = 'Vui lòng nhập tên đăng nhập'
+  } else if (/\s/.test(value)) {
+    errors.email = 'Tên đăng nhập không được chứa khoảng trắng'
+  } else if (/^\d+$/.test(value)) {
+    errors.email = 'Tên đăng nhập không được chỉ gồm số'
+  } else if (!/^[a-zA-Z0-9]+$/.test(value)) {
+    errors.email = 'Tên đăng nhập chỉ được chứa chữ cái và số'
+  } else {
+    errors.email = ''
+  }
+}
+const validatePassword = () => {
+  if (!password.value) {
+    errors.password = 'Vui lòng nhập mật khẩu'
+  } else if (/\s/.test(password.value)) {
+    errors.password = 'Mật khẩu không được chứa khoảng trắng'
+  } else if (password.value.length < 8 || password.value.length > 15) {
+    errors.password = 'Mật khẩu phải từ 8 đến 15 ký tự'
+  } else if (!passwordRegex.test(password.value)) {
+    errors.password = 'Mật khẩu phải có 1 chữ in hoa, 1 ký tự đặc biệt và 1 số'
+  } else {
+    errors.password = ''
+  }
+}
+
+const isFormValid = computed(() => {
+  return email.value && password.value && !errors.email && !errors.password
+})
+
 const router = useRouter()
 
 const togglePassword = () => {
@@ -91,6 +125,10 @@ const togglePassword = () => {
 }
 
 const handleLogin = async () => {
+  validateEmail()
+  validatePassword()
+  if (!isFormValid.value) return
+
   try {
     const loginResponse = await loginUser({
       username: email.value,
@@ -174,18 +212,6 @@ const handleLogin = async () => {
   margin: 0 auto 1rem;
 }
 
-.left-side h1 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-  color: #333;
-}
-
-.left-side p {
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 0.5rem;
-}
-
 .input-group {
   position: relative;
   margin-bottom: 1.5rem;
@@ -247,13 +273,6 @@ const handleLogin = async () => {
   border: none;
 }
 
-.forgot:focus,
-.forgot:active {
-  background-color: transparent !important;
-  outline: none;
-  border: none;
-}
-
 .btn {
   margin-top: 0.5rem;
   padding: 10px;
@@ -267,8 +286,13 @@ const handleLogin = async () => {
   transition: background-color 0.2s ease;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   background-color: #f57c00;
+}
+
+.btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 .or-divider {
@@ -295,7 +319,14 @@ const handleLogin = async () => {
   text-decoration: none;
 }
 
-/* ✅ RESPONSIVE */
+.error {
+  color: #e0251f;
+  font-size: 0.85rem;
+  margin: 0.25rem 0 1rem;
+  text-align: left;
+}
+
+/* RESPONSIVE */
 @media (max-width: 768px) {
   .auth-box {
     flex-direction: column;
@@ -309,14 +340,6 @@ const handleLogin = async () => {
 
   .logo {
     width: 90px;
-  }
-
-  .left-side h1 {
-    font-size: 1.25rem;
-  }
-
-  .left-side p {
-    font-size: 0.85rem;
   }
 }
 
@@ -338,9 +361,43 @@ const handleLogin = async () => {
   .or-divider {
     font-size: 0.7rem;
   }
-  .auth-box{
-    margin-top:40px;
+
+  .auth-box {
+    margin-top: 40px;
   }
 }
 
-</style>
+.password-group input {
+  padding-right: 3rem; /* tăng vùng trống bên phải */
+}
+
+/* 2. Cố định kích thước và căn giữa icon trong vùng click */
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-radius: 4px;
+}
+
+/* 3. Thay đổi màu stroke mặc định cho SVG */
+.toggle-password svg {
+  width: 20px;
+  height: 20px;
+  stroke: #888; 
+  margin-top: -30px;   /* màu nhạt khi chưa tương tác */
+}
+.password-group input:focus ~ .toggle-password svg,
+.toggle-password:hover svg {
+  stroke: #888; /* màu cam nổi bật */
+  margin-top: -30px;
+}
+
+</style>  

@@ -286,7 +286,7 @@ const handleReset = async () => {
 }
 
 .auth-box {
-  background-color: white;
+  background-color: #fdecde;
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);

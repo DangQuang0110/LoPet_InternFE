@@ -8,13 +8,16 @@
       </p>
       <div class="input-group">
         <input
-          type="text"
-          v-model="contact"
-          @focus="contactFocus = true"
-          @blur="contactFocus = false"
-          placeholder=" "
-        />
-        <label :class="{ active: contactFocus || contact }">email</label>
+         
+         v-model="contact"
+  type="email"
+  placeholder="Nhập email"
+  @blur="validateEmail"
+  class="input"
+/>
+<p v-if="emailError" style="color: red; font-size: 14px; margin-top: 4px">
+  {{ emailError }}
+</p>
       </div>
       <button class="btn" @click="sendLink">Gửi mã OTP</button>
       <router-link to="/login" class="back">← Trở về trang đăng nhập</router-link>
@@ -29,24 +32,45 @@ import { sendOTP } from '@/service/otpService'
 const router = useRouter()
 const contact = ref('')
 const contactFocus = ref(false)
+const emailError = ref('')
+
+
+
 // onMounted(()=>{
+
+const validateEmail = () => {
+  const email = contact.value.trim()
+
+  if (!email) {
+    emailError.value = 'Vui lòng nhập email!'
+    return false
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    emailError.value = 'Email không đúng định dạng!'
+    return false
+  }
+
+  emailError.value = ''
+  return true
+}
 
 // })
 const sendLink = async () => {
-  if (!contact.value) return alert('Vui lòng nhập email!')
+  if (!validateEmail()) return
 
   try {
-    await sendOTP(contact.value)
+    await sendOTP(contact.value.trim())
 
     localStorage.setItem('reset_flow', 'true')
-    localStorage.setItem('email_otp', contact.value)
+    localStorage.setItem('email_otp', contact.value.trim())
 
     router.push('/verificationCode')
   } catch (err) {
-    alert(err.message || 'Lỗi gửi OTP!')
+    emailError.value = err.message || 'Lỗi gửi OTP!'
   }
 }
-
 
 </script>
 
@@ -80,6 +104,19 @@ const sendLink = async () => {
   margin: 0 auto 1rem;
     margin: 0 auto 1rem; 
   display: block;
+}
+
+/* .error-message {
+  color: red;
+  font-size: 14px;
+  margin-top: 4px;
+} */
+
+.auth-box h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
 }
 
 .auth-box p {
