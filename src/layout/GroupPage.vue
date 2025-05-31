@@ -143,7 +143,7 @@
             v-model="searchQuery"
             @input="handleSearch"
             class="search" 
-            placeholder="Tìm kiếm theo tên người dùng hoặc nội dung..." 
+            placeholder="Tìm kiếm " 
           />
           <div v-if="isSearching" class="search-loading">
             <div class="loading-spinner-small"></div>
@@ -419,9 +419,9 @@
                                 <button class="btn-reply-modal" @click="prepareReply(comment)">
                                   Trả lời
                                 </button>
-                                <button class="btn-reply-modal" @click="prepareReply(comment)">
+                                <!-- <button class="btn-reply-modal" @click="prepareReply(comment)">
                                   Xóa
-                                </button>
+                                </button> -->
                               </div>
 
                               <!-- Reply Input Section - Chỉ hiển thị khi comment này được chọn để trả lời -->
@@ -2057,6 +2057,7 @@ body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  margin-top: 10px;
 }
 .invite {
   background-color: orange;
