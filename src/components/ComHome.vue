@@ -163,12 +163,16 @@
         <div class="ads">
           <h3>Quảng cáo</h3>
           <div class="ad-list">
-            <div class="ad-card" v-for="ad in advertisements" :key="ad.id">
+            <div class="ad-card" 
+              v-for="ad in advertisements" 
+              :key="ad.id" 
+              @click="handleAdClick(ad.linkReferfence)"
+              role="link" 
+              tabindex="0">
               <img :src="ad.imageUrl" :alt="ad.title" />
               <div class="ad-info">
                 <h4 class="ad-title">{{ ad.title }}</h4>
                 <p class="ad-desc">{{ ad.description }}</p>
-                <a :href="ad.linkReferfence" target="_blank" class="ad-link">{{ ad.linkReferfence }}</a>
               </div>
             </div>
           </div>
@@ -792,6 +796,13 @@ function openReport(post) {
   openedMenuPostId.value = post.postId // phải dùng đúng post.postId
   showReport.value = true
 }
+
+// Add new method to handle ad clicks
+function handleAdClick(link) {
+  if (link) {
+    window.open(link, '_blank')
+  }
+}
 </script>
 
 <style scoped>
@@ -1344,6 +1355,25 @@ html,
   display: flex;
   gap: 12px;
   padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ad-card:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.ad-card:active {
+  transform: translateY(0);
+}
+
+.ad-card:focus {
+  outline: 2px solid #009DFF;
+  outline-offset: -2px;
 }
 
 .ad-card img {

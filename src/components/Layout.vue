@@ -57,10 +57,10 @@
                   <li @click.stop="handleLogout" class="logout-option">
                     <img src="../assets/log-out.png" alt="Đăng xuất" class="nav-icon" /> Đăng xuất
                   </li>
-                  <router-link to="/resetNewPassword" class="nav-link">
+                  <!-- <router-link to="/resetNewPassword" class="nav-link">
     <img src="../assets/security-password.png" class="nav-icon" />
     Đổi lại mật khẩu
-  </router-link>
+  </router-link> -->
                 </ul>
               </div>
             </div>
@@ -102,7 +102,7 @@
                   <p class="timestamp">{{ item.time }}</p>
                 </div>
                 <!-- SỬA i => k -->
-                <button class="more-btn" @click.stop="toggleMenu(k)">
+                <!-- <button class="more-btn" @click.stop="toggleMenu(k)">
                   <i class="fas fa-ellipsis-h"></i>
                 </button>
 
@@ -113,7 +113,7 @@
                     <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về “{{ item.name }}”</li>
                     <li @click="reportIssue(k)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
                   </ul>
-                </div>
+                </div> -->
               </div>
               <div
                 v-for="(item,j) in notifications.read"
@@ -130,7 +130,7 @@
                 </p>
                 <p class="timestamp">{{ item.time }}</p>
               </div>
-              <button class="more-btn" @click.stop="toggleMenu(j + notifications.unread.length)">
+              <!-- <button class="more-btn" @click.stop="toggleMenu(j + notifications.unread.length)">
                 <i class="fas fa-ellipsis-h"></i>
               </button>
               <div v-if="openMenuIdx === j + notifications.unread.length" class="item-menu">
@@ -141,7 +141,7 @@
                   <li @click="muteTopic(j + notifications.unread.length)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
                   <li @click="reportIssue(j + notifications.unread.length)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
                 </ul>
-              </div>
+              </div> -->
             </div>
           </template>
           <!-- UNREAD -->
@@ -724,7 +724,7 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 .item-menu li i { margin-right: 8px; font-size: 1rem; }
 .item-menu li:hover { background: #bbbbbb; }
 
-.main-content { flex: 1; overflow-y: auto; background: #F9F9F9; box-sizing: border-box; }
+.main-content { flex: 1; overflow-y: hidden; background: #F9F9F9; box-sizing: border-box; }
 
 .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
 .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
@@ -732,10 +732,13 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
   width: 20px;
   height: 20px;
 }
-.notification-popup .popup-content {
+.notification-popup  {
   max-height: 660px; /* hoặc 70vh tuỳ bạn */
   overflow-y: auto;
   padding-right: 8px; /* giúp hiển thị scroll bar không bị dính chữ */
+}
+.popup-content{
+  
 }
 .dot {
   display: inline-block;

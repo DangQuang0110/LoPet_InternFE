@@ -24,7 +24,7 @@
           <img src="../assets/user.png" class="icon-img" />
         </router-link>
       </div>
-      <img :src="currentUserAvatar" class="avatar-icon" />
+      <!-- <img :src="currentUserAvatar" class="avatar-icon" /> -->
     </nav>
     <div class="right-main">
     <aside class="sidebar" v-show="!isMobile || showSidebar">
@@ -423,7 +423,7 @@ onMounted(() => {
   align-items: center;
   padding: 32px 6px;
   border-right: 2px solid #ddd;
-  height: 330px;
+  height: 260 px;
   position: relative;
   border-radius: 10px;
   margin-left:-54px;
@@ -483,7 +483,7 @@ onMounted(() => {
 }
 .sidebar {
   width: 290px;
-  height:695px;
+  height:100%;
   margin-right:0;
   background: #F9F9F9;
   padding: 10px;
