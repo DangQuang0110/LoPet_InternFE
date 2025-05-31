@@ -526,7 +526,7 @@ async function saveDetails() {
       ? new Date(updated.dateOfBirth).toISOString().split('T')[0]
       : '';
       user.value.avatar = updated.avatarUrl || user.value.avatar;
-user.value.banner = updated.coverUrl || user.value.banner;
+      user.value.banner = updated.coverUrl || user.value.banner;
 
     editMode.value = false;
     showNotification('Thông tin đã được cập nhật thành công!', 'success');
@@ -574,8 +574,8 @@ function handleBannerChange(e) {
 }
 
 async function loadUserProfile() {
-const userData = JSON.parse(localStorage.getItem('user'));
-const accountId = userData?.id;
+const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || '{}')?.id;
+
 
   if (!accountId) {
     console.error('❌ Không tìm thấy accountId trong localStorage');
@@ -873,8 +873,8 @@ function onReport(reason) {
 onMounted(async () => {
   await loadUserProfile();
 
-  const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}');
-  const accountId = userFromStorage?.id;
+  const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || '{}')?.id;
+
 
   if (!accountId) {
     console.error('❌ Không tìm thấy accountId trong localStorage');

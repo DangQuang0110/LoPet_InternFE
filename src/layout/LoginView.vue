@@ -398,7 +398,6 @@ const handleLogin = async () => {
   width: 20px;
   height: 20px;
   stroke: #888; 
-  margin-top: -30px;   /* màu nhạt khi chưa tương tác */
 }
 .password-group input:focus ~ .toggle-password svg,
 .toggle-password:hover svg {
