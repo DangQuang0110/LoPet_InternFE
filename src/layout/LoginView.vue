@@ -69,6 +69,12 @@
         <p class="footer">
           Chưa có tài khoản? <router-link to="/register">Đăng ký ngay</router-link>
         </p>
+        <p
+          v-if="loginMessage"
+          :class="['login-notification', messageType]"
+        >
+          {{ loginMessage }}
+        </p>
       </div>
     </div>
   </div>

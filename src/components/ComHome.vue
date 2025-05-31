@@ -757,9 +757,33 @@ onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (user.id) {
     const suggest = await getSuggestedFriends(user.id, 4)
-    suggestions.value = suggest
+
+    const enrichedSuggestions = await Promise.all(suggest.map(async (s) => {
+      try {
+        const [acc, prof] = await Promise.all([
+          getAccountById(s.id),
+          getProfileByAccountId(s.id)
+        ])
+
+        return {
+          id: s.id,
+          name: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+          src: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg'
+        }
+      } catch (err) {
+        console.error(`❌ Không thể lấy thông tin cho userId ${s.id}`, err)
+        return {
+          id: s.id,
+          name: 'Ẩn danh',
+          src: '/image/avata.jpg'
+        }
+      }
+    }))
+
+    suggestions.value = enrichedSuggestions
   }
 })
+
 function openReport(post) {
   openedMenuPostId.value = post.postId // phải dùng đúng post.postId
   showReport.value = true

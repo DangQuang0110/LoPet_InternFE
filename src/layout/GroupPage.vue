@@ -621,7 +621,7 @@ import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 import { likePost, unlikePost, deletePost, updatePost } from '@/service/postService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
-import { sendReport } from '@/service/reportService'
+import { createReport } from '@/service/reportService'
 
 const route = useRoute()
 const router = useRouter()
@@ -1098,7 +1098,7 @@ async function submitReport() {
       reason: selectedReason.value
     };
 
-    await sendReport(reportData);
+    await createReport(reportData);
 
     toast.success('Báo cáo đã được gửi thành công!', {
       position: toast.POSITION.TOP_RIGHT,
