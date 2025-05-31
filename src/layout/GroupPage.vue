@@ -419,6 +419,9 @@
                                 <button class="btn-reply-modal" @click="prepareReply(comment)">
                                   Trả lời
                                 </button>
+                                <button class="btn-reply-modal" @click="prepareReply(comment)">
+                                  Xóa
+                                </button>
                               </div>
 
                               <!-- Reply Input Section - Chỉ hiển thị khi comment này được chọn để trả lời -->
