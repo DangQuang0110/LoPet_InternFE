@@ -321,9 +321,9 @@
                   <img src="@/assets/comment.png" alt="Comment" class="action-icon" />
                   <span class="action-count">{{ post.comments?.length || 0 }}</span>
                 </div>
-                <div class="action-item" @click="toggleSharePopup(post)">
+                <div class="action-item-share" @click="toggleSharePopup(post)">
                   <img src="@/assets/share.png" alt="Share" class="action-icon" />
-                  <span>Chia sẻ</span>
+                  <span></span>
                 </div>
               </div>
               <div v-else class="post-stats">
@@ -2368,6 +2368,14 @@ body {
   align-items: center;
   gap: 6px;
   margin-right: 24px;
+  cursor: pointer;
+}
+.action-item-share{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 0px;
+  margin-left: 388px;
   cursor: pointer;
 }
 .action-icon {
