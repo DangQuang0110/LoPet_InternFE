@@ -11,9 +11,14 @@
           v-model="contact"
           @focus="contactFocus = true"
           @blur="contactFocus = false"
+          @input="validateContact"
           placeholder=" "
+          :class="{ 'error': contactError && contactError !== '' }"
         />
-        <label :class="{ active: contactFocus || contact }">email</label>
+        <label :class="{ active: contactFocus || contact }">Email</label>
+        <div class="validation-message" :class="{ 'error': contactError }">
+          {{ contactError || '' }}
+        </div>
       </div>
 
       <div class="input-group">
@@ -22,9 +27,14 @@
           v-model="fullname"
           @focus="fullnameFocus = true"
           @blur="fullnameFocus = false"
+          @input="handleFullnameInput"
           placeholder=" "
+          :class="{ 'error': fullnameError && fullnameError !== '' }"
         />
         <label :class="{ active: fullnameFocus || fullname }">Tên Người dùng</label>
+        <div class="validation-message" :class="{ 'error': fullnameError }">
+          {{ fullnameError || '' }}
+        </div>
       </div>
 
       <!-- Mật khẩu -->
@@ -34,7 +44,10 @@
           v-model="password"
           @focus="passwordFocus = true"
           @blur="passwordFocus = false"
+          @input="validatePassword"
           placeholder=" "
+          autocomplete="new-password"
+          :class="{ 'error': passwordError && passwordError !== '' }"
         />
         <label :class="{ active: passwordFocus || password }">Mật khẩu</label>
         <span class="toggle-password" @click="togglePassword">
@@ -49,6 +62,9 @@
             <circle cx="12" cy="12" r="3" />
           </svg>
         </span>
+        <div class="validation-message" :class="{ 'error': passwordError }">
+          {{ passwordError || 'Tối đa 15 ký tự, có ít nhất 1 chữ hoa, 1 ký tự đặc biệt và 1 số' }}
+        </div>
       </div>
 
       <!-- Xác nhận mật khẩu -->
@@ -58,7 +74,10 @@
           v-model="confirmPassword"
           @focus="confirmFocus = true"
           @blur="confirmFocus = false"
+          @input="validateConfirmPassword"
           placeholder=" "
+          autocomplete="new-password"
+          :class="{ 'error': confirmPasswordError && confirmPasswordError !== '' }"
         />
         <label :class="{ active: confirmFocus || confirmPassword }">Nhập lại mật khẩu</label>
         <span class="toggle-password" @click="toggleConfirm">
@@ -73,28 +92,35 @@
             <circle cx="12" cy="12" r="3" />
           </svg>
         </span>
+        <div class="validation-message" :class="{ 'error': confirmPasswordError }">
+          {{ confirmPasswordError || '' }}
+        </div>
       </div>
 
-      <button class="btn" @click="handleRegister">Đăng ký</button>
+      <button class="btn" @click="handleRegister" :disabled="!isFormValid">Đăng ký</button>
       <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { sendOTP } from '@/service/otpService'
 
 const contact = ref('')
 const contactFocus = ref(false)
+const contactError = ref('')
 const fullname = ref('')
 const fullnameFocus = ref(false)
+const fullnameError = ref('')
 const password = ref('')
 const passwordFocus = ref(false)
+const passwordError = ref('')
 const showPassword = ref(false)
 const confirmPassword = ref('')
 const confirmFocus = ref(false)
+const confirmPasswordError = ref('')
 const showConfirm = ref(false)
 
 const router = useRouter()
@@ -107,7 +133,172 @@ const toggleConfirm = () => {
   showConfirm.value = !showConfirm.value
 }
 
+// Email validation function with comprehensive checks
+const isValidEmail = (email) => {
+  if (email.length > 254) return false
+  const parts = email.split('@')
+  if (parts.length !== 2) return false
+  const [local, domain] = parts
+  if (local.length === 0 || local.length > 64) return false
+  if (local.startsWith('.') || local.endsWith('.')) return false
+  if (local.includes('..')) return false
+  if (/[<>()[\]\\,;:\s@"]/.test(local)) return false
+  if (domain.length === 0 || domain.length > 253) return false
+  if (domain.startsWith('-') || domain.endsWith('-')) return false
+  if (domain.startsWith('.') || domain.endsWith('.')) return false
+  if (domain.includes('..')) return false
+  if (domain.includes('_')) return false
+  const ipRegex = /^\[?(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\]?$/
+  const ipMatch = domain.match(ipRegex)
+  if (ipMatch) {
+    for (let i = 1; i <= 4; i++) {
+      const octet = parseInt(ipMatch[i])
+      if (octet > 255) return false
+    }
+    return true
+  }
+  const domainParts = domain.split('.')
+  if (domainParts.length < 2) return false
+  for (const part of domainParts) {
+    if (part.length === 0 || part.length > 63) return false
+    if (part.startsWith('-') || part.endsWith('-')) return false
+    if (!/^[a-zA-Z0-9-]+$/.test(part)) return false
+  }
+  const tld = domainParts[domainParts.length - 1]
+  if (tld.length < 2 || !/^[a-zA-Z]+$/.test(tld)) return false
+  return true
+}
+
+// Validation functions
+const validateContact = () => {
+  if (!contact.value.trim()) {
+    contactError.value = ''
+    return false
+  }
+  const value = contact.value.trim()
+  if (value.includes('@')) {
+    if (isValidEmail(value)) {
+      contactError.value = ''
+      return true
+    } else {
+      contactError.value = 'Email không đúng định dạng'
+      return false
+    }
+  } else {
+    contactError.value = 'Email không đúng định dạng'
+    return false
+  }
+}
+
+const handleFullnameInput = () => {
+  // KHÔNG sửa nội dung fullname tại đây để người dùng nhập tự nhiên
+  validateFullname()
+}
+
+const validateFullname = () => {
+  const name = fullname.value
+
+  if (!name) {
+    fullnameError.value = 'Vui lòng nhập tên người dùng'
+    return false
+  }
+
+  if (name.length < 5) {
+    fullnameError.value = 'Tên phải có ít nhất 5 ký tự'
+    return false
+  }
+
+  if (name.length > 15) {
+    fullnameError.value = 'Tên không được quá 15 ký tự'
+    return false
+  }
+
+  if (/^\d+$/.test(name)) {
+    fullnameError.value = 'Tên không được chỉ là số'
+    return false
+  }
+
+ if (/\s/.test(name)) {
+    fullnameError.value = 'Tên không được chứa khoảng trắng'
+    return false
+  }
+
+  if (!/^[a-zA-ZÀ-ỹà-ỹ0-9]+$/.test(name)) {
+    fullnameError.value = 'Tên chỉ được chứa chữ cái và số'
+    return false
+  }
+
+  fullnameError.value = ''
+  return true
+}
+
+
+const validatePassword = () => {
+  if (!password.value) {
+    passwordError.value = ''
+    return false
+  }
+  const pwd = password.value
+  if (pwd.length > 15) {
+    passwordError.value = 'Mật khẩu chỉ được phép tối đa 15 ký tự'
+    return false
+  }
+  if (pwd.includes(' ')) {
+    passwordError.value = 'Mật khẩu không được chứa khoảng trắng'
+    return false
+  }
+  if (pwd.length < 8) {
+    passwordError.value = 'Mật khẩu phải có ít nhất 8 ký tự'
+    return false
+  }
+  const hasUpperCase = /[A-Z]/.test(pwd)
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pwd)
+  const hasNumber = /[0-9]/.test(pwd)
+  if (!hasUpperCase) {
+    passwordError.value = 'Mật khẩu phải có ít nhất 1 chữ cái in hoa'
+    return false
+  }
+  if (!hasSpecialChar) {
+    passwordError.value = 'Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)'
+    return false
+  }
+  if (!hasNumber) {
+    passwordError.value = 'Mật khẩu phải có ít nhất 1 chữ số'
+    return false
+  }
+  passwordError.value = ''
+  return true
+}
+
+const validateConfirmPassword = () => {
+  if (!confirmPassword.value) {
+    confirmPasswordError.value = ''
+    return false
+  }
+  if (confirmPassword.value !== password.value) {
+    confirmPasswordError.value = 'Mật khẩu xác nhận không khớp'
+    return false
+  }
+  confirmPasswordError.value = ''
+  return true
+}
+
+const isFormValid = computed(() => {
+  return validateContact() &&
+         validateFullname() &&
+         validatePassword() &&
+         validateConfirmPassword()
+})
+
 const handleRegister = async () => {
+  // Validate all fields
+  const isContactValid = validateContact()
+  const isFullnameValid = validateFullname()
+  const isPasswordValid = validatePassword()
+  const isConfirmPasswordValid = validateConfirmPassword()
+  if (!isContactValid || !isFullnameValid || !isPasswordValid || !isConfirmPasswordValid) {
+    return
+  }
   try {
     await sendOTP(contact.value)
     localStorage.setItem('register_email', contact.value)
@@ -143,8 +334,10 @@ const handleRegister = async () => {
   padding: 2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-align: center;
-  width: 100%;
+  width: 200%;
   max-width: 400px;
+  margin-bottom: 30px;
+  margin-top: 30px;
 }
 
 .logo {
@@ -180,6 +373,15 @@ h1 {
   border-radius: 4px;
   background: transparent;
   outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.input-group input:focus {
+  border-color: #ffa726;
+}
+
+.input-group input.error {
+  border-color: #f44336;
 }
 
 .input-group label {
@@ -202,17 +404,45 @@ h1 {
   font-weight: 600;
 }
 
-.password-group {
-  position: relative;
+.password-group input {
+  padding-right: 45px !important;
+}
+
+.password-group input::-ms-reveal,
+.password-group input::-ms-clear {
+  display: none;
+}
+
+.password-group input::-webkit-credentials-auto-fill-button,
+.password-group input::-webkit-strong-password-auto-fill-button {
+  display: none !important;
 }
 
 .toggle-password {
   position: absolute;
-  top: 50%;
+  top: 14px;
   right: 12px;
-  transform: translateY(-50%);
   cursor: pointer;
   user-select: none;
+  z-index: 10;
+  height: 20px;
+}
+
+.validation-message {
+  font-size: 0.8rem;
+  text-align: left;
+  margin-top: 0.25rem;
+  padding-left: 10px;
+  min-height: 1.2em;
+  transition: color 0.3s ease;
+}
+
+.validation-message.error {
+  color: #f44336;
+}
+
+.validation-message:not(.error) {
+  color: #666;
 }
 
 .btn {
@@ -224,12 +454,19 @@ h1 {
   color: #fff;
   font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
   margin-top: 0.5rem;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   background-color: #fb8c00;
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .back {
@@ -242,9 +479,11 @@ h1 {
   background-color: transparent !important;
   outline: none;
   border: none;
+  transition: color 0.3s ease;
 }
 
 .back:hover {
   text-decoration: underline;
+  color: #1565c0;
 }
 </style>

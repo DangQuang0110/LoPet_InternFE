@@ -113,8 +113,8 @@ const routes=[
     component: RegisterView,
   },
   {
-    path: '/reset-Password',
-    name: 'reset-Password',
+    path: '/resetPassword',
+    name: 'resetPassword',
     component: ResetPassword,
   },
   {

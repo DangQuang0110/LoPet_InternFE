@@ -5,6 +5,7 @@
       <h1>Đặt lại mật khẩu</h1>
       <p class="sub-text">Vui lòng nhập mật khẩu mới để cập nhật tài khoản</p>
 
+      <!-- Mật khẩu mới -->
       <label>Mật khẩu mới</label>
       <div class="input-group password-group">
         <input
@@ -45,7 +46,10 @@
           </svg>
         </span>
       </div>
+      <!-- Hiển thị lỗi cho mật khẩu mới -->
+      <p v-if="errorPassword" class="error">{{ errorPassword }}</p>
 
+      <!-- Xác nhận mật khẩu mới -->
       <label>Xác nhận mật khẩu mới</label>
       <div class="input-group password-group">
         <input
@@ -86,6 +90,9 @@
           </svg>
         </span>
       </div>
+      <!-- Hiển thị lỗi cho xác nhận mật khẩu -->
+      <p v-if="errorConfirm" class="error">{{ errorConfirm }}</p>
+
       <button class="btn" @click="handleReset">Đặt lại mật khẩu</button>
       <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
     </div>
@@ -99,39 +106,87 @@ import { resetPassword } from '@/service/authService'
 
 const router = useRouter()
 
+// Các biến reactive, bao gồm cả thông báo lỗi
 const password = ref('')
 const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
+const errorPassword = ref('')
+const errorConfirm = ref('')
 
+// Lấy email đã lưu khi gửi OTP
 const email = localStorage.getItem('email_otp')
 
+// Hàm kiểm tra tính hợp lệ của mật khẩu
+function isValidPassword(pw) {
+  if (pw.length < 8 || pw.length > 15) {
+    errorPassword.value = 'Mật khẩu phải từ 8 đến 15 ký tự.'
+    return false
+  } else if (/\s/.test(pw)) {
+    errorPassword.value = 'Mật khẩu không được chứa khoảng trắng.'
+    return false
+  }
+
+  // Kiểm tra ít nhất 1 chữ thường, 1 chữ hoa, 1 số, 1 ký tự đặc biệt
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,15}$/
+  if (!regex.test(pw)) {
+    errorPassword.value =
+      'Mật khẩu phải bao gồm số, chữ thường, chữ in hoa và ký tự đặc biệt.'
+    return false
+  }
+
+  // Nếu hợp lệ, xóa thông báo lỗi
+  errorPassword.value = ''
+  return true
+}
+
 const handleReset = async () => {
-  if (!password.value || !confirmPassword.value) {
-    alert('Vui lòng nhập đầy đủ thông tin!')
+  // Reset lại toàn bộ thông báo lỗi trước khi validate
+  errorPassword.value = ''
+  errorConfirm.value = ''
+
+  // 1. Kiểm tra đã nhập đủ không
+  if (!password.value) {
+    errorPassword.value = 'Vui lòng nhập mật khẩu mới.'
+    return
+  }
+  if (!confirmPassword.value) {
+    errorConfirm.value = 'Vui lòng xác nhận mật khẩu.'
     return
   }
 
+  // 2. Kiểm tra mật khẩu có hợp lệ
+  if (!isValidPassword(password.value)) {
+    return
+  }
+
+  // 3. Kiểm tra khớp mật khẩu
   if (password.value !== confirmPassword.value) {
-    alert('Mật khẩu không khớp!')
+    errorConfirm.value = 'Mật khẩu xác nhận không khớp.'
     return
   }
 
   try {
+    // Gọi API reset mật khẩu
     await resetPassword({
       email,
       password: password.value,
       confirmPassword: confirmPassword.value
     })
 
+    // Thành công
+    // (bạn có thể dùng toastr hoặc thông báo khác thay vì alert)
     alert('Đặt lại mật khẩu thành công!')
     localStorage.removeItem('email_otp')
     localStorage.removeItem('reset_flow')
 
     router.push('/login')
   } catch (err) {
-    console.error('Lỗi reset mật khẩu:', err)
-    alert(err?.response?.data?.message || 'Đặt lại mật khẩu thất bại!')
+    console.error('Lỗi khi reset mật khẩu:', err)
+    // Nếu API trả về lỗi, ví dụ: mật khẩu không đủ mạnh, v.v.
+    const msg = err?.response?.data?.message || 'Đặt lại mật khẩu thất bại!'
+    // Hiển thị thông báo chung dưới ô xác nhận
+    errorConfirm.value = msg
   }
 }
 </script>
@@ -164,7 +219,7 @@ const handleReset = async () => {
 .logo {
   width: 120px;
   margin-bottom: 1rem;
-    margin: 0 auto 1rem; 
+  margin: 0 auto 1rem;
   display: block;
 }
 
@@ -192,7 +247,7 @@ label {
 .input-group {
   position: relative;
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem; /* giảm margin-bottom để khi có lỗi hiển thị gọn */
 }
 
 .input-group input {
@@ -216,6 +271,15 @@ label {
   transform: translateY(-50%);
   cursor: pointer;
   user-select: none;
+}
+
+/* Phần hiển thị lỗi */
+.error {
+  color: #d32f2f;
+  font-size: 0.85rem;
+  text-align: left;
+  margin: 0 0 1rem 0;
+  min-height: 1.2em; /* giữ khoảng trống dù không có lỗi */
 }
 
 .btn {
