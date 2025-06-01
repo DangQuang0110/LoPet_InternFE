@@ -223,23 +223,27 @@
                 ></textarea>
               </div>
 
-              <!-- Image preview -->
-              <div v-if="imagePreview" class="preview-container">
-                <img :src="imagePreview" alt="Preview" class="preview-image" />
-                <button class="remove-preview" @click="removeImage">×</button>
+              <!-- Media preview -->
+              <div v-if="mediaPreviews.length > 0" class="preview-container">
+                <div v-for="(preview, index) in mediaPreviews" :key="index" class="preview-item">
+                  <img v-if="mediaTypes[index] === 'IMAGE'" :src="preview" alt="Preview" class="preview-image" />
+                  <video v-else-if="mediaTypes[index] === 'VIDEO'" :src="preview" controls class="preview-video"></video>
+                  <button class="remove-preview" @click="removeMedia(index)">×</button>
+                </div>
               </div>
 
               <div class="new-post-actions">
                 <div class="left-actions">
                   <label class="upload-button">
                     <img src="@/assets/camera.png" alt="Upload" class="upload-icon" />
-                    <span>Ảnh</span>
+                    <span>Thêm ảnh/video</span>
                     <input
                       type="file"
                       class="file-input"
-                      @change="handleImageChange"
-                      accept="image/*"
+                      @change="handleMediaChange"
+                      accept="image/*,video/*"
                       :disabled="isPostLoading"
+                      multiple
                     />
                   </label>
                 </div>
@@ -293,7 +297,7 @@
                 </button>
               </div>
 
-              <!-- Hiển thị ảnh từ postMedias -->
+              <!-- Update post media container -->
               <div
                 v-if="post.postMedias && post.postMedias.length > 0"
                 class="post-media-container"
@@ -306,6 +310,12 @@
                     class="post-image"
                     @click="openImagePreview(media.mediaUrl)"
                   />
+                  <video
+                    v-else-if="media.mediaType === 'VIDEO'"
+                    :src="media.mediaUrl"
+                    class="post-video"
+                    controls
+                  ></video>
                 </template>
               </div>
 
@@ -550,10 +560,21 @@
         placeholder="Nội dung bài viết..."
       ></textarea>
 
-      <!-- Image Previews -->
+      <!-- Image and Video Previews -->
       <div v-if="editImagePreviews.length > 0" class="preview-container">
         <div v-for="(preview, index) in editImagePreviews" :key="index" class="preview-item">
-          <img :src="preview" alt="Preview" class="preview-image" />
+          <img 
+            v-if="editPostMediaTypes[index] === 'IMAGE'" 
+            :src="preview" 
+            alt="Preview" 
+            class="preview-image" 
+          />
+          <video
+            v-else-if="editPostMediaTypes[index] === 'VIDEO'"
+            :src="preview"
+            class="preview-video"
+            controls
+          ></video>
           <button class="remove-preview" @click="removeEditPostImage(index)">×</button>
         </div>
       </div>
@@ -561,13 +582,13 @@
       <div class="edit-post-actions">
         <div class="media-buttons">
           <label class="upload-button">
-            <img src="@/assets/camera.png" alt="Upload Image" class="upload-icon" />
-            <span>Ảnh</span>
+            <img src="@/assets/camera.png" alt="Upload" class="upload-icon" />
+            <span>Thêm ảnh/video</span>
             <input
               type="file"
               class="file-input"
               @change="handleEditPostImageChange"
-              accept="image/*"
+              accept="image/*,video/*"
               multiple
             />
           </label>
@@ -651,8 +672,9 @@ const isLoading = ref(true)
 const isUpdating = ref(false)
 const errorMessage = ref('')
 const newPostContent = ref('')
-const selectedImage = ref(null)
-const imagePreview = ref(null)
+const selectedMedias = ref([])
+const mediaPreviews = ref([])
+const mediaTypes = ref([])
 const groupPosts = ref([])
 const isPostLoading = ref(false)
 const user = ref(null)
@@ -773,34 +795,57 @@ const fetchGroupDetails = async () => {
 }
 
 // Hàm xử lý khi chọn ảnh cho bài viết mới
-const handleImageChange = (event) => {
-  const file = event.target.files[0]
-  if (file) {
-    if (!file.type.match('image.*')) {
-      toast.error('Vui lòng chọn file ảnh!', {
+const handleMediaChange = (event) => {
+  const files = Array.from(event.target.files)
+  
+  for (const file of files) {
+    // Check if file is image
+    if (file.type.startsWith('image/')) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Kích thước ảnh không được vượt quá 5MB!', {
+          position: toast.POSITION.TOP_RIGHT,
+          autoClose: 3000,
+          theme: 'colored',
+        })
+        continue
+      }
+      selectedMedias.value.push(file)
+      mediaPreviews.value.push(URL.createObjectURL(file))
+      mediaTypes.value.push('IMAGE')
+    } 
+    // Check if file is video
+    else if (file.type.startsWith('video/')) {
+      if (file.size > 100 * 1024 * 1024) {
+        toast.error('Kích thước video không được vượt quá 100MB!', {
+          position: toast.POSITION.TOP_RIGHT,
+          autoClose: 3000,
+          theme: 'colored',
+        })
+        continue
+      }
+      selectedMedias.value.push(file)
+      mediaPreviews.value.push(URL.createObjectURL(file))
+      mediaTypes.value.push('VIDEO')
+    } else {
+      toast.error('Vui lòng chọn file ảnh hoặc video!', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
         theme: 'colored',
       })
-      return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Kích thước ảnh không được vượt quá 5MB!', {
-        position: toast.POSITION.TOP_RIGHT,
-        autoClose: 3000,
-        theme: 'colored',
-      })
-      return
-    }
-    selectedImage.value = file
-    imagePreview.value = URL.createObjectURL(file)
   }
 }
 
-// Hàm xóa ảnh đã chọn
-const removeImage = () => {
-  selectedImage.value = null
-  imagePreview.value = null
+const removeMedia = (index) => {
+  selectedMedias.value.splice(index, 1)
+  mediaPreviews.value.splice(index, 1)
+  mediaTypes.value.splice(index, 1)
+}
+
+const removeAllMedia = () => {
+  selectedMedias.value = []
+  mediaPreviews.value = []
+  mediaTypes.value = []
   const input = document.querySelector('.file-input')
   if (input) input.value = ''
 }
@@ -833,13 +878,26 @@ const handleCreatePost = async () => {
     formData.append('accountId', user.value.id)
     formData.append('scope', 'PUBLIC')
 
-    if (selectedImage.value) {
-      formData.append('images', selectedImage.value)
-    }
+    // Add all media files to formData
+    selectedMedias.value.forEach((file, index) => {
+      if (mediaTypes.value[index] === 'IMAGE') {
+        formData.append('images', file)
+      } else if (mediaTypes.value[index] === 'VIDEO') {
+        formData.append('videos', file)
+      }
+    })
 
     const response = await createPostGroup(formData)
 
-    // Tạo bài viết mới với thông tin cần thiết
+    // Create post media array
+    const postMedias = selectedMedias.value.map((file, index) => ({
+      mediaType: mediaTypes.value[index],
+      mediaUrl: URL.createObjectURL(file),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }))
+
+    // Create new post object
     const newPost = {
       postId: response.data.postId,
       content: newPostContent.value.trim(),
@@ -851,21 +909,15 @@ const handleCreatePost = async () => {
       comments: [],
       liked: false,
       postLikes: [],
-      postMedias: selectedImage.value ? [{
-        mediaType: 'IMAGE',
-        mediaUrl: URL.createObjectURL(selectedImage.value)
-      }] : []
+      postMedias: postMedias
     }
 
-    // Thêm bài viết mới vào đầu mảng
+    // Add new post to the list
     groupPosts.value = [newPost, ...groupPosts.value]
 
     // Reset form
     newPostContent.value = ''
-    selectedImage.value = null
-    imagePreview.value = null
-    const input = document.querySelector('.file-input')
-    if (input) input.value = ''
+    removeAllMedia()
 
     toast.success('Đăng bài viết thành công!', {
       position: toast.POSITION.TOP_RIGHT,
@@ -1708,101 +1760,6 @@ const confirmDeletePost = async () => {
 
 // ... existing code ...
 
-// Thêm state cho form chỉnh sửa bài viết
-const showEditPostPopup = ref(false);
-const editPostForm = reactive({
-  content: '',
-  images: [],
-  scope: 'PUBLIC',
-});
-const editImagePreviews = ref([]);
-const editingPostId = ref(null);
-
-// Hàm mở form chỉnh sửa
-const handleEditPost = (post) => {
-  editingPostId.value = post.postId;
-  editPostForm.content = post.content;
-  editPostForm.scope = post.scope || 'PUBLIC';
-  editImagePreviews.value = post.postMedias
-    ?.filter(media => media.mediaType === 'IMAGE')
-    .map(media => media.mediaUrl) || [];
-  showEditPostPopup.value = true;
-  activeMenuPostId.value = null; // Đóng dropdown menu
-};
-
-// Hàm đóng form chỉnh sửa
-const closeEditPostForm = () => {
-  showEditPostPopup.value = false;
-  editingPostId.value = null;
-  editPostForm.content = '';
-  editPostForm.images = [];
-  editImagePreviews.value = [];
-};
-
-const handleEditPostImageChange = (event) => {
-  const files = Array.from(event.target.files);
-  const validImageFiles = files.filter(file => file.type.startsWith('image/'));
-  
-  if (validImageFiles.length > 0) {
-    editPostForm.images.push(...validImageFiles);
-    const newPreviews = validImageFiles.map(file => URL.createObjectURL(file));
-    editImagePreviews.value.push(...newPreviews);
-  }
-};
-
-const removeEditPostImage = (index) => {
-  editPostForm.images.splice(index, 1);
-  editImagePreviews.value.splice(index, 1);
-};
-
-// Cập nhật bài viết
-const handleUpdatePost = async () => {
-  try {
-    if (!editPostForm.content.trim()) {
-      toast.error('Vui lòng nhập nội dung bài viết!', {
-        position: toast.POSITION.TOP_RIGHT,
-        autoClose: 3000,
-        theme: 'colored',
-      });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('content', editPostForm.content.trim());
-    formData.append('ownerId', user.value.id);
-    formData.append('scope', editPostForm.scope);
-    formData.append('groupId', route.params.id);
-
-    // Thêm ảnh vào formData
-    editPostForm.images.forEach(image => {
-      formData.append('images', image);
-    });
-
-    await updatePost(editingPostId.value, formData);
-
-    // Refresh posts list
-    await fetchGroupPosts();
-
-    // Đóng form và reset state
-    closeEditPostForm();
-
-    toast.success('Cập nhật bài viết thành công!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    });
-  } catch (error) {
-    console.error('Lỗi khi cập nhật bài viết:', error);
-    toast.error('Có lỗi xảy ra khi cập nhật bài viết!', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 3000,
-      theme: 'colored',
-    });
-  }
-};
-
-// ... existing code ...
-
 const searchQuery = ref('')
 const isSearching = ref(false)
 const showSearchResults = ref(false)
@@ -1881,6 +1838,166 @@ async function handleDeleteGroup() {
 //   }
 //   showConfirmDelete.value = false
 // }
+
+const showEditPostPopup = ref(false)
+const editPostForm = ref({
+  content: '',
+  scope: 'PUBLIC',
+  postId: null
+})
+const editImagePreviews = ref([])
+const editPostSelectedMedias = ref([])
+const editPostMediaTypes = ref([])
+
+// Add edit post handler
+const handleEditPost = (post) => {
+  editPostForm.value = {
+    content: post.content,
+    scope: post.scope || 'PUBLIC',
+    postId: post.postId
+  }
+  
+  // Reset media arrays
+  editImagePreviews.value = []
+  editPostSelectedMedias.value = []
+  editPostMediaTypes.value = []
+  
+  // If post has existing media, add them to previews
+  if (post.postMedias) {
+    post.postMedias.forEach(media => {
+      editImagePreviews.value.push(media.mediaUrl)
+      editPostMediaTypes.value.push(media.mediaType)
+    })
+  }
+  
+  showEditPostPopup.value = true
+  activeMenuPostId.value = null // Close dropdown menu
+}
+
+const closeEditPostForm = () => {
+  showEditPostPopup.value = false
+  editPostForm.value = {
+    content: '',
+    scope: 'PUBLIC',
+    postId: null
+  }
+  editImagePreviews.value = []
+  editPostSelectedMedias.value = []
+  editPostMediaTypes.value = []
+}
+
+const handleEditPostImageChange = (event) => {
+  const files = Array.from(event.target.files)
+  
+  for (const file of files) {
+    // Check if file is image
+    if (file.type.startsWith('image/')) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Kích thước ảnh không được vượt quá 5MB!', {
+          position: toast.POSITION.TOP_RIGHT,
+          autoClose: 3000,
+          theme: 'colored',
+        })
+        continue
+      }
+      editPostSelectedMedias.value.push(file)
+      editImagePreviews.value.push(URL.createObjectURL(file))
+      editPostMediaTypes.value.push('IMAGE')
+    } 
+    // Check if file is video
+    else if (file.type.startsWith('video/')) {
+      if (file.size > 100 * 1024 * 1024) {
+        toast.error('Kích thước video không được vượt quá 100MB!', {
+          position: toast.POSITION.TOP_RIGHT,
+          autoClose: 3000,
+          theme: 'colored',
+        })
+        continue
+      }
+      editPostSelectedMedias.value.push(file)
+      editImagePreviews.value.push(URL.createObjectURL(file))
+      editPostMediaTypes.value.push('VIDEO')
+    } else {
+      toast.error('Vui lòng chọn file ảnh hoặc video!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      })
+    }
+  }
+}
+
+const removeEditPostImage = (index) => {
+  editPostSelectedMedias.value.splice(index, 1)
+  editImagePreviews.value.splice(index, 1)
+  editPostMediaTypes.value.splice(index, 1)
+}
+
+const handleUpdatePost = async () => {
+  try {
+    if (!editPostForm.value.content.trim()) {
+      toast.error('Vui lòng nhập nội dung bài viết!', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+        theme: 'colored',
+      })
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('content', editPostForm.value.content.trim())
+    formData.append('scope', editPostForm.value.scope)
+
+    // Add media files to formData based on type
+    editPostSelectedMedias.value.forEach((file, index) => {
+      if (editPostMediaTypes.value[index] === 'IMAGE') {
+        formData.append('images', file)
+      } else if (editPostMediaTypes.value[index] === 'VIDEO') {
+        formData.append('videos', file)
+      }
+    })
+
+    const response = await updatePost(editPostForm.value.postId, formData)
+
+    // Update the post in local state
+    const postIndex = groupPosts.value.findIndex(p => p.postId === editPostForm.value.postId)
+    if (postIndex !== -1) {
+      const updatedPost = {
+        ...groupPosts.value[postIndex],
+        content: editPostForm.value.content.trim(),
+        scope: editPostForm.value.scope,
+      }
+
+      // Update media if new files were added
+      if (editPostSelectedMedias.value.length > 0) {
+        updatedPost.postMedias = editPostSelectedMedias.value.map((file, index) => ({
+          mediaType: editPostMediaTypes.value[index],
+          mediaUrl: URL.createObjectURL(file),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }))
+      }
+
+      groupPosts.value[postIndex] = updatedPost
+      groupPosts.value = [...groupPosts.value]
+    }
+
+    toast.success('Cập nhật bài viết thành công!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+
+    closeEditPostForm()
+  } catch (error) {
+    console.error('Lỗi khi cập nhật bài viết:', error)
+    toast.error('Có lỗi xảy ra khi cập nhật bài viết!', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+      theme: 'colored',
+    })
+  }
+}
 </script>
 
 <style scoped>
@@ -4110,5 +4227,202 @@ body {
   background: #c82333;
 }
 
+
+/* Add these styles */
+.preview-video,
+.post-video {
+  width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  background: #000;
+}
+
+.post-media-container video {
+  width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  background: #000;
+}
+
+.preview-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.preview-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-image,
+.preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-preview {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.remove-preview:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+.upload-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background: #f0f2f5;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.upload-button:hover {
+  background: #e4e6e9;
+}
+
+.upload-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.file-input {
+  display: none;
+}
+
+.edit-post-form {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  position: relative;
+}
+
+.edit-post-input {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 10px 0;
+  resize: vertical;
+}
+
+.edit-post-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.scope-select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.update-button {
+  background-color: #1a73e8;
+  color: white;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.update-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.preview-item {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.remove-preview {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.upload-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.upload-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.file-input {
+  display: none;
+}
 </style>
+
 
