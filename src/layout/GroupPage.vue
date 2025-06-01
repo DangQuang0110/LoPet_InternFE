@@ -74,7 +74,7 @@
           <select v-model="editForm.privacy" :disabled="isUpdating">
             <option disabled value="">Chọn quyền riêng tư</option>
             <option value="PUBLIC">Công khai</option>
-            <option value="PRIVATE">Riêng tư</option>
+            <!-- <option value="PRIVATE">Riêng tư</option> -->
           </select>
 
           <textarea
@@ -194,8 +194,9 @@
         </div> -->
         <div class="group-actions">
           <template v-if="isOwner">
-            <button class="delete-group" @click="handleDeleteGroup">Xóa nhóm</button>
             <button class="edit-group-btn" @click="openEditForm">Chỉnh sửa nhóm</button>
+            <button class="delete-group" @click="handleDeleteGroup">Xóa nhóm</button>
+            
           </template>
           <template v-else>
             <template v-if="!leftGroup">
@@ -396,7 +397,7 @@
                         <div class="comments-list">
                           <div v-for="comment in post.comments" :key="comment.id" class="comment-item-modal">
                             <img
-                              :src="comment.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
+                              :src="comment.account?.profile?.avatarUrl || '/image/avata.jpg'"
                               class="comment-avatar-modal"
                             />
 
@@ -448,7 +449,7 @@
                               <div v-if="comment.replies && comment.replies.length > 0" class="replies-section">
                                 <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
                                   <img
-                                    :src="reply.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
+                                    :src="reply.account?.profile?.avatarUrl || '/image/avata.jpg'"
                                     class="reply-avatar"
                                   />
                                   <div class="reply-content">
@@ -599,6 +600,17 @@
       <div class="popup-actions">
         <button class="cancel-btn" @click="closeDeleteConfirm">Hủy</button>
         <button class="confirm-delete-btn" @click="confirmDeletePost">Xóa bài viết</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thêm popup xác nhận xóa nhóm -->
+  <div v-if="showConfirmDelete" class="overlay">
+    <div class="popup">
+      <p>Bạn có chắc chắn muốn xóa nhóm này?</p>
+      <div class="popup-buttons">
+        <button class="leave" @click="confirmDelete">Xóa nhóm</button>
+        <button class="cancel" @click="showConfirmDelete = false">Hủy</button>
       </div>
     </div>
   </div>
@@ -1021,7 +1033,6 @@ async function handleLeaveGroup() {
       autoClose: 3000,
       theme: 'colored',
     })
-
     // Chờ 1 giây để người dùng thấy thông báo thành công
     setTimeout(() => {
       router.push('/groups')
@@ -1256,34 +1267,18 @@ const closeImagePreview = () => {
   selectedPreviewImage.value = null
 }
 
-async function handleDeleteGroup() {
+// async function handleDeleteGroup() {
+//   showConfirmDelete.value = true
+// }
+
+async function confirmDelete() {
   try {
-    if (!user.value?.id || !route.params.id) {
-      toast.error('Không thể xóa nhóm!', {
-        position: toast.POSITION.TOP_RIGHT,
-        autoClose: 3000,
-        theme: 'colored',
-      })
-      return
-    }
-
-    // Hiển thị toast loading
-    toast.loading('Đang xóa nhóm...', {
-      position: toast.POSITION.TOP_RIGHT,
-      autoClose: 1000,
-      theme: 'colored',
-    })
-
     await deleteGroupByOwner(user.value.id, route.params.id)
-
-    // Hiển thị toast success
     toast.success('Xóa nhóm thành công!', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
       theme: 'colored',
     })
-
-    // Chờ 1 giây trước khi chuyển hướng để người dùng thấy thông báo
     setTimeout(() => {
       router.push('/groups')
     }, 1000)
@@ -1295,6 +1290,7 @@ async function handleDeleteGroup() {
       theme: 'colored',
     })
   }
+  showConfirmDelete.value = false
 }
 
 function toggleExpand(postId) {
@@ -1859,6 +1855,32 @@ const closeDeleteConfirm = () => {
   showDeleteConfirm.value = false
   postToDelete.value = null
 }
+
+const showConfirmDelete = ref(false)
+
+async function handleDeleteGroup() {
+  showConfirmDelete.value = true
+}
+
+// async function confirmDelete() {
+//   try {
+//     await deleteGroupByOwner(user.value.id, route.params.id)
+//     toast.success('Xóa nhóm thành công!', {
+//       position: toast.POSITION.TOP_RIGHT,
+//       autoClose: 3000,
+//       theme: 'colored',
+//     })
+//     router.push('/groups')
+//   } catch (error) {
+//     console.error('Lỗi khi xóa nhóm:', error)
+//     toast.error('Có lỗi xảy ra khi xóa nhóm!', {
+//       position: toast.POSITION.TOP_RIGHT,
+//       autoClose: 3000,
+//       theme: 'colored',
+//     })
+//   }
+//   showConfirmDelete.value = false
+// }
 </script>
 
 <style scoped>
@@ -2005,8 +2027,6 @@ body {
   background: #fff;
   margin-bottom: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  border-bottom-left-radius: 10px;
-  border-bottom-right-radius: 10px;
 }
 .group-header {
   display: flex;
@@ -2047,7 +2067,7 @@ body {
 .recent-avatar {
   width: 44px;
   height: 44px;
-  border: 2px solid #880e4f;
+
 }
 
 /* --- Hành động nhóm --- */
@@ -2242,7 +2262,7 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 2px solid #000000;
+  
   object-fit: cover;
 }
 .post-info {
@@ -4091,3 +4111,4 @@ body {
 }
 
 </style>
+

@@ -103,6 +103,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { resetPassword } from '@/service/authService'
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 
 const router = useRouter()
 
@@ -175,12 +177,17 @@ const handleReset = async () => {
     })
 
     // Thành công
-    // (bạn có thể dùng toastr hoặc thông báo khác thay vì alert)
-    alert('Đặt lại mật khẩu thành công!')
+    toast.success("Đã đặt lại mật khẩu thành công!", {
+      autoClose: 2000,
+      position: toast.POSITION.TOP_RIGHT,
+    })
     localStorage.removeItem('email_otp')
     localStorage.removeItem('reset_flow')
 
-    router.push('/login')
+    // Đợi 1 giây để người dùng thấy thông báo trước khi chuyển trang
+    setTimeout(() => {
+      router.push('/login')
+    }, 1000)
   } catch (err) {
     console.error('Lỗi khi reset mật khẩu:', err)
     // Nếu API trả về lỗi, ví dụ: mật khẩu không đủ mạnh, v.v.

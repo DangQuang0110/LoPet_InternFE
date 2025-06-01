@@ -36,6 +36,8 @@ import { useRouter } from 'vue-router'
 import { verifyOTP } from '@/service/otpService'
 import { registerUser, resetPassword } from '@/service/authService'
 import { createProfile, setProfileToAccount } from '@/service/profileService'
+import { toast } from 'vue3-toastify'
+import 'vue3-toastify/dist/index.css'
 
 const router = useRouter()
 const otp = ref(['', '', '', '', '', ''])
@@ -86,12 +88,21 @@ onMounted(() => {
 onBeforeUnmount(() => clearInterval(intervalId))
 
 const resendOtp = async () => {
-  alert('Chức năng gửi lại mã OTP đang được phát triển.')
+  toast.info('Chức năng gửi lại mã OTP đang được phát triển.', {
+    autoClose: 2000,
+    position: toast.POSITION.TOP_RIGHT,
+  })
 }
 
 const sendLink = async () => {
   const otpString = otp.value.join('')
-  if (otpString.length !== 6) return alert('Vui lòng nhập đủ 6 số!')
+  if (otpString.length !== 6) {
+    toast.error('Vui lòng nhập đủ 6 số!', {
+      autoClose: 2000,
+      position: toast.POSITION.TOP_RIGHT,
+    })
+    return
+  }
 
   try {
     await verifyOTP({ email, otp: otpString })
@@ -115,7 +126,6 @@ const sendLink = async () => {
           fullName: username,
           phoneNumber: '',
           bio: ''
-          // Không cần avatarUrl, coverUrl nữa vì backend tự xử lý rỗng
         })
       // 3. Gán profile vào account
       await setProfileToAccount(profile.id, accountId)
@@ -127,12 +137,22 @@ const sendLink = async () => {
       localStorage.removeItem('register_confirm')
       localStorage.removeItem('reset_flow')
 
-      alert('Đăng ký và tạo hồ sơ thành công!')
-      router.push('/')
+      toast.success('Đăng ký và tạo hồ sơ thành công!', {
+        autoClose: 2000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
+      
+      // Đợi 1 giây để người dùng thấy thông báo trước khi chuyển trang
+      setTimeout(() => {
+        router.push('/')
+      }, 1000)
     }
   } catch (err) {
     console.error('Lỗi verifyOTP hoặc đăng ký:', err)
-    alert(err?.response?.data?.message || 'Xác minh OTP hoặc đăng ký thất bại!')
+    toast.error(err?.response?.data?.message || 'Xác minh OTP hoặc đăng ký thất bại!', {
+      autoClose: 2000,
+      position: toast.POSITION.TOP_RIGHT,
+    })
   }
 }
 
