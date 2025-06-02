@@ -167,12 +167,16 @@
         <div class="ads">
           <h3>Quảng cáo</h3>
           <div class="ad-list">
-            <div class="ad-card" v-for="ad in advertisements" :key="ad.id">
+            <div class="ad-card" 
+              v-for="ad in advertisements" 
+              :key="ad.id" 
+              @click="handleAdClick(ad.linkReferfence)"
+              role="link" 
+              tabindex="0">
               <img :src="ad.imageUrl" :alt="ad.title" />
               <div class="ad-info">
                 <h4 class="ad-title">{{ ad.title }}</h4>
                 <p class="ad-desc">{{ ad.description }}</p>
-                <a :href="ad.linkReferfence" target="_blank" class="ad-link">{{ ad.linkReferfence }}</a>
               </div>
             </div>
           </div>
@@ -389,7 +393,6 @@ const replyInputs = reactive({})
 const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
 const newCommentMap = reactive({})
-
 
 function getRandomAds(list, count = 3) {
   if (!Array.isArray(list)) {
@@ -646,8 +649,7 @@ async function addComment(post) {
     console.error('❌ Lỗi khi thêm bình luận:', error)
     alert('Không thể gửi bình luận. Vui lòng thử lại.')
   }
-}
-
+} 
 async function fetchPosts() {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -882,6 +884,13 @@ async function checkLikedStatus(postId) {
 function openReport(post) {
   openedMenuPostId.value = post.postId // phải dùng đúng post.postId
   showReport.value = true
+}
+
+// Add new method to handle ad clicks
+function handleAdClick(link) {
+  if (link) {
+    window.open(link, '_blank')
+  }
 }
 </script>
 
@@ -1435,6 +1444,25 @@ html,
   display: flex;
   gap: 12px;
   padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ad-card:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.ad-card:active {
+  transform: translateY(0);
+}
+
+.ad-card:focus {
+  outline: 2px solid #009DFF;
+  outline-offset: -2px;
 }
 
 .ad-card img {
