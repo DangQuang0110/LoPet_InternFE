@@ -38,7 +38,7 @@
               <img :src="pet.avatarUrl ?? currentAvatar" :alt="pet.fullName || pet.username" />
             </div>
             <div class="pet-name">{{ pet.fullName || pet.username }}</div>
-            <button class="action-button profile">Xem trang cá nhân</button>
+              <button class="action-button profile" @click="goToFriendProfile(pet.id)">Xem trang cá nhân</button>
             <button class="action-button reject" @click="isDeleteFriend(pet.id)">Xoá</button>
           </div>
         </div>
@@ -118,6 +118,9 @@ export default {
         })
       );
       return friendsWithProfiles;
+    },
+      goToFriendProfile(id) {
+      this.$router.push(`/profile/${id}`);
     },
     async fetchFriends(userId) {
       try {
@@ -224,6 +227,8 @@ export default {
       }
     },
   },
+
+
   created() {
     const user = JSON.parse(localStorage.getItem('user'))
     if (user && user.id) {

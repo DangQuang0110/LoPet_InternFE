@@ -1,12 +1,10 @@
 <template>
+  <layout>
   <div class="chat-app">
-     <div class="logo-section">
+     <!-- <div class="logo-section">
     <img src="/image/logoPetGram.png" alt="PetGram" class="logo-img" />
   </div>
     <nav class="left-bar">
-      <!-- <div class="logo-section">
-    <img src="/image/logoPetGram.png" alt="PetGram" class="logo-img" />
-  </div> -->
       <div class="nav-icons">
         <router-link to="/home">
           <img src="/image/home.png" class="icon-img" />
@@ -25,7 +23,7 @@
         </router-link>
       </div>
       <img :src="currentUserAvatar" class="avatar-icon" />
-    </nav>
+    </nav> -->
     <div class="right-main">
     <aside class="sidebar" v-show="!isMobile || showSidebar">
       <div class="search-bar">
@@ -90,13 +88,20 @@
               :src="selectedFriend.avatar"
               class="avatar-msg"
             />
-
             <!-- Nội dung tin nhắn -->
             <div class="msg-block">
-              <div :class="['msg', msg.fromMe ? 'from-me' : 'from-other']">
-                <p class="msg-text">{{ msg.text }}</p>
+              <div
+                :class="[
+                  'msg',
+                  msg.fromMe ? 'from-me' : 'from-other',
+                  msg.image && !msg.text ? 'image-only' : ''
+                ]"
+              >
+              <div v-if="msg.image?.startsWith('http')">
+                <img :src="msg.image" class="msg-image" />
               </div>
-
+              <p v-if="msg.text" class="msg-text">{{ msg.text }}</p>
+              </div>
               <!-- Trạng thái cuối cùng nếu là tin từ mình -->
               <small
                 v-if="msg.fromMe && isLastSentByMe(index)"
@@ -115,12 +120,15 @@
           placeholder="Tin nhắn văn bản"
         />
         <div class="chat-actions">
-          <button type="button" class="icon-btn">
+          <label class="icon-btn">
+            <input
+              type="file"
+              accept="image/*"
+              @change="handleImageChange"
+              style="display: none"
+            />
             <img src="/image/image.png" alt="Gửi ảnh" />
-          </button>
-          <button type="button" class="icon-btn">
-            <img src="/image/camera.png" alt="Camera" />
-          </button>
+          </label>
           <button type="button" class="icon-btn" @click="sendMessage">
             <img src="/image/send.png" alt="Gửi" />
           </button>
@@ -129,9 +137,10 @@
       </section>
     </div>
   </div>
+  </layout>
 </template>
-
 <script setup>
+import layout from '@/components/layout.vue'
 import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { getFriendList } from '@/service/friendService'
 import { getMessageList,createMessage  } from '@/service/messageService'
@@ -140,7 +149,7 @@ import { getProfileByAccountId } from '@/service/profileService'
 
 // import socket from '@/socket'
 
-
+const selectedImage = ref(null)
 const currentUserAvatar = ref('/image/avata.jpg')
 
 // import socket from '@/socket'
@@ -172,7 +181,13 @@ const filteredFriends = computed(() =>
     f.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())
   )
 )
+const handleImageChange = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
 
+  selectedImage.value = file
+  sendMessage() // tự động gửi khi chọn ảnh
+}
 const handleResize = () => {
   isMobile.value = window.innerWidth <= 432
   if (!isMobile.value) showSidebar.value = true
@@ -252,7 +267,7 @@ const fetchMessages = async (friendId) => {
       id: msg.id,
       fromMe: msg.senderId === currentUserId,
       text: msg.content,
-      image: msg.imageUrl || '',
+      image: msg.imageUrl || msg.mediaUrl || '',
       createdAt: msg.createdAt
     }))
 
@@ -322,21 +337,28 @@ onMounted(async () => {
   }
 })
 const sendMessage = async () => {
-  if (!newMessage.value.trim() || !selectedFriend.value) return
+  if (!newMessage.value.trim() && !selectedImage.value) return
+  if (!selectedFriend.value) return
 
   const formData = new FormData()
   formData.append('senderId', currentUserId)
   formData.append('receiverId', selectedFriend.value.id)
-  formData.append('content', newMessage.value)
+  formData.append('content', newMessage.value || '')
+  if (selectedImage.value) {
+    formData.append('image', selectedImage.value)
+      console.log('📤 Hình ảnh gửi đi:', selectedImage.value)
+  }
 
   try {
     const sent = await createMessage(formData)
+    console.log('📥 Server trả về tin nhắn:', sent)
     await createNotification({
       actorId: currentUserId,
       receptorId: selectedFriend.value.id,
-      content: `Đã gửi tin nhắn mới đến cho bạn `,
+      content: `Đã gửi tin nhắn mới đến cho bạn`,
       objectType: 'MESSAGE'
     })
+
     if (!messages.value[selectedFriend.value.id]) {
       messages.value[selectedFriend.value.id] = []
     }
@@ -350,33 +372,33 @@ const sendMessage = async () => {
     })
 
     newMessage.value = ''
+    selectedImage.value = null
     await nextTick()
     setTimeout(() => scrollToBottom(), 50)
   } catch (err) {
     console.error('❌ Lỗi khi gửi tin nhắn:', err)
   }
 }
-socket.on('notification', async (data) => {
-  // data: { actorId, receptorId, content, objectType, createdAt }
 
-  try {
-    const [account, profile] = await Promise.all([
-      getAccountById(data.actorId),
-      getProfileByAccountId(data.actorId)
-    ])
+socket.on('chat messsage', (data) => {
+  const { message, from } = data
+  console.log('📥 Tin nhắn realtime:', message)
 
-    const name = profile?.fullName || account?.username || 'Ẩn danh'
-    const avatar = profile?.avatarUrl || account?.avatar || '/image/avata.jpg'
+  if (!messages.value[from]) {
+    messages.value[from] = []
+  }
 
-    notifications.value.unread.unshift({
-      actorId: data.actorId,
-      name,
-      text: data.content,
-      time: 'Vừa xong',
-      avatar
-    })
-  } catch (err) {
-    console.error('❌ Lỗi khi nhận thông báo socket:', err)
+  messages.value[from].push({
+    id: Date.now(), // dùng timestamp giả làm id
+    fromMe: false,
+    text: message.content || '',
+    image: message.imageUrl || '', // đây là ảnh Cloudinary
+    createdAt: new Date(),         // gán tạm createdAt
+    status: 'SENT'                 // nếu cần hiển thị trạng thái
+  })
+
+  if (selectedFriend.value?.id === from) {
+    nextTick(scrollToBottom)
   }
 })
 onMounted(() => {
@@ -417,14 +439,12 @@ onMounted(() => {
 })
 
 </script>
-
 <style scoped>
 .chat-app {
   display: flex;
   height: 100vh;
   font-family: 'Segoe UI', roboto;
   background: #FFFFFF;
-
 }
 .left-bar {
   width: 60px;
@@ -440,6 +460,24 @@ onMounted(() => {
   margin-left:-54px;
   margin-top: 72px;;
   box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+}
+.msg.image-only {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.msg.image-only img.msg-image {
+  border-radius: 12px;
+  max-width: 240px;
+  height: auto;
+}
+.msg-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 10px;
+  margin-bottom: 4px;
 }
 
 .left-bar::before {
@@ -607,8 +645,8 @@ onMounted(() => {
   background: #ffe0b2;
 }
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
 }
 .friend-info,

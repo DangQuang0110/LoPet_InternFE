@@ -6,7 +6,6 @@
         <div class="loading-spinner"></div>
         <p>Đang tải thông tin nhóm...</p>
       </div>
-
       <!-- Overlay popup xác nhận thoát nhóm -->
       <div v-if="confirmLeave" class="overlay">
         <div class="popup">
