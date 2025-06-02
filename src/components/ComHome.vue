@@ -148,11 +148,15 @@
                 <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Xem thêm bình luận</button>
               <!-- Comment Input -->
               <div class="post-comment">
-                <input type="text" placeholder="Bình luận..." v-model="newComment"/>
-                <!-- <button class="btn-send-comment">Gửi</button> -->
-                <button class="btn-icon post-comment" @click="addComment(post)">
-                 <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
-                </button>
+              <input
+                type="text"
+                placeholder="Bình luận..."
+                v-model="newCommentMap[post.postId]"
+                @keydown.enter.prevent="addComment(post)"
+              />
+              <button class="btn-icon post-comment" @click="addComment(post)">
+                <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
+              </button>
               </div>
             </div>
           </div>
@@ -348,7 +352,7 @@ import { ref, onMounted,reactive,computed  } from 'vue'
 import Layout from '@/components/Layout.vue'
 import CreatePost from '@/components/CreatePost.vue'
 import ReportModal from '@/components/ReportModal.vue'
-import { getPosts ,likePost, unlikePost } from '@/service/postService'
+import { getPosts ,likePost, unlikePost,getPostById  } from '@/service/postService'
 import { getAccountById } from '@/service/authService'
 import { getSuggestedFriends, getFriendList } from '@/service/friendService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
@@ -388,6 +392,7 @@ const replyInputs = reactive({})
 
 const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
+const newCommentMap = reactive({})
 
 function getRandomAds(list, count = 3) {
   if (!Array.isArray(list)) {
@@ -464,7 +469,6 @@ async function submitReplyModal(cmt) {
         repliesMap[commentData.replyToCommentId].push(commentData)
       }
     }
-
     // Gắn replies vào comment gốc
     for (const parentId in repliesMap) {
       if (commentMap[parentId]) {
@@ -483,7 +487,6 @@ async function submitReplyModal(cmt) {
     alert('Không thể gửi phản hồi. Vui lòng thử lại.')
   }
 }
-
 function prepareReply(cmt) {
   replyingCommentId.value = cmt.id
   if (!replyInputs[cmt.id]) {
@@ -497,7 +500,6 @@ function handleCreatePostClose() {
 function getLikeIcon(post) {
   return post.liked ? '/assets/liked.png' : '/assets/like.png'
 }
-
 
 function toggleExpand(postId) {
   expandedPosts.value[postId] = !expandedPosts.value[postId]
@@ -514,29 +516,29 @@ function formatDate(dateStr) {
   if (diffHours < 24) return `${diffHours} giờ trước`
   return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`
 }
-
 async function toggleLike(post) {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (!user.id || !post.postId) return
 
     if (post.liked) {
-      const res = await unlikePost(user.id, post.postId)
+      await unlikePost(user.id, post.postId)
       post.likes -= 1
       post.liked = false
-      post.postLikes = post.postLikes.filter(like => like.accountId !== user.id)
+
+      post.postLikes = post.postLikes.filter(like => like.id !== user.id)
     } else {
-      const res = await likePost(user.id, post.postId)
+      await likePost(user.id, post.postId)
       post.likes += 1
       post.liked = true
+
       if (!Array.isArray(post.postLikes)) post.postLikes = []
-      post.postLikes.push({ accountId: user.id })
+      post.postLikes.push({ id: user.id, username: user.username, email: user.email }) // giả lập
     }
   } catch (error) {
     console.error('❌ Lỗi khi xử lý like/unlike:', error)
   }
 }
-
 function togglePostMenu(id) {
   openedMenuPostId.value = openedMenuPostId.value === id ? null : id
 }
@@ -750,23 +752,24 @@ async function fetchPosts() {
             }
           }
           const comments = Object.values(commentMap)
-          const liked =
-            Array.isArray(post.postLikes) &&
-            post.postLikes.some(like =>
-              like.accountId === user.id || like.account?.id === user.id
-            )
-          postResults.push({
-            postId: post.postId,
-            user: username,
-            userSrc: avatarUrl,
-            time: formatVietnameseTime(post.createdAt),
-            text: post.content,
-            img: post.postMedias?.[0]?.mediaUrl || null,
-            likes: post.likeAmount || 0,
-            commentsList: comments,
-            postLikes: post.postLikes || [],
-            liked
-          })
+          // const liked = Array.isArray(post.listLike)
+          //   ? post.listLike.some(like => like.id === user.id)
+          //   : false
+          //   postLikes: post.listLike || [],
+            postResults.push({
+              postId: post.postId,
+              user: username,
+              userSrc: avatarUrl,
+              time: formatVietnameseTime(post.createdAt),
+              text: post.content,
+              img: post.postMedias?.[0]?.mediaUrl || null,
+              likes: post.likeAmount || 0,
+              commentsList: comments,
+              postLikes: post.listLike || [],
+              liked: await checkLikedStatus(post.postId)
+
+            })
+
         }
       } catch (postError) {
         console.error('❌ Error processing post:', post.postId, postError)
@@ -854,6 +857,29 @@ onMounted(async () => {
     suggestions.value = enrichedSuggestions
   }
 })
+async function checkLikedStatus(postId) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user?.id) return false
+
+    const detail = await getPostById(postId)
+
+    console.log('📌 Chi tiết bài viết ID', postId, ':', detail)
+    console.log('👤 Người dùng hiện tại ID:', user.id)
+
+    // Log từng ID trong danh sách like để chắc chắn có hay không
+    const likeIds = detail?.listLike?.map(like => like.id)
+    console.log('❤️ Danh sách ID đã like:', likeIds)
+
+    const liked = detail?.listLike?.some(like => String(like.id) === String(user.id))
+    console.log(`✅ Kết quả đã like bài ${postId}?`, liked)
+
+    return liked
+  } catch (error) {
+    console.error('❌ Lỗi kiểm tra liked status:', error)
+    return false
+  }
+}
 
 function openReport(post) {
   openedMenuPostId.value = post.postId // phải dùng đúng post.postId
