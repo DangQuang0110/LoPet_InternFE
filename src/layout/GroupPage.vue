@@ -621,7 +621,7 @@ import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 import { likePost, unlikePost, deletePost, updatePost } from '@/service/postService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
-import { sendReport } from '@/service/reportService'
+// import { sendReport } from '@/service/reportService'
 
 const route = useRoute()
 const router = useRouter()
@@ -2049,11 +2049,13 @@ body {
 
 /* --- Hành động nhóm --- */
 .group-actions button {
-  margin-right: 10px;
+  /* margin-right: 100px; */
   padding: 8px 14px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  margin-left: -2px;
+  margin-top: 20px;
 }
 .invite {
   background-color: orange;
@@ -2102,6 +2104,7 @@ body {
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
+  margin-left: -4px;
 }
 
 .post-input {
@@ -2244,6 +2247,7 @@ body {
 .post-info {
   flex: 1;
 }
+
 .username {
   font-size: 16px;
   font-weight: 600;
@@ -2462,6 +2466,11 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+.group-type.public[data-v-fcbc4baa] {
+    background-color: #e6f4ea;
+    color: #1e7e34;
+    margin-top: -289px;
+}
 
 
 /* 2. Điều chỉnh layout chung để 2 cột sát nhau */
@@ -2822,6 +2831,7 @@ body {
 .privacy-badge.public {
   background-color: #e6f4ea;
   color: #1e7e34;
+  margin-top : 11px;
 }
 
 .privacy-badge.private {
@@ -3370,6 +3380,7 @@ body {
 .author-info {
   flex: 1;
 }
+
 
 .author-name {
   font-size: 15px;

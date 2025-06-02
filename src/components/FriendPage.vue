@@ -39,7 +39,8 @@
             </div>
             <div class="pet-name">{{ pet.fullName || pet.username }}</div>
             <button class="action-button profile">Xem trang cá nhân</button>
-            <button class="action-button reject" @click="isDeleteFriend(pet.id)">Xoá</button>
+            <!-- Thay đổi: gọi confirmDeleteFriend thay vì xóa ngay -->
+            <button class="action-button reject" @click="confirmDeleteFriend(pet.id)">Xoá</button>
           </div>
         </div>
 
@@ -69,12 +70,23 @@
             <button class="action-button accept" @click="sendRequestToFriend(pet.id)">
               <i class="fas fa-user-plus"></i> Thêm bạn bè
             </button>
-            <!-- <button class="action-button reject" @click="deleteSuggestedFriend(pet.id)">Xoá</button> -->
           </div>
         </div>
       </div>
+
+      <!-- Popup xác nhận xóa bạn bè -->
+      <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDeleteFriend">
+        <div class="modal-content">
+          <h3>Bạn có chắc chắn muốn xóa bạn này không?</h3>
+          <div class="modal-actions">
+            <button class="btn-cancel" @click="cancelDeleteFriend">Hủy</button>
+            <button class="btn-confirm" @click="performDeleteFriend">Xóa</button>
+          </div>
+        </div>
+      </div>
+
     </div>
-  </layout> 
+  </layout>
 </template>
 
 <script>
@@ -86,7 +98,7 @@ import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 export default {
-    components: {
+  components: {
     Layout,
   },
   name: 'PetSocialPlatform',
@@ -96,7 +108,9 @@ export default {
       friendRequests: [],
       friendSuggestions: [],
       allFriends: [],
-      currentAvatar: '/image/avata.jpg'
+      currentAvatar: '/image/avata.jpg',
+      showDeleteConfirm: false,
+      deleteFriendId: null,
     }
   },
   methods: {
@@ -153,14 +167,11 @@ export default {
         toast.success('Đã chấp nhận kết bạn!', {
           autoClose: 3000,
           position: toast.POSITION.TOP_RIGHT,
-          theme:'colored'
+          theme: 'colored'
         });
       } catch (error) {
         console.log("Không thể chấp nhận lời mời:", error);
       }
-    },
-    async confirmDeleteFriend(friend) {
-      console.log('Delete friend:', friend);
     },
     async confirmDelReqFriend(senderId) {
       try {
@@ -172,7 +183,7 @@ export default {
         toast.success('Đã xóa lời mời kết bạn!', {
           autoClose: 3000,
           position: toast.POSITION.TOP_RIGHT,
-          theme:'colored'
+          theme: 'colored'
         });
       } catch (error) {
         console.log("Không thể xóa lời mời:", error);
@@ -187,42 +198,42 @@ export default {
         toast.success('Đã gửi lời mời kết bạn!', {
           autoClose: 3000,
           position: toast.POSITION.TOP_RIGHT,
-          theme:'colored'
+          theme: 'colored'
         });
       } catch (error) {
         console.log("Không thể gửi lời mời:", error);
       }
     },
-    // async deleteSuggestedFriend(receiverId) {
-    //   try {
-    //     const user = JSON.parse(localStorage.getItem('user'));
-    //     if (!user?.id) return;
-    //     await removeSuggestedFriend(user.id, receiverId);
-    //     await this.fetchSuggestedFriends(user.id);
-    //     toast.success('Đã xóa lời mời gợi ýý kết bạn!', {
-    //       autoClose: 3000,
-    //       position: toast.POSITION.TOP_RIGHT,
-    //       theme:'colored'
-    //     });
-    //   } catch (error) {
-    //     console.log("Không thể xoá gợi ý:", error);
-    //   }
-    // },
-    async isDeleteFriend(senderId) {
+    // Hàm mở popup xác nhận xóa bạn
+    confirmDeleteFriend(friendId) {
+      this.deleteFriendId = friendId;
+      this.showDeleteConfirm = true;
+    },
+    // Hủy popup
+    cancelDeleteFriend() {
+      this.deleteFriendId = null;
+      this.showDeleteConfirm = false;
+    },
+    // Thực hiện xóa bạn
+    async performDeleteFriend() {
       try {
         const user = JSON.parse(localStorage.getItem('user'));
-        if (!user?.id) return;
-        await deleteFriend(senderId,user.id );
+        if (!user?.id || !this.deleteFriendId) return;
+        await deleteFriend(this.deleteFriendId, user.id);
         await this.fetchFriends(user.id);
-        toast.success('Đã xóa bạn bè', {
+
+        this.showDeleteConfirm = false;
+        this.deleteFriendId = null;
+
+        toast.success('Đã xóa bạn bè!', {
           autoClose: 3000,
           position: toast.POSITION.TOP_RIGHT,
-          theme:'colored'
+          theme: 'colored',
         });
       } catch (error) {
         console.log("Không thể xóa bạn:", error);
       }
-    },
+    }
   },
   created() {
     const user = JSON.parse(localStorage.getItem('user'))
@@ -236,6 +247,7 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 .app-container {
   display: flex;
@@ -451,22 +463,64 @@ export default {
   background-color: #ffe0a3;
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  margin-top: auto;
-}
-
-.pagination-button {
-  background-color: white;
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+/* Modal xác nhận xóa */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 24px 30px;
+  border-radius: 10px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.modal-content h3 {
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.btn-cancel,
+.btn-confirm {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+}
+
+.btn-cancel {
+  background-color: #ddd;
+  color: #333;
+}
+
+.btn-cancel:hover {
+  background-color: #ccc;
+}
+
+.btn-confirm {
+  background-color: #ff6b01;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background-color: #e55f01;
 }
 </style>

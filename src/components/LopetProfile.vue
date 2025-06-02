@@ -3,8 +3,8 @@
   <div class="lopet-app-new">
     <!-- Header with Search Bar -->
     <div class="search-box">
-      <span class="material-icons">search</span>
-      <input v-model="search" type="text" placeholder="Tìm kiếm" />
+      <!-- <span class="material-icons">search</span> -->
+      <input v-model="search" type="text" placeholder="Tìm kiếm..." />
     </div>
 
     <!-- Notification section -->
@@ -41,59 +41,72 @@
     </div>
 
     <!-- Edit Profile Modal -->
-    <div v-if="showEditProfileModal" class="confirm-modal">
-      <div class="confirm-modal-content">
-        <h3>Chỉnh sửa thông tin cá nhân</h3>
-        <form @submit.prevent="saveProfileEdit">
-          <div class="form-group">
-            <label for="username">Tên người dùng</label>
-            <input
-              id="username"
-              type="text"
-              v-model="editProfileForm.username"
-              placeholder="Nhập tên người dùng..."
-              class="form-input"
-            />
-          </div>
-          <div class="form-group">
-            <label for="avatar">Ảnh đại diện</label>
-            <input
-              id="avatar"
-              type="file"
-              ref="avatarInputModal"
-              accept="image/*"
-              @change="handleAvatarChangeModal"
-              class="form-input"
-            />
-            <div
-              v-if="editProfileForm.avatarPreview"
-              class="avatar-preview"
-              :style="{ 'background-image': 'url(' + editProfileForm.avatarPreview + ')' }"
-            ></div>
-          </div>
-          <div class="form-group">
-            <label for="banner">Ảnh bìa</label>
-            <input
-              id="banner"
-              type="file"
-              ref="bannerInput"
-              accept="image/*"
-              @change="handleBannerChange"
-              class="form-input"
-            />
-            <div
-              v-if="editProfileForm.bannerPreview"
-              class="banner-preview"
-              :style="{ 'background-image': 'url(' + editProfileForm.bannerPreview + ')' }"
-            ></div>
-          </div>
-          <div class="confirm-modal-actions">
-            <button type="submit" class="confirm-button">Lưu</button>
-            <button type="button" class="cancel-button" @click="cancelProfileEdit">Hủy</button>
-          </div>
-        </form>
+<div v-if="showEditProfileModal" class="confirm-modal">
+  <div class="confirm-modal-content">
+    <h3>Chỉnh sửa thông tin cá nhân</h3>
+    <form @submit.prevent="saveProfileEdit">
+      <div class="form-group">
+        <label for="username">Tên người dùng</label>
+        <input
+          id="username"
+          type="text"
+          v-model="editProfileForm.username"
+          placeholder="Nhập tên người dùng..."
+          class="form-input"
+        />
       </div>
-    </div>
+      <div class="form-group">
+  <label for="avatar">Ảnh đại diện</label>
+  <div class="custom-file-input">
+    <label for="avatar" class="custom-file-label">📁 Chọn ảnh đại diện</label>
+    <input
+      id="avatar"
+      type="file"
+      ref="avatarInputModal"
+      accept="image/*"
+      @change="handleAvatarChangeModal"
+    />
+  </div>
+  <div
+    v-if="editProfileForm.avatarPreview"
+    class="avatar-preview"
+    :style="{ 'background-image': 'url(' + editProfileForm.avatarPreview + ')' }"
+  ></div>
+</div>
+     <div class="form-group">
+  <label for="banner">Ảnh bìa</label>
+  <div class="custom-file-input">
+    <label for="banner" class="custom-file-label">🖼️ Chọn ảnh bìa</label>
+    <input
+      id="banner"
+      type="file"
+      ref="bannerInput"
+      accept="image/*"
+      @change="handleBannerChange"
+    />
+  </div>
+  <div
+    v-if="editProfileForm.bannerPreview"
+    class="banner-preview"
+    :style="{ 'background-image': 'url(' + editProfileForm.bannerPreview + ')' }"
+  ></div>
+        <!-- Nút xóa ảnh bìa -->
+        <button
+          v-if="editProfileForm.bannerPreview"
+          type="button"
+          class="btn-delete-banner"
+          @click="deleteBanner"
+        >
+          Xóa ảnh bìa
+        </button>
+      </div>
+      <div class="confirm-modal-actions">
+        <button type="submit" class="confirm-button">Lưu</button>
+        <button type="button" class="cancel-button" @click="cancelProfileEdit">Hủy</button>
+      </div>
+    </form>
+  </div>
+</div>
 
     <!-- Delete Post Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="modal-overlay">
@@ -140,9 +153,9 @@
         <div class="profile-info">
           <h1 class="profile-name">{{ user.name }}</h1>
           <p class="profile-stats">{{ user.friends }} Bạn bè</p>
-          <button class="edit-profile-button" @click="goToProfileEdit">Chỉnh sửa thông tin</button>
+          <button class="edit-profile-button" @click="goToProfileEdit">Chỉnh sửa tài khoản</button>
           <div class="profile-nav">
-            <router-link to="/profile" class="nav-item active">Trang Cá Nhân</router-link>
+            <!-- <router-link to="/profile" class="nav-item active">Trang Cá Nhân</router-link> -->
             <!-- <router-link to="/photo" class="nav-item">Hình Ảnh</router-link> -->
           </div>
         </div>
@@ -152,7 +165,7 @@
       <div class="profile-content">
         <div class="sidebar">
           <div class="intro-section">
-            <h3>Giới Thiệu</h3>
+            <h3>Hồ sơ</h3>
             <div v-if="!editMode">
               <ul class="intro-list">
                 <li class="bio-item">
@@ -176,7 +189,7 @@
                   <span>{{ user.dateOfBirth || 'Chưa có ngày sinh...' }}</span>
                 </li>
               </ul>
-              <button class="edit-button" @click="goToEdit">Chỉnh sửa chi tiết</button>
+              <button class="edit-button" @click="goToEdit">Chỉnh sửa</button>
             </div>
             <div v-else>
               <form @submit.prevent="saveDetails" class="edit-form">
@@ -241,6 +254,9 @@
 
         <!-- Feed -->
         <div class="feed">
+          <div v-if="posts.length === 0" class="no-posts-message">
+  Chưa có bài viết mới
+</div>
           <div class="post-card" v-for="post in posts" :key="post.id">
             <!-- Post Header -->
             <div class="post-header">
@@ -496,6 +512,7 @@ const currentUserId = ref(localStorage.getItem('accountId') || '');
 const posts = ref([]);
 const route = useRoute();
 
+
 // Functions for profile
 function goToEdit() {
   editForm.value.bio = user.value.bio || '';
@@ -506,7 +523,21 @@ function goToEdit() {
   editMode.value = true;
 }
 
+function deleteBanner() {
+  editProfileForm.value.banner = null;
+  editProfileForm.value.bannerPreview = '';
+}
+
+
 async function saveDetails() {
+  const phone = editForm.value.phone || '';
+  const phoneRegex = /^0\d{9}$/; // Bắt đầu bằng 0, 10 chữ số
+
+  if (phone && !phoneRegex.test(phone)) {
+    showNotification('Số điện thoại không hợp lệ! Phải bắt đầu bằng 0 và có 10 chữ số.', 'error');
+    return; // Dừng không lưu
+  }
+
   try {
     const formData = new FormData();
     formData.append('fullName', user.value.name); // giữ nguyên tên
@@ -1102,6 +1133,7 @@ onMounted(async () => {
 .confirm-modal-actions {
   display: flex;
   gap: 10px;
+  margin-top: 10px
 }
 
 .confirm-button,
@@ -1226,6 +1258,7 @@ onMounted(async () => {
   cursor: pointer;
   color: #333;
   font-size: 14px;
+  margin-top: -16px;
 }
 
 .edit-profile-button:hover {
@@ -1329,12 +1362,17 @@ onMounted(async () => {
 .edit-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;       /* Tăng khoảng cách giữa các nhóm form */
+  padding: 16px;   /* Padding xung quanh form */
+  background-color: #fff; /* (tuỳ chọn) để dễ nhìn */
+  border-radius: 8px;     /* (tuỳ chọn) bo góc */
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
+  padding: 8px 12px; /* Padding trong mỗi ô input group */
+ 
 }
 
 .form-group label {
@@ -1342,21 +1380,28 @@ onMounted(async () => {
   font-weight: 600;
   margin-bottom: 5px;
   color: #333;
+  text-align: left;
 }
-
 .form-input {
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
   font-size: 14px;
   outline: none;
-  background-color: #f0f2f5;
+  background-color: #f9f9f9;
+  transition: border-color 0.3s, background-color 0.3s;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .form-input:focus {
   border-color: #ff6b01;
-  background-color: white;
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 107, 1, 0.2);
+}
+
+.form-input:hover {
+  background-color: #f0f0f0;
 }
 
 .form-actions {
@@ -1630,6 +1675,14 @@ onMounted(async () => {
   gap: 8px;
   margin-top: 8px;
 }
+/* No posts message */
+.no-posts-message {
+  padding: 20px;
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+  font-weight: 600;
+}
 
 .post-comment input {
   width: 98%;
@@ -1711,6 +1764,7 @@ onMounted(async () => {
 
 .comment-text {
   color: #050505;
+  margin-top : 10px; 
 }
 
 .comment-time {
@@ -1854,8 +1908,8 @@ onMounted(async () => {
 }
 .nav-icon {
   margin-right: 10px; /* Khoảng cách giữa icon và text */
-  width: 25px; 
-  height: 25px;
+  width: 20px; 
+  height: 20px;
 }
 .reply-section {
   display: flex;
@@ -1919,6 +1973,7 @@ onMounted(async () => {
   padding: 0;
   font-size: 14px;
   font-weight: 500;
+ padding-left: 10px;
 }
 
 /* Share Modal */
@@ -2131,6 +2186,23 @@ onMounted(async () => {
   background: #FFE0B2;
 }
 
+/* Delete Banner */
+.btn-delete-banner {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background-color: #f5ae52;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-delete-banner:hover {
+  background-color: #c4c3c3;
+}
+
 /* Fade Transition */
 .fade-enter-active,
 .fade-leave-active {
@@ -2325,4 +2397,38 @@ onMounted(async () => {
     font-size: 12px;
   }
 }
+
+.custom-file-input {
+  position: relative;
+  width: fit-content;
+  margin-top: 6px;
+}
+
+.custom-file-input input[type="file"] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.custom-file-label {
+  display: inline-block;
+  background-color: #f5ae52;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* .custom-file-label:hover {
+  background-color: #e6e6e6;
+} */
+
 </style>

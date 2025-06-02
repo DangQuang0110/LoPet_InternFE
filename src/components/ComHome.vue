@@ -6,7 +6,7 @@
         <header class="topbar">
           <div class="search-box">
             <span class="material-icons">search</span>
-            <input v-model="search" type="text" placeholder="Tìm kiếm" />
+            <input v-model="search" type="text" placeholder="Tìm kiếm..." />
           </div>
         <transition name="fade">
             <div v-if="showDeleteConfirm" class="modal-overlay">
@@ -121,6 +121,7 @@
                           </div>
                           <div class="comment-text">{{ cmt.text }}</div>
                           <div class="comment-time">{{ cmt.time || formatDate(cmt.createdAt) }}</div>
+                          
                         </div>
                       </div>
                     </div>
@@ -128,6 +129,7 @@
                       <input v-model="newComment" type="text" placeholder="Viết bình luận..."
                         @keydown.enter.prevent="addComment(activePost)" />
                       <button class="src/assets/security-password.png" @click="toggleCommentPopup(post)">Gửi</button>
+                      
                     </div>
                   </div>
                 </div>
@@ -153,6 +155,7 @@
                 <button class="btn-icon post-comment" @click="addComment(post)">
                  <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
                 </button>
+                
               </div>
             </div>
           </div>
@@ -309,36 +312,38 @@
           <!-- 4. Danh sách comment -->
           <div class="comment-modal-list">
           <div v-for="c in activePost.commentsList" :key="c.id" class="comment-item">
-            <img :src="c.userSrc" class="comment-avatar" />
-            <div class="comment-body">
-              <div class="main-comment">
-              <span class="comment-username">{{ c.user }}</span>
-              <p class="comment-text">{{ c.text }}</p>
-              </div>
-              <span class="comment-time">{{ formatDate(c.createdAt) }}</span>
+  <img :src="c.userSrc" class="comment-avatar" />
+  <div class="comment-body">
+    <div class="main-comment">
+      <span class="comment-username">{{ c.user }}</span>
+      <p class="comment-text">{{ c.text }}</p>
+    </div>
+    <span class="comment-time">{{ formatDate(c.createdAt) }}</span>
 
-              <!-- Nút trả lời -->
-              <button class="btn-reply-modal" @click="prepareReply(c)">Trả lời</button>
+    <!-- Nút trả lời -->
+    <button class="btn-reply-modal" @click="prepareReply(c)">Trả lời</button>
 
-              <!-- Input trả lời -->
-              <div v-if="replyingCommentId === c.id" class="reply-section">
-                <input
-                  v-model="replyInputs[c.id]"
-                  type="text"
-                  :placeholder="`@${c.user}`"
-                  @keydown.enter.prevent="submitReplyModal(c)"
-                />
-                <button @click="submitReplyModal(c)">Gửi</button>
-              </div>
-             <!-- Hiển thị danh sách reply -->
-              <div v-for="r in c.replies" :key="r.id" class="reply-item">
-                <img :src="r.userSrc" class="comment-avatar" />
-                <div class="comment-body">
-                  <div class="main-comment">
-                    <span class="comment-username">{{ r.user }}</span>
-                    <p class="comment-text">{{ r.text }}</p>
-                  </div>
-                  <div class="comment-time">{{ r.time || formatDate(r.createdAt) }}</div>
+
+    <!-- Input trả lời -->
+    <div v-if="replyingCommentId === c.id" class="reply-section">
+      <input
+        v-model="replyInputs[c.id]"
+        type="text"
+        :placeholder="`@${c.user}`"
+        @keydown.enter.prevent="submitReplyModal(c)"
+      />
+      <button @click="submitReplyModal(c)">Gửi</button>
+    </div>
+
+    <!-- Danh sách reply -->
+    <div v-for="r in c.replies" :key="r.id" class="reply-item">
+      <img :src="r.userSrc" class="comment-avatar" />
+      <div class="comment-body">
+        <div class="main-comment">
+          <span class="comment-username">{{ r.user }}</span>
+          <p class="comment-text">{{ r.text }}</p>
+        </div>
+        <div class="comment-time">{{ r.time || formatDate(r.createdAt) }}</div>
                 </div>
               </div>
             </div>
@@ -444,6 +449,12 @@ async function submitReplyModal(cmt) {
     alert('Không thể gửi phản hồi. Vui lòng thử lại.')
   }
 }
+
+  function deleteComment(commentId) {
+    if (!activePost.value || !Array.isArray(activePost.value.commentsList)) return
+
+    activePost.value.commentsList = activePost.value.commentsList.filter(c => c.id !== commentId)
+  }
 
 function prepareReply(cmt) {
   replyingCommentId.value = cmt.id
@@ -1592,6 +1603,7 @@ html,
 
 .comment-text {
   color: #050505;
+  margin-top: 10px ;
 }
 
 .comment-time {
@@ -2155,9 +2167,6 @@ html,
   }
 }
 
-/* --------------------------------------------- */
-/* Desktop (trên 900px)                          */
-/* --------------------------------------------- */
 @media (min-width: 900px) {
   .main {
     padding: 32px;

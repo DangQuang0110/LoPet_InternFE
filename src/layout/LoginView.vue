@@ -21,9 +21,8 @@
             placeholder=" "
           />
           <label :class="{ active: emailFocus || email }">Tên Người dùng</label>
-            <p v-if="errors.email" class="error">{{ errors.email }}</p>
+          <p v-if="errors.email" class="error">{{ errors.email }}</p>
         </div>
-      
 
         <!-- Password -->
         <div class="input-group password-group">
@@ -37,23 +36,51 @@
           />
           <label :class="{ active: passwordFocus || password }">Mật khẩu</label>
           <span class="toggle-password" @click="togglePassword">
-            <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              v-if="!showPassword"
+              xmlns="http://www.w3.org/2000/svg"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#888"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M1 1l22 22" />
-              <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.5 0-10-4.5-10-10 0-2.5 1-4.7 2.64-6.36" />
+              <path
+                d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.5 0-10-4.5-10-10 0-2.5 1-4.7 2.64-6.36"
+              />
               <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
               <path d="M12 4c4.5 0 8.3 2.7 9.54 6.36" />
             </svg>
-            <svg class="svg-icon" v-else xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path class="hideeyes-icon" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+            <svg
+              class="svg-icon"
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#888"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                class="hideeyes-icon"
+                d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"
+              />
               <circle cx="12" cy="12" r="3" />
             </svg>
           </span>
           <p v-if="errors.password" class="error">{{ errors.password }}</p>
         </div>
-        
 
         <a href="/resetPassword" class="forgot">Quên mật khẩu?</a>
-        <button class="btn" :disabled="!isFormValid" @click="handleLogin">Đăng nhập</button>
+        <button class="btn" :disabled="!isFormValid" @click="handleLogin">
+          Đăng nhập
+        </button>
+
         <div class="or-divider">Hoặc</div>
         <p class="footer">
           Chưa có tài khoản? <router-link to="/register">Đăng ký ngay</router-link>
@@ -66,7 +93,9 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { loginUser, getAccountById} from '@/service/authService'
+import Toastify from 'toastify-js'
+import 'toastify-js/src/toastify.css'
+import { loginUser, getAccountById } from '@/service/authService'
 
 const email = ref('')
 const password = ref('')
@@ -74,7 +103,10 @@ const emailFocus = ref(false)
 const passwordFocus = ref(false)
 const showPassword = ref(false)
 
-// Regex: tên đn gồm ít nhất 1 chữ + 1 số, chỉ gồm chữ & số
+// Dùng biến để tránh hiển thị toast khi toast cũ chưa ẩn hết
+let isToastActive = false
+
+// Regex: tên đăng nhập gồm ít nhất 1 chữ + 1 số, chỉ gồm chữ & số
 const usernameRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/
 
 // Regex: 8-16 ký tự, ít nhất 1 in hoa, 1 số, 1 đặc biệt
@@ -87,19 +119,21 @@ const errors = reactive({
 
 const validateEmail = () => {
   const value = email.value
-
-  if (!value) {
+   if (!value) {
     errors.email = 'Vui lòng nhập tên đăng nhập'
+  } else if (value.length < 6 || value.length > 20) {
+    errors.email = 'Tên đăng nhập phải từ 6 đến 20 ký tự'
   } else if (/\s/.test(value)) {
     errors.email = 'Tên đăng nhập không được chứa khoảng trắng'
   } else if (/^\d+$/.test(value)) {
     errors.email = 'Tên đăng nhập không được chỉ gồm số'
-  } else if (!/^[a-zA-Z0-9]+$/.test(value)) {
-    errors.email = 'Tên đăng nhập chỉ được chứa chữ cái và số'
+  } else if (!usernameRegex.test(value)) {
+    errors.email = 'Phải có ít nhất 1 chữ và 1 số, chỉ chứa chữ & số'
   } else {
     errors.email = ''
   }
 }
+
 const validatePassword = () => {
   if (!password.value) {
     errors.password = 'Vui lòng nhập mật khẩu'
@@ -124,7 +158,31 @@ const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
+function showErrorToast(message) {
+  if (isToastActive) return
+  isToastActive = true
+
+  Toastify({
+    text: message,
+    duration: 3000,
+    close: true,
+    gravity: 'top',       // xuất hiện phía trên
+    position: 'right',    // góc phải
+    backgroundColor: 'linear-gradient(to right, #e0251f, #f57c00)',
+    style: {
+      transform: 'translateX(100%)',               // khởi đầu bên ngoài bên phải
+      animation: 'slide-in-right 0.5s forwards'    // áp dụng animation
+    }
+  }).showToast()
+
+  // Reset lại flag sau khi toast được ẩn (3000ms + 500ms animation)
+  setTimeout(() => {
+    isToastActive = false
+  }, 3500)
+}
+
 const handleLogin = async () => {
+  // validate form trước khi gọi API
   validateEmail()
   validatePassword()
   if (!isFormValid.value) return
@@ -133,32 +191,30 @@ const handleLogin = async () => {
     const loginResponse = await loginUser({
       username: email.value,
       password: password.value
-    });
+    })
 
-    const { userId } = loginResponse;
-
-    const account = await getAccountById(userId);
-    const roleNames = account.roles || []; // ✅ Sửa tại đây
+    const { userId } = loginResponse
+    const account = await getAccountById(userId)
+    const roleNames = account.roles || []
 
     localStorage.setItem(
       'user',
       JSON.stringify({ id: userId, username: account.username, roles: roleNames })
-    );
+    )
 
-    const hasAdminRole = roleNames.includes('ADMIN');
-    const hasAdsRole = roleNames.includes('ADS');
+    const hasAdminRole = roleNames.includes('ADMIN')
+    const hasAdsRole = roleNames.includes('ADS')
 
     if (hasAdminRole || hasAdsRole) {
-      router.push('/admin');
+      router.push('/admin')
     } else {
-      router.push('/home');
+      router.push('/home')
     }
-
   } catch (err) {
-    alert(err.response?.data?.message || 'Đăng nhập thất bại');
+    const msg = err.response?.data?.message || 'Đăng nhập thất bại'
+    showErrorToast(msg)
   }
-};
-
+}
 </script>
 
 <style scoped>
@@ -214,8 +270,19 @@ const handleLogin = async () => {
 
 .input-group {
   position: relative;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   text-align: left;
+  min-height: 72px; /* Giữ cố định chiều cao để không bị nhảy */
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 1.2rem;
+  text-align: left;
+  min-height: 90px; /* Cố định chiều cao toàn bộ input + label + error */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .input-group input {
@@ -226,6 +293,7 @@ const handleLogin = async () => {
   border-radius: 4px;
   background: transparent;
   outline: none;
+  min-height: 45px;
 }
 
 .input-group label {
@@ -254,7 +322,7 @@ const handleLogin = async () => {
 
 .toggle-password {
   position: absolute;
-  top: 50%;
+  top: 30%;
   right: 12px;
   transform: translateY(-50%);
   cursor: pointer;
@@ -320,11 +388,24 @@ const handleLogin = async () => {
 }
 
 .error {
+  min-height: 18px; /* Dù không có lỗi vẫn giữ chỗ cho dòng thông báo */
   color: #e0251f;
   font-size: 0.85rem;
-  margin: 0.25rem 0 1rem;
+  margin-top: 6px;
+  margin-bottom: 0;
   text-align: left;
 }
+
+/* --- Animation “slide-in-right” cho Toastify --- */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+/* ---------------------------------------------- */
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
@@ -371,33 +452,26 @@ const handleLogin = async () => {
   padding-right: 3rem; /* tăng vùng trống bên phải */
 }
 
-/* 2. Cố định kích thước và căn giữa icon trong vùng click */
+/* Cố định kích thước và căn giữa icon */
 .toggle-password {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
   border-radius: 4px;
 }
 
-/* 3. Thay đổi màu stroke mặc định cho SVG */
 .toggle-password svg {
   width: 20px;
   height: 20px;
-  stroke: #888; 
-  margin-top: -30px;   /* màu nhạt khi chưa tương tác */
-}
-.password-group input:focus ~ .toggle-password svg,
-.toggle-password:hover svg {
-  stroke: #888; /* màu cam nổi bật */
-  margin-top: -30px;
+  stroke: #888;
+  /* margin-top: -30px; */
 }
 
-</style>  
+.password-group input:focus ~ .toggle-password svg,
+.toggle-password:hover svg {
+  /* stroke: #ff9800; */
+  /* margin-top: -30px; */
+}
+</style>
