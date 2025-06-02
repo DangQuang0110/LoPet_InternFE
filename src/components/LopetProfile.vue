@@ -284,11 +284,7 @@
             </div>
             <div class="post-actions">
               <button class="btn-icon like-btn" @click="toggleLike(post)">
-                <img
-                  :src="post.liked ? '/assets/like.png' : '/assets/like.png'"
-                  alt="Like"
-                  class="icon-img-like"
-                />
+                <img :src="getLikeIcon(post)" alt="Like" class="icon-img-like" />
               </button>
               <span class="count">{{ post.likes }}</span>
               <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">
@@ -439,7 +435,7 @@ import { getProfileByAccountId,updateProfile} from '@/service/profileService';
 import ReportModal from '@/components/ReportModal.vue'
 import {getPostsByAccountId} from '@/service/postService';
 import { getCommentsByPostId } from '@/service/commentService';
-import { likePost, unlikePost } from '@/service/postService'
+import { likePost, unlikePost,getPostById  } from '@/service/postService'
 import { useRoute } from 'vue-router';
 
 // Reactive variables
@@ -504,6 +500,21 @@ function goToEdit() {
   editForm.value.gender = user.value.gender || '';
   editForm.value.dateOfBirth = user.value.dateOfBirth || '';
   editMode.value = true;
+}
+function getLikeIcon(post) {
+  return post.liked ? '/assets/liked.png' : '/assets/like.png';
+}
+async function checkLikedStatus(postId) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user?.id) return false;
+
+    const detail = await getPostById(postId);
+    return detail?.listLike?.some(like => String(like.id) === String(user.id));
+  } catch (error) {
+    console.error('❌ Lỗi kiểm tra liked status:', error);
+    return false;
+  }
 }
 
 async function saveDetails() {
@@ -718,34 +729,34 @@ function formatVietnameseTime(dateStr) {
   const minutes = date.getMinutes().toString().padStart(2, '0');
   return `${day} tháng ${month} lúc ${hours}:${minutes}`;
 }
-
 async function toggleLike(post) {
   try {
-    const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}')
-    const accountId = userFromStorage?.id
-    const postId = post?.postId
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const accountId = user?.id;
+    const postId = post?.postId;
 
     if (!accountId || !postId) {
-      console.error('❌ Thiếu accountId hoặc postId khi like:', { accountId, postId })
-      return
+      console.error('❌ Thiếu accountId hoặc postId khi like:', { accountId, postId });
+      return;
     }
 
     if (post.liked) {
-      await unlikePost(accountId, postId)
-      post.likes -= 1
-      post.liked = false
+      await unlikePost(accountId, postId);
+      post.likes -= 1;
+      post.liked = false;
+      post.postLikes = post.postLikes.filter(like => like.accountId !== accountId);
     } else {
-      await likePost(accountId, postId)
-      post.likes += 1
-      post.liked = true
+      await likePost(accountId, postId);
+      post.likes += 1;
+      post.liked = true;
+      if (!Array.isArray(post.postLikes)) post.postLikes = [];
+      post.postLikes.push({ accountId, username: user.username, email: user.email });
     }
-
-    await refreshData()
   } catch (error) {
-    console.error('❌ Lỗi khi xử lý like/unlike:', error)
+    console.error('❌ Lỗi khi xử lý like/unlike:', error);
+    showNotification('Không thể xử lý like!', 'error');
   }
 }
-
 function togglePostMenu(id) {
   openedMenuPostId.value = openedMenuPostId.value === id ? null : id;
 }
@@ -943,7 +954,7 @@ onMounted(async () => {
           likes: post.likeAmount || 0,
           commentsList,
           postLikes: post.listLike || [],
-          liked: post.listLike?.some(like => like.accountId === accountId),
+          liked: await checkLikedStatus(post.postId),
           images: post.postMedias?.map(m => m.mediaUrl) || []
         };
       })
