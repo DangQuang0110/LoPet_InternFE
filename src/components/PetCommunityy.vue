@@ -902,10 +902,10 @@ const navigateToGroupJoined = (groupId) => {
 }
 
 .content {
-  padding: 16px;
+  padding: 12px 16px;       /* giảm padding trên/dưới */
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 12px;                /* khoảng cách đều giữa các phần tử */
   height: 100%;
 }
 
@@ -938,6 +938,8 @@ const navigateToGroupJoined = (groupId) => {
   transition: all 0.4s ease;
   opacity: 1;
   transform: scale(1);
+  margin-top : 12px;
+  margin-left : 0px;
 }
 
 .joining {
@@ -952,6 +954,7 @@ const navigateToGroupJoined = (groupId) => {
   font-weight: bold;
   cursor: default;
   transform: scale(1.03);
+  margin-top: 22px;
 }
 
 .no-joined-groups {
@@ -1103,7 +1106,7 @@ const navigateToGroupJoined = (groupId) => {
 
   justify-content: center;
     gap: 10px;
-    margin-top: 40px;
+    margin-top: -8px;
     padding: 20px 0;
    
 }
@@ -1148,6 +1151,7 @@ const navigateToGroupJoined = (groupId) => {
 .group-type.public {
   background-color: #e6f4ea;
   color: #1e7e34;
+  margin-top: -275px;
 }
 
 .group-type.private {

@@ -455,14 +455,14 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
   width: 20px;
   margin-right: 10px;
 }
-.user-panel {
+/* .user-panel {
   margin-top:5px;
   position: relative;
   cursor: pointer;
   display: flex;              
   align-items: center;       
   gap: 8px;                  
-}
+} */
 
 .logout-menu {
   position: absolute;
@@ -530,6 +530,35 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 .resetpassword i {
   margin-right: 8px;
 }
+
+.user-panel {
+  margin-top: 5px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Đẩy items ra hai bên */
+  padding-right: 8px;             /* Có khoảng cho nút settings */
+}
+
+.username {
+  flex: 1;
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #141414;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nút settings đứng sát bên phải */
+.settings-icon {
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  cursor: pointer;
+}
+
 
 .user-panel .avatar {
   width: 32px;
