@@ -30,7 +30,6 @@
           <select v-model="newGroupPrivacy" :disabled="isCreating">
             <option disabled value="">Chọn quyền riêng tư</option>
             <option>Công khai</option>
-            <option>Riêng tư</option>
           </select>
           <textarea
             v-model="newGroupBio"
@@ -81,7 +80,6 @@
           <select v-model="editGroupPrivacy" :disabled="isEditing">
             <option disabled value="">Chọn quyền riêng tư</option>
             <option>Công khai</option>
-            <option>Riêng tư</option>
           </select>
           <textarea
             v-model="editGroupBio"
@@ -262,7 +260,7 @@
 
 <script setup>
 import Layout from './Layout.vue'
-import { reactive, ref, computed, onMounted, onUnmounted } from 'vue'
+import { reactive, ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   getSuggestCom,
@@ -292,6 +290,19 @@ const isCreating = ref(false)
 const errorMessage = ref('')
 const selectedImage = ref(null)
 const imagePreview = ref(null)
+
+// Watch for changes in newGroupPrivacy
+watch(newGroupPrivacy, (newValue) => {
+  if (newValue === 'Riêng tư') {
+    toast.info('Tính năng đang được phát triển', {
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+      theme: 'colored'
+    });
+    // Reset về Công khai
+    newGroupPrivacy.value = 'Công khai';
+  }
+});
 
 //  hiển thị danh sách nhóm chỉ giới hạn 3 nhóm
 const showAllSuggested = ref(false)
@@ -773,6 +784,8 @@ const navigateToGroupJoined = (groupId) => {
   display: flex;
   gap: 12px;
   margin-bottom: 24px;
+  justify-content: right;
+  padding-top: 20px;
 }
 
 .search-bar input {
@@ -784,12 +797,25 @@ const navigateToGroupJoined = (groupId) => {
 }
 
 .search-bar button {
-  background-color: black;
-  color: white;
+  background-color: #ffd6a1;
+  color: #333;
   padding: 12px 16px;
-  border-radius: 9999px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  width: 115px;
+  transition: all 0.3s ease;
+}
+
+.search-bar button:hover {
+  background-color: #ffb84d;
+  transform: translateY(-1px);
+}
+
+.search-bar button:active {
+  transform: translateY(0);
 }
 
 .header-new {

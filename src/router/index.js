@@ -5,6 +5,7 @@ import LopetProfile from "@/components/LopetProfile.vue";
 import LopetAbout from "@/components/LopetAbout.vue";
 import LopetPhotoGallery from "@/components/LopetPhotoGallery.vue";
 import LopetEditProfile from "@/components/LopetEditProfile.vue";
+import ProfileFriend from "@/components/ProfileFriend.vue";
 
 import PetCommunityy from "@/components/PetCommunityy.vue";// chủ
 
@@ -48,10 +49,9 @@ const routes=[
         redirect: "/profile/me"
     },
     {
-        path: "/profile/:profileId",
+        path: "/profile/:accountId",
         name: "UserProfile",
-        component: LopetProfile,
-        props: true
+        component: ProfileFriend,
     },
     {
         path: "/about",

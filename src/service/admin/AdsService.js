@@ -1,10 +1,14 @@
 import apiService from "@/api/apiService";
 
 // Lấy danh sách quảng cáo 
-export const getListAds = async() => {
+export const getListAds = async () => {
+  try {
     const response = await apiService.get(`/v1/advertisements`)
-    console.log(response.data)
-    return response.data;
+    return response.data?.data || []  // ✅ luôn là array
+  } catch (error) {
+    console.error('❌ Lỗi khi lấy danh sách quảng cáo:', error)
+    return []  // fallback an empty array
+  }
 }
 
 // Tạo quảng cáo nè cu bug tìm ở đây

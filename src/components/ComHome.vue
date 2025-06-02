@@ -7,6 +7,7 @@
           <div class="search-box">
             <span class="material-icons">search</span>
             <input v-model="search" type="text" placeholder="Tìm kiếm..." />
+
           </div>
         <transition name="fade">
             <div v-if="showDeleteConfirm" class="modal-overlay">
@@ -41,7 +42,7 @@
         <!-- Feed -->
         <div class="content">
           <div class="feed">
-            <div class="post-card" v-for="post in posts" :key="post.id">
+          <div class="post-card" v-for="post in filteredPosts" :key="post.id">
               <!-- Header -->
               <div class="post-header">
                 <img :src="post.userSrc" alt="avatar" class="avatar" />
@@ -86,11 +87,11 @@
               <!-- Actions -->
               <div class="post-actions">
                 <button class="btn-icon like-btn" @click="toggleLike(post)">
-                  <img
-                    :src="post.liked ? '/assets/liked.png' : '/assets/like.png'"
-                    alt="Like"
-                    class="icon-img-like"
-                  />
+                <img
+                  :src="getLikeIcon(post)"
+                  alt="Like"
+                  class="icon-img-like"
+                />
                 </button>
                 <span class="count">{{ post.likes }}</span>
                 <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">
@@ -150,12 +151,15 @@
                 <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Xem thêm bình luận</button>
               <!-- Comment Input -->
               <div class="post-comment">
-                <input type="text" placeholder="Bình luận..." v-model="newComment"/>
-                <!-- <button class="btn-send-comment">Gửi</button> -->
-                <button class="btn-icon post-comment" @click="addComment(post)">
-                 <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
-                </button>
-                
+              <input
+                type="text"
+                placeholder="Bình luận..."
+                v-model="newCommentMap[post.postId]"
+                @keydown.enter.prevent="addComment(post)"
+              />
+              <button class="btn-icon post-comment" @click="addComment(post)">
+                <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
+              </button>
               </div>
             </div>
           </div>
@@ -166,28 +170,16 @@
         <div class="ads">
           <h3>Quảng cáo</h3>
           <div class="ad-list">
-            <div class="ad-card">
-              <img src="/assets/ad1.png" alt="Trà sữa Toyo" />
+            <div class="ad-card" 
+              v-for="ad in advertisements" 
+              :key="ad.id" 
+              @click="handleAdClick(ad.linkReferfence)"
+              role="link" 
+              tabindex="0">
+              <img :src="ad.imageUrl" :alt="ad.title" />
               <div class="ad-info">
-                <h4 class="ad-title">Trà sữa Toyo</h4>
-                <p class="ad-desc">Trà sữa thơm ngon bổ dưỡng</p>
-                <!-- <span class="ad-domain">toto.com.vn</span> -->
-              </div>
-            </div>
-            <div class="ad-card">
-              <img src="/assets/ad2.jpg" alt="Free FPS game" />
-              <div class="ad-info">
-                <h4 class="ad-title">Free FPS game</h4>
-                <p class="ad-desc">Best FPS game ever</p>
-                <!-- <span class="ad-domain">fps.com.vn</span> -->
-              </div>
-            </div>
-            <div class="ad-card">
-              <img src="/assets/ad3.jpg" alt="Best Movie" />
-              <div class="ad-info">
-                <h4 class="ad-title">Best Movie</h4>
-                <p class="ad-desc">Best movie</p>
-                <!-- <span class="ad-domain">movie.com.vn</span> -->
+                <h4 class="ad-title">{{ ad.title }}</h4>
+                <p class="ad-desc">{{ ad.description }}</p>
               </div>
             </div>
           </div>
@@ -216,11 +208,11 @@
       <CreatePost v-if="showCreate" @close="handleCreatePostClose" @refresh="refreshData" />
       <!-- ReportModal -->
       <ReportModal
-  v-if="showReport"
-  :postId="openedMenuPostId"
-  @close="showReport = false"
-  @report="onReport"
-/>
+        v-if="showReport"
+        :postId="openedMenuPostId"
+        @close="showReport = false"
+        @report="onReport"
+      />
       <!-- Comments Modal -->
       <transition name="fade">
         <div v-if="showCommentsModal" class="comments-overlay">
@@ -361,16 +353,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted,reactive } from 'vue'
+import { ref, onMounted,reactive,computed  } from 'vue'
 import Layout from '@/components/Layout.vue'
 import CreatePost from '@/components/CreatePost.vue'
 import ReportModal from '@/components/ReportModal.vue'
-import { getPosts ,likePost, unlikePost } from '@/service/postService'
+import { getPosts ,likePost, unlikePost,getPostById  } from '@/service/postService'
 import { getAccountById } from '@/service/authService'
 import { getSuggestedFriends, getFriendList } from '@/service/friendService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
 import { getProfileByAccountId } from '@/service/profileService'
 import { createReport } from '@/service/reportService'
+import { getListAds } from '@/service/admin/AdsService'
 // import Sendbutton from "@/assets/Sendbutton.svg"
 
 const search = ref('')
@@ -382,6 +375,8 @@ const suggestions = ref([])
 const openedMenuPostId = ref(null)
 const showDeleteConfirm = ref(false)
 const deleteTargetId = ref(null)
+const advertisements = ref([])
+
 
 const showSharePopup = ref(false)
 const showPrivacy = ref(false)
@@ -402,9 +397,27 @@ const replyInputs = reactive({})
 
 const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
+const newCommentMap = reactive({})
 
+function getRandomAds(list, count = 3) {
+  if (!Array.isArray(list)) {
+    console.warn('⚠️ getRandomAds nhận dữ liệu không phải mảng:', list)
+    return []
+  }
+  const shuffled = [...list].sort(() => 0.5 - Math.random())
+  return shuffled.slice(0, count)
+}
 
+const filteredPosts = computed(() => {
+  if (!search.value.trim()) return posts.value
 
+  const keyword = search.value.toLowerCase()
+
+  return posts.value.filter(post =>
+    post.text.toLowerCase().includes(keyword) ||
+    post.user.toLowerCase().includes(keyword)
+  )
+})
 
 async function refreshData() {
   try {
@@ -422,40 +435,63 @@ async function submitReplyModal(cmt) {
   if (!user?.id) return
 
   try {
-    const res = await createComment({
+    // Gửi reply lên server
+    await createComment({
       postId: activePost.value.postId,
       accountId: user.id,
       content: text,
-      replyCommentId: cmt.id // đây là phần quan trọng!
+      replyCommentId: cmt.id
     })
 
-    if (!Array.isArray(cmt.replies)) cmt.replies = []
+    // Gọi lại toàn bộ comment từ backend để đảm bảo dữ liệu đồng bộ
+    const commentRes = await getCommentsByPostId(activePost.value.postId)
 
-    cmt.replies.push({
-      id: res.id,
-      user: currentUserName.value,
-      userSrc: currentUserAvatar.value,
-      text: res.content,
-      time: 'Vừa xong',
-      replyToUser: cmt.user
-    })
+    const commentMap = {}
+    const repliesMap = {}
 
+    for (const c of commentRes.comments) {
+      const [acc, prof] = await Promise.all([
+        getAccountById(c.account.id),
+        getProfileByAccountId(c.account.id)
+      ])
+
+      const commentData = {
+        id: c.id,
+        user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+        userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
+        text: c.content,
+        createdAt: c.createdAt,
+        replyToCommentId: c.replyToCommentId || null,
+        replies: []
+      }
+
+      if (!commentData.replyToCommentId) {
+        commentMap[commentData.id] = commentData
+      } else {
+        if (!repliesMap[commentData.replyToCommentId]) {
+          repliesMap[commentData.replyToCommentId] = []
+        }
+        repliesMap[commentData.replyToCommentId].push(commentData)
+      }
+    }
+    // Gắn replies vào comment gốc
+    for (const parentId in repliesMap) {
+      if (commentMap[parentId]) {
+        commentMap[parentId].replies = repliesMap[parentId]
+      }
+    }
+
+    // Gán lại danh sách comment đã xử lý cho bài viết đang mở
+    activePost.value.commentsList = Object.values(commentMap)
+
+    // Reset input reply
     replyInputs[cmt.id] = ''
     replyingCommentId.value = null
-
-    await refreshData() // làm mới để đồng bộ dữ liệu
   } catch (error) {
     console.error('❌ Lỗi khi gửi reply:', error)
     alert('Không thể gửi phản hồi. Vui lòng thử lại.')
   }
 }
-
-  function deleteComment(commentId) {
-    if (!activePost.value || !Array.isArray(activePost.value.commentsList)) return
-
-    activePost.value.commentsList = activePost.value.commentsList.filter(c => c.id !== commentId)
-  }
-
 function prepareReply(cmt) {
   replyingCommentId.value = cmt.id
   if (!replyInputs[cmt.id]) {
@@ -465,6 +501,9 @@ function prepareReply(cmt) {
 function handleCreatePostClose() {
   showCreate.value = false
   refreshData()
+}
+function getLikeIcon(post) {
+  return post.liked ? '/assets/liked.png' : '/assets/like.png'
 }
 
 function toggleExpand(postId) {
@@ -482,31 +521,29 @@ function formatDate(dateStr) {
   if (diffHours < 24) return `${diffHours} giờ trước`
   return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`
 }
-
 async function toggleLike(post) {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (!user.id || !post.postId) return
 
     if (post.liked) {
-      const res = await unlikePost(user.id, post.postId)
+      await unlikePost(user.id, post.postId)
       post.likes -= 1
       post.liked = false
-      post.postLikes = post.postLikes.filter(like => like.accountId !== user.id)
+
+      post.postLikes = post.postLikes.filter(like => like.id !== user.id)
     } else {
-      const res = await likePost(user.id, post.postId)
+      await likePost(user.id, post.postId)
       post.likes += 1
       post.liked = true
+
       if (!Array.isArray(post.postLikes)) post.postLikes = []
-      post.postLikes.push({ accountId: user.id })
+      post.postLikes.push({ id: user.id, username: user.username, email: user.email }) // giả lập
     }
-    
-    await refreshData() // Refresh after toggling like
   } catch (error) {
     console.error('❌ Lỗi khi xử lý like/unlike:', error)
   }
 }
-
 function togglePostMenu(id) {
   openedMenuPostId.value = openedMenuPostId.value === id ? null : id
 }
@@ -563,37 +600,61 @@ function closeComments() {
 async function addComment(post) {
   try {
     const user = JSON.parse(localStorage.getItem('user'))
+    if (!user?.id || !newComment.value.trim()) return
+
     const target = post || selectedPost.value
 
-    if (!newComment.value.trim()) return
-
-    const res = await createComment({
+    // 1. Tạo bình luận mới
+    await createComment({
       postId: target.postId,
       accountId: user.id,
       content: newComment.value,
       replyCommentId: ''
     })
 
-    if (!Array.isArray(target.commentsList)) {
-      target.commentsList = []
+    // 2. Gọi lại comment từ backend để đồng bộ
+    const commentRes = await getCommentsByPostId(target.postId)
+
+    const commentMap = {}
+    const repliesMap = {}
+    for (const c of commentRes.comments) {
+      const [acc, prof] = await Promise.all([
+        getAccountById(c.account.id),
+        getProfileByAccountId(c.account.id)
+      ])
+      const commentData = {
+        id: c.id,
+        user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+        userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
+        text: c.content,
+        createdAt: c.createdAt,
+        replyToCommentId: c.replyToCommentId || null,
+        replies: []
+      }
+      if (!commentData.replyToCommentId) {
+        commentMap[commentData.id] = commentData
+      } else {
+        if (!repliesMap[commentData.replyToCommentId]) {
+          repliesMap[commentData.replyToCommentId] = []
+        }
+        repliesMap[commentData.replyToCommentId].push(commentData)
+      }
     }
 
-    target.commentsList.push({
-      id: res.id,
-      user: currentUserName.value,
-      userSrc: currentUserAvatar.value,
-      text: res.content,
-      time: 'Vừa xong'
-    })
+    // Gắn reply vào comment gốc
+    for (const parentId in repliesMap) {
+      if (commentMap[parentId]) {
+        commentMap[parentId].replies = repliesMap[parentId]
+      }
+    }
 
+    target.commentsList = Object.values(commentMap)
     newComment.value = ''
-    await refreshData() // Refresh after adding comment
   } catch (error) {
     console.error('❌ Lỗi khi thêm bình luận:', error)
     alert('Không thể gửi bình luận. Vui lòng thử lại.')
   }
-}
-
+} 
 async function fetchPosts() {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -696,20 +757,24 @@ async function fetchPosts() {
             }
           }
           const comments = Object.values(commentMap)
-          const isLiked = post.postLikes?.some(like => like.accountId === user.id)
+          // const liked = Array.isArray(post.listLike)
+          //   ? post.listLike.some(like => like.id === user.id)
+          //   : false
+          //   postLikes: post.listLike || [],
+            postResults.push({
+              postId: post.postId,
+              user: username,
+              userSrc: avatarUrl,
+              time: formatVietnameseTime(post.createdAt),
+              text: post.content,
+              img: post.postMedias?.[0]?.mediaUrl || null,
+              likes: post.likeAmount || 0,
+              commentsList: comments,
+              postLikes: post.listLike || [],
+              liked: await checkLikedStatus(post.postId)
 
-          postResults.push({
-            postId: post.postId,
-            user: username,
-            userSrc: avatarUrl,
-            time: formatVietnameseTime(post.createdAt),
-            text: post.content,
-            img: post.postMedias?.[0]?.mediaUrl || null,
-            likes: post.likeAmount || 0,
-            commentsList: comments,
-            postLikes: post.postLikes || [],
-            liked: isLiked
-          })
+            })
+
         }
       } catch (postError) {
         console.error('❌ Error processing post:', post.postId, postError)
@@ -763,17 +828,74 @@ onMounted(async () => {
   await refreshData()
   setInterval(refreshData, 60000)
 })
-
+onMounted(async () => {
+  const ads = await getListAds()
+  advertisements.value = getRandomAds(ads, 3)
+})
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   if (user.id) {
     const suggest = await getSuggestedFriends(user.id, 4)
-    suggestions.value = suggest
+
+    const enrichedSuggestions = await Promise.all(suggest.map(async (s) => {
+      try {
+        const [acc, prof] = await Promise.all([
+          getAccountById(s.id),
+          getProfileByAccountId(s.id)
+        ])
+
+        return {
+          id: s.id,
+          name: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+          src: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg'
+        }
+      } catch (err) {
+        console.error(`❌ Không thể lấy thông tin cho userId ${s.id}`, err)
+        return {
+          id: s.id,
+          name: 'Ẩn danh',
+          src: '/image/avata.jpg'
+        }
+      }
+    }))
+
+    suggestions.value = enrichedSuggestions
   }
 })
+async function checkLikedStatus(postId) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user?.id) return false
+
+    const detail = await getPostById(postId)
+
+    console.log('📌 Chi tiết bài viết ID', postId, ':', detail)
+    console.log('👤 Người dùng hiện tại ID:', user.id)
+
+    // Log từng ID trong danh sách like để chắc chắn có hay không
+    const likeIds = detail?.listLike?.map(like => like.id)
+    console.log('❤️ Danh sách ID đã like:', likeIds)
+
+    const liked = detail?.listLike?.some(like => String(like.id) === String(user.id))
+    console.log(`✅ Kết quả đã like bài ${postId}?`, liked)
+
+    return liked
+  } catch (error) {
+    console.error('❌ Lỗi kiểm tra liked status:', error)
+    return false
+  }
+}
+
 function openReport(post) {
   openedMenuPostId.value = post.postId // phải dùng đúng post.postId
   showReport.value = true
+}
+
+// Add new method to handle ad clicks
+function handleAdClick(link) {
+  if (link) {
+    window.open(link, '_blank')
+  }
 }
 </script>
 
@@ -1327,6 +1449,25 @@ html,
   display: flex;
   gap: 12px;
   padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ad-card:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.ad-card:active {
+  transform: translateY(0);
+}
+
+.ad-card:focus {
+  outline: 2px solid #009DFF;
+  outline-offset: -2px;
 }
 
 .ad-card img {
