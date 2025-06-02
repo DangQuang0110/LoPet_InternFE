@@ -5,6 +5,7 @@
       <h1>Đăng ký tài khoản</h1>
       <p class="sub-text">Tham gia cộng đồng yêu thú cưng ngay hôm nay!</p>
 
+      <!-- Email -->
       <div class="input-group">
         <input
           type="text"
@@ -21,12 +22,13 @@
         </div>
       </div>
 
+      <!-- Tên Người dùng -->
       <div class="input-group">
         <input
           type="text"
           v-model="fullname"
           @focus="fullnameFocus = true"
-          @blur="fullnameFocus = false"
+          @blur="() => { fullnameFocus = false; checkUsername() }"
           @input="handleFullnameInput"
           placeholder=" "
           :class="{ 'error': fullnameError && fullnameError !== '' }"
@@ -97,7 +99,13 @@
         </div>
       </div>
 
-      <button class="btn" @click="handleRegister" :disabled="!isFormValid">Đăng ký</button>
+      <button
+        class="btn"
+        @click="handleRegister"
+        :disabled="!isFormValid"
+      >
+        Đăng ký
+      </button>
       <router-link to="/" class="back">← Trở về trang đăng nhập</router-link>
     </div>
   </div>
@@ -107,33 +115,41 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { sendOTP } from '@/service/otpService'
+import { getAccountList } from '@/service/authService'
 
+/** Các biến reactive cho form **/
 const contact = ref('')
 const contactFocus = ref(false)
 const contactError = ref('')
+
 const fullname = ref('')
 const fullnameFocus = ref(false)
 const fullnameError = ref('')
+
 const password = ref('')
 const passwordFocus = ref(false)
 const passwordError = ref('')
 const showPassword = ref(false)
+
 const confirmPassword = ref('')
 const confirmFocus = ref(false)
 const confirmPasswordError = ref('')
 const showConfirm = ref(false)
 
+/** Biến đánh dấu nếu username đã tồn tại **/
+const isUsernameTaken = ref(false)
+
 const router = useRouter()
 
+/** Chuyển đổi hiển thị mật khẩu **/
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
-
 const toggleConfirm = () => {
   showConfirm.value = !showConfirm.value
 }
 
-// Email validation function with comprehensive checks
+/** Hàm kiểm tra định dạng email **/
 const isValidEmail = (email) => {
   if (email.length > 254) return false
   const parts = email.split('@')
@@ -148,7 +164,7 @@ const isValidEmail = (email) => {
   if (domain.startsWith('.') || domain.endsWith('.')) return false
   if (domain.includes('..')) return false
   if (domain.includes('_')) return false
-  const ipRegex = /^\[?(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\]?$/
+  const ipRegex = /^\[?(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\]?$/ 
   const ipMatch = domain.match(ipRegex)
   if (ipMatch) {
     for (let i = 1; i <= 4; i++) {
@@ -169,7 +185,7 @@ const isValidEmail = (email) => {
   return true
 }
 
-// Validation functions
+/** Hàm validate Email **/
 const validateContact = () => {
   if (!contact.value.trim()) {
     contactError.value = ''
@@ -190,49 +206,50 @@ const validateContact = () => {
   }
 }
 
-const handleFullnameInput = () => {
-  // KHÔNG sửa nội dung fullname tại đây để người dùng nhập tự nhiên
-  validateFullname()
-}
-
+/** Hàm validate Tên Người dùng (fullname) **/
 const validateFullname = () => {
-  const name = fullname.value
+  const name = fullname.value.trim()
 
   if (!name) {
     fullnameError.value = 'Vui lòng nhập tên người dùng'
     return false
   }
-
   if (name.length < 5) {
     fullnameError.value = 'Tên phải có ít nhất 5 ký tự'
     return false
   }
-
   if (name.length > 15) {
     fullnameError.value = 'Tên không được quá 15 ký tự'
     return false
   }
-
   if (/^\d+$/.test(name)) {
     fullnameError.value = 'Tên không được chỉ là số'
     return false
   }
-
- if (/\s/.test(name)) {
+  if (/\s/.test(name)) {
     fullnameError.value = 'Tên không được chứa khoảng trắng'
     return false
   }
-
   if (!/^[a-zA-ZÀ-ỹà-ỹ0-9]+$/.test(name)) {
     fullnameError.value = 'Tên chỉ được chứa chữ cái và số'
     return false
   }
-
+  // Nếu pass hết, nhưng trước đó checkUsername từng đánh dấu tồn tại:
+  if (isUsernameTaken.value) {
+    fullnameError.value = 'Tên tài khoản đã tồn tại'
+    return false
+  }
   fullnameError.value = ''
   return true
 }
 
+/** Khi user gõ fullname: reset trạng thái “đã tồn tại” và gọi validateFullname **/
+const handleFullnameInput = () => {
+  isUsernameTaken.value = false
+  validateFullname()
+}
 
+/** Hàm validate mật khẩu **/
 const validatePassword = () => {
   if (!password.value) {
     passwordError.value = ''
@@ -270,6 +287,7 @@ const validatePassword = () => {
   return true
 }
 
+/** Hàm validate xác nhận mật khẩu **/
 const validateConfirmPassword = () => {
   if (!confirmPassword.value) {
     confirmPasswordError.value = ''
@@ -283,15 +301,48 @@ const validateConfirmPassword = () => {
   return true
 }
 
+/** Hàm kiểm tra username trùng khi blur khỏi input **/
+const checkUsername = async () => {
+  const name = fullname.value.trim()
+  if (!name) {
+    // Nếu chưa nhập gì thì không báo lỗi trùng
+    isUsernameTaken.value = false
+    validateFullname()
+    return
+  }
+  try {
+    const list = await getAccountList()
+    const exists = list.some(acc => acc.username === name)
+    if (exists) {
+      isUsernameTaken.value = true
+      fullnameError.value = 'Tên tài khoản đã tồn tại'
+    } else {
+      isUsernameTaken.value = false
+      // Nếu các điều kiện validate khác OK, xóa lỗi
+      validateFullname()
+    }
+  } catch (err) {
+    console.error('❌ Lỗi khi kiểm tra username:', err)
+    // Trong trường hợp API lỗi, không xem là trùng
+    isUsernameTaken.value = false
+    validateFullname()
+  }
+}
+
+/** Computed để kích hoạt/deactivate nút “Đăng ký” **/
 const isFormValid = computed(() => {
-  return validateContact() &&
-         validateFullname() &&
-         validatePassword() &&
-         validateConfirmPassword()
+  return (
+    validateContact() &&
+    validateFullname() &&
+    validatePassword() &&
+    validateConfirmPassword() &&
+    !isUsernameTaken.value
+  )
 })
 
+/** Xử lý khi bấm “Đăng ký” **/
 const handleRegister = async () => {
-  // Validate all fields
+  // Kiểm tra lại tất cả trước khi gửi
   const isContactValid = validateContact()
   const isFullnameValid = validateFullname()
   const isPasswordValid = validatePassword()
@@ -299,10 +350,15 @@ const handleRegister = async () => {
   if (!isContactValid || !isFullnameValid || !isPasswordValid || !isConfirmPasswordValid) {
     return
   }
+  // Kiểm tra trùng username thêm lần cuối
+  await checkUsername()
+  if (isUsernameTaken.value) {
+    return
+  }
   try {
     await sendOTP(contact.value)
     localStorage.setItem('register_email', contact.value)
-    localStorage.setItem('register_username', fullname.value)
+    localStorage.setItem('register_username', fullname.value.trim())
     localStorage.setItem('register_password', password.value)
     localStorage.setItem('register_confirm', confirmPassword.value)
     router.push('/verificationCode')
@@ -311,6 +367,15 @@ const handleRegister = async () => {
   }
 }
 </script>
+
+<style scoped>
+/* Vẫn giữ nguyên CSS cũ của bạn; nếu cần, có thể bổ sung styles cho trạng thái disabled khi đang check username */
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+</style>
+
 
 <style scoped>
 .auth-container {
