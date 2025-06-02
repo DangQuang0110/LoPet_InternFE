@@ -4,10 +4,14 @@ import apiService from "@/api/apiService";
 export const getListAds = async () => {
   try {
     const response = await apiService.get(`/v1/advertisements`)
-    return response.data?.data || []  // ✅ luôn là array
+    
+    if (response?.data?.data) {
+      return response.data
+    }
+    return { data: [] } 
   } catch (error) {
-    console.error('❌ Lỗi khi lấy danh sách quảng cáo:', error)
-    return []  // fallback an empty array
+    console.error('Lỗi khi lấy danh sách quảng cáo:', error)
+    return { data: [] } 
   }
 }
 

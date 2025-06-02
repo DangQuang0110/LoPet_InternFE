@@ -322,6 +322,10 @@ const displayedPages = computed(() => {
 })
 
 const mapApiDataToDisplay = (apiData) => {
+  if (!Array.isArray(apiData)) {
+    console.warn('Expected array of ads, received:', apiData)
+    return []
+  }
   return apiData.map((item) => ({
     id: item.id,
     image: item.imageUrl,
@@ -345,10 +349,17 @@ onMounted(async () => {
 
     const user = JSON.parse(userStr)
     const response = await getListAds(user.id)
-    ads.value = mapApiDataToDisplay(response.data)
+    
+    // Check if response has data property and it's an array
+    if (response?.data && Array.isArray(response.data)) {
+      ads.value = mapApiDataToDisplay(response.data)
+    } else {
+      console.warn('Invalid response format:', response)
+      ads.value = []
+    }
   } catch (error) {
     console.error('Error fetching ads:', error)
-    // You might want to show an error message to the user here
+    ads.value = [] // Set empty array on error
   }
 })
 

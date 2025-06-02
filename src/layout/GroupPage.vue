@@ -6,7 +6,6 @@
         <div class="loading-spinner"></div>
         <p>Đang tải thông tin nhóm...</p>
       </div>
-
       <!-- Overlay popup xác nhận thoát nhóm -->
       <div v-if="confirmLeave" class="overlay">
         <div class="popup">
@@ -657,6 +656,7 @@ import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 import { likePost, unlikePost, deletePost, updatePost } from '@/service/postService'
 import { getCommentsByPostId, createComment } from '@/service/commentService'
+// import { sendReport } from '@/service/reportService'
 import { createReport } from '@/service/reportService'
 
 const route = useRoute()
@@ -729,7 +729,7 @@ const isOwner = computed(() => {
 // Cập nhật hàm getCurrentUser
 const getCurrentUser = async () => {
   const userStr = localStorage.getItem('user') || '{}'
-  console.log('userStr', userStr)
+  // console.log('userStr', userStr)
   if (userStr) {
     try {
       user.value = JSON.parse(userStr)
@@ -746,7 +746,7 @@ const getCurrentUser = async () => {
           ? profile.fullName
           : account?.username || 'Ẩn danh'
 
-        console.log(profile)
+        // console.log(profile)
       }
     } catch (error) {
       console.error('Error parsing user from localStorage:', error)
@@ -760,10 +760,10 @@ const fetchGroupDetails = async () => {
   try {
     isLoading.value = true
     const groupId = route.params.id
-    console.log('Fetching group details for ID:', groupId)
+    // console.log('Fetching group details for ID:', groupId)
 
     const response = await getGroupDetails(groupId)
-    console.log('Group details response:', response)
+    // console.log('Group details response:', response)
 
     if (response && response.data) {
       const data = response.data
@@ -779,8 +779,8 @@ const fetchGroupDetails = async () => {
         ownerId: data.owner?.id || null,
       }
 
-      console.log('Current user ID:', user.value?.id)
-      console.log('Group owner ID:', group.value.ownerId)
+      // console.log('Current user ID:', user.value?.id)
+      // console.log('Group owner ID:', group.value.ownerId)
     }
   } catch (error) {
     console.error('Lỗi khi lấy thông tin nhóm:', error)
@@ -1046,7 +1046,7 @@ onUnmounted(() => {
 })
 
 function saveChanges() {
-  console.log('Thông tin nhóm đã lưu:', group.value)
+  // console.log('Thông tin nhóm đã lưu:', group.value)
   showEditPopup.value = false
 }
 
@@ -1466,7 +1466,7 @@ async function addComment(post) {
 
     // Call API
     const response = await createComment(commentData)
-    console.log('API response for createComment:', response)
+    // console.log('API response for createComment:', response)
 
     // Update with real comment data if needed
     if (postToUpdate) {
@@ -1848,6 +1848,7 @@ const editPostForm = ref({
 const editImagePreviews = ref([])
 const editPostSelectedMedias = ref([])
 const editPostMediaTypes = ref([])
+const editPostExistingMediaIds = ref([]) // Add this to track existing media IDs
 
 // Add edit post handler
 const handleEditPost = (post) => {
@@ -1861,12 +1862,14 @@ const handleEditPost = (post) => {
   editImagePreviews.value = []
   editPostSelectedMedias.value = []
   editPostMediaTypes.value = []
+  editPostExistingMediaIds.value = [] // Reset existing media IDs
   
   // If post has existing media, add them to previews
   if (post.postMedias) {
     post.postMedias.forEach(media => {
       editImagePreviews.value.push(media.mediaUrl)
       editPostMediaTypes.value.push(media.mediaType)
+      editPostExistingMediaIds.value.push(media.id) // Store the media IDs
     })
   }
   
@@ -1884,6 +1887,7 @@ const closeEditPostForm = () => {
   editImagePreviews.value = []
   editPostSelectedMedias.value = []
   editPostMediaTypes.value = []
+  editPostExistingMediaIds.value = [] // Reset existing media IDs
 }
 
 const handleEditPostImageChange = (event) => {
@@ -1928,9 +1932,20 @@ const handleEditPostImageChange = (event) => {
 }
 
 const removeEditPostImage = (index) => {
-  editPostSelectedMedias.value.splice(index, 1)
+  // Check if this is an existing media (has an ID)
+  const mediaId = editPostExistingMediaIds.value[index]
+  
+  // Remove from all arrays
   editImagePreviews.value.splice(index, 1)
   editPostMediaTypes.value.splice(index, 1)
+  
+  if (mediaId) {
+    // This was an existing media, remove its ID
+    editPostExistingMediaIds.value.splice(index, 1)
+  } else {
+    // This was a new media file, remove from selected files
+    editPostSelectedMedias.value.splice(index - editPostExistingMediaIds.value.length, 1)
+  }
 }
 
 const handleUpdatePost = async () => {
@@ -1947,12 +1962,18 @@ const handleUpdatePost = async () => {
     const formData = new FormData()
     formData.append('content', editPostForm.value.content.trim())
     formData.append('scope', editPostForm.value.scope)
+    formData.append('owner', user.value.id)
 
-    // Add media files to formData based on type
+    // Add remaining existing media IDs
+    editPostExistingMediaIds.value.forEach(mediaId => {
+      formData.append('oldIdsMedia', mediaId)
+    })
+
+    // Add new media files to formData based on type
     editPostSelectedMedias.value.forEach((file, index) => {
-      if (editPostMediaTypes.value[index] === 'IMAGE') {
+      if (editPostMediaTypes.value[index + editPostExistingMediaIds.value.length] === 'IMAGE') {
         formData.append('images', file)
-      } else if (editPostMediaTypes.value[index] === 'VIDEO') {
+      } else if (editPostMediaTypes.value[index + editPostExistingMediaIds.value.length] === 'VIDEO') {
         formData.append('videos', file)
       }
     })
@@ -1966,16 +1987,7 @@ const handleUpdatePost = async () => {
         ...groupPosts.value[postIndex],
         content: editPostForm.value.content.trim(),
         scope: editPostForm.value.scope,
-      }
-
-      // Update media if new files were added
-      if (editPostSelectedMedias.value.length > 0) {
-        updatedPost.postMedias = editPostSelectedMedias.value.map((file, index) => ({
-          mediaType: editPostMediaTypes.value[index],
-          mediaUrl: URL.createObjectURL(file),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }))
+        postMedias: response.data.postMedias // Use the media from API response
       }
 
       groupPosts.value[postIndex] = updatedPost
@@ -2194,7 +2206,8 @@ body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  margin-top: 10px;
+  margin-left: -2px;
+  margin-top: 20px;
 }
 .invite {
   background-color: orange;
@@ -2243,6 +2256,7 @@ body {
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
+  margin-left: -4px;
 }
 
 .post-input {
@@ -2385,6 +2399,7 @@ body {
 .post-info {
   flex: 1;
 }
+
 .username {
   font-size: 16px;
   font-weight: 600;
@@ -2603,6 +2618,11 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+.group-type.public[data-v-fcbc4baa] {
+    background-color: #e6f4ea;
+    color: #1e7e34;
+    margin-top: -289px;
+}
 
 
 /* 2. Điều chỉnh layout chung để 2 cột sát nhau */
@@ -2963,6 +2983,7 @@ body {
 .privacy-badge.public {
   background-color: #e6f4ea;
   color: #1e7e34;
+  margin-top : 11px;
 }
 
 .privacy-badge.private {
@@ -3511,6 +3532,7 @@ body {
 .author-info {
   flex: 1;
 }
+
 
 .author-name {
   font-size: 15px;
@@ -4424,5 +4446,4 @@ body {
   display: none;
 }
 </style>
-
 
