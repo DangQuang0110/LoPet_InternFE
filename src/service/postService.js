@@ -53,30 +53,36 @@ export const getPostsByAccountId = async (accountId) => {
 // )
 
 export async function likePost(accountId, postId) {
-  console.log('📤 Gửi request LIKE:', { accountId, postId })
+  // console.log('📤 Gửi request LIKE:', { accountId, postId })
   const res = await apiService.post('/v1/posts/like', { accountId, postId })
-  console.log('📥 Response LIKE:', res.data)
+  // console.log('📥 Response LIKE:', res.data)
   return res.data
 }
 
 export async function unlikePost(accountId, postId) {
-  console.log('📤 Gửi request UNLIKE:', { accountId, postId })
+  // console.log('📤 Gửi request UNLIKE:', { accountId, postId })
   const res = await apiService.post('/v1/posts/unlike', { accountId, postId })
-  console.log('📥 Response UNLIKE:', res.data)
+  // console.log('📥 Response UNLIKE:', res.data)
   return res.data
 }
 export const updatePost = async (postId, formData) => {
   try {
-    
     const response = await apiService.put(`/v1/posts/${postId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
-    // console.log('log ne cu',response)
+
+    // console.log('Server response:', response.data)
     return response.data;
+    
   } catch (error) {
-    console.error('Error updating post:', error);
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      statusText: error.response?.statusText
+    });
     throw error;
   }
 };
