@@ -142,7 +142,7 @@
           <p class="profile-stats">{{ user.friends }} Bạn bè</p>
           <!-- <button class="edit-profile-button" @click="goToProfileEdit">Chỉnh sửa thông tin</button> -->
           <div class="profile-nav">
-            <router-link to="/profile" class="nav-item active">Trang Cá Nhân</router-link>
+            <!-- <router-link to="/profile" class="nav-item active">Trang Cá Nhân</router-link> -->
             <!-- <router-link to="/photo" class="nav-item">Hình Ảnh</router-link> -->
           </div>
         </div>
@@ -152,7 +152,7 @@
       <div class="profile-content">
         <div class="sidebar">
           <div class="intro-section">
-            <h3>Giới Thiệu</h3>
+            <h3>Hồ sơ </h3>
             <div v-if="!editMode">
               <ul class="intro-list">
                 <li class="bio-item">
@@ -240,7 +240,11 @@
         </div>
 
         <!-- Feed -->
-        <div class="feed">
+
+        <div class="feed">  
+          <div v-if="posts.length === 0" class="no-posts-message">
+  Chưa có bài viết mới
+</div>
           <div class="post-card" v-for="post in posts" :key="post.id">
             <!-- Post Header -->
             <div class="post-header">
@@ -300,16 +304,31 @@
               </button>
             </div>
 
-            <!-- Comment list -->
-            <div class="comment-list">
-              <div class="comment-item" v-for="(cmt, idx) in post.commentsList" :key="idx">
-                <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
-                <div class="comment-bubble">
-                  <span class="comment-username">{{ cmt.user }}</span>
-                  <span class="comment-text">{{ cmt.text }}</span>
-                  <div class="comment-time">{{ formatDate(cmt.createdAt) }}</div>
-                </div>
-              </div>
+             <!-- Comment-list (kiểu Facebook-like theo hình) -->
+<div class="comment-list">
+  <div
+    class="comment-item"
+    v-for="(cmt, idx) in post.commentsList"
+    :key="idx"
+  >
+    <!-- Avatar -->
+    <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
+
+    <!-- Phần body chứa khung comment -->
+    <div class="comment-content">
+      <!-- Tên người comment (in đậm), và nội dung -->
+      <div class="comment-bubble">
+        <span class="comment-username">{{ cmt.user }}</span>
+        <span class="comment-text">{{ cmt.text }}</span>
+      </div>
+
+      <!-- Dòng thời gian + Trả lời -->
+      <div class="comment-footer">
+        <span class="comment-time">{{ formatDate(cmt.createdAt) }}</span>
+        <span class="comment-reply" @click="prepareReply(cmt)">Trả lời</span>
+      </div>
+    </div>
+  </div>
             </div>
             <!-- Stats -->
             <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Xem thêm bình luận</button>
@@ -1570,7 +1589,7 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
   background: #007ACC;
 }
 
-.comment-list {
+/* .comment-list {
   margin-top: 8px;
 }
 
@@ -1589,12 +1608,11 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
 }
 
 .comment-bubble {
-  background-color: #f0f2f5;
-  padding: 8px 12px;
-  border-radius: 18px;
-  max-width: 500px;
-  font-size: 14px;
-  line-height: 1.4;
+ background: #f0f2f5;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    padding: 5px 10px;
 }
 
 .comment-username {
@@ -1611,7 +1629,7 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
   color: #65676b;
   margin-top: 4px;
   margin-left: 5px;
-}
+} */
 
 /* Comment Modal */
 .comment-modal-overlay {
@@ -1747,8 +1765,8 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
 }
 .nav-icon {
   margin-right: 10px; /* Khoảng cách giữa icon và text */
-  width: 25px; 
-  height: 25px;
+  width: 20px; 
+  height: 20px;
 }
 .reply-section {
   display: flex;
@@ -1867,6 +1885,15 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
 .share-user-info {
   flex: 1;
 }
+
+.no-posts-message {
+  padding: 20px;
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+  font-weight: 600;
+}
+
 
 .share-name {
   font-weight: 600;
@@ -2217,5 +2244,73 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
   .post-stats {
     font-size: 12px;
   }
+}
+
+.comment-list {
+  margin-top: 8px;
+  padding: 0;
+}
+
+.comment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comment-bubble {
+ background: #f0f2f5;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    padding: 5px 10px;
+}
+
+.comment-username {
+  font-weight: 600;
+  font-size: 14px;
+  color: #141414;
+  margin-right: 4px;
+}
+
+.comment-text {
+  font-size: 14px;
+  color: #050505;
+  line-height: 1.4;
+}
+
+.comment-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #65676b;
+  margin-left: 4px; /* lùi nhẹ để canh dưới khung bubble */
+}
+
+.comment-time {
+  /* nếu bạn muốn định dạng “Vừa xong” */
+}
+
+.comment-reply {
+  color: #1877F2;
+  cursor: pointer;
+}
+
+.comment-reply:hover {
+  text-decoration: underline;
 }
 </style>

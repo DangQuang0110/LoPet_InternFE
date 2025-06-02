@@ -140,7 +140,7 @@
   </layout>
 </template>
 <script setup>
-import layout from '@/components/layout.vue'
+import layout from '@/components/Layout.vue'
 import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { getFriendList } from '@/service/friendService'
 import { getMessageList,createMessage  } from '@/service/messageService'
