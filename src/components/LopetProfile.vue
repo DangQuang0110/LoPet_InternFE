@@ -71,6 +71,14 @@
     class="avatar-preview"
     :style="{ 'background-image': 'url(' + editProfileForm.avatarPreview + ')' }"
   ></div>
+  <button
+  v-if="editProfileForm.avatarPreview"
+  type="button"
+  class="btn-delete-avatar"
+  @click="deleteAvatar"
+>
+  Xóa ảnh đại diện
+</button>
 </div>
      <div class="form-group">
   <label for="banner">Ảnh bìa</label>
@@ -98,7 +106,7 @@
         >
           Xóa ảnh bìa
         </button>
-      </div>
+      </div>  
       <div class="confirm-modal-actions">
         <button type="submit" class="confirm-button">Lưu</button>
         <button type="button" class="cancel-button" @click="cancelProfileEdit">Hủy</button>
@@ -293,13 +301,32 @@
               >
                 {{ expandedPosts[post.postId] ? 'Thu gọn' : 'Xem thêm' }}
               </button>
-              <div class="post-image-wrapper" v-if="post.img">
-                <img :src="post.img" alt="" />
+              <div class="post-media-wrapper" v-if="post.images.length">
+                <template v-for="(media, index) in post.images" :key="index">
+                  <video
+                    v-if="isVideo(media)"
+                    controls
+                    class="post-video"
+                  >
+                    <source :src="media" type="video/mp4" />
+                    Trình duyệt của bạn không hỗ trợ video.
+                  </video>
+                  <img
+                    v-else
+                    :src="media"
+                    class="post-image"
+                    alt="post media"
+                  />
+                </template>
               </div>
             </div>
             <div class="post-actions">
               <button class="btn-icon like-btn" @click="toggleLike(post)">
-                <img :src="getLikeIcon(post)" alt="Like" class="icon-img-like" />
+                <img
+                  :src="post.liked ? '/assets/like.png' : '/assets/like.png'"
+                  alt="Like"
+                  class="icon-img-like"
+                />
               </button>
               <span class="count">{{ post.likes }}</span>
               <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">
@@ -311,16 +338,31 @@
               </button>
             </div>
 
-            <!-- Comment list -->
-            <div class="comment-list">
-              <div class="comment-item" v-for="(cmt, idx) in post.commentsList" :key="idx">
-                <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
-                <div class="comment-bubble">
-                  <span class="comment-username">{{ cmt.user }}</span>
-                  <span class="comment-text">{{ cmt.text }}</span>
-                  <div class="comment-time">{{ formatDate(cmt.createdAt) }}</div>
-                </div>
-              </div>
+            <!-- Comment-list (kiểu Facebook-like theo hình) -->
+<div class="comment-list">
+  <div
+    class="comment-item"
+    v-for="(cmt) in getLatestComments(post.commentsList)"
+    :key="cmt.id"
+  >
+    <!-- Avatar -->
+    <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
+
+    <!-- Phần body chứa khung comment -->
+    <div class="comment-content">
+      <!-- Tên người comment (in đậm), và nội dung -->
+      <div class="comment-bubble">
+        <span class="comment-username">{{ cmt.user }}</span>
+        <span class="comment-text">{{ cmt.text }}</span>
+      </div>
+
+      <!-- Dòng thời gian + Trả lời -->
+      <div class="comment-footer">
+        <span class="comment-time">{{ formatDate(cmt.createdAt) }}</span>
+        <span class="comment-reply" @click="prepareReply(cmt)">Trả lời</span>
+      </div>
+    </div>
+  </div>
             </div>
             <!-- Stats -->
             <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Xem thêm bình luận</button>
@@ -450,8 +492,9 @@ import { getProfileByAccountId,updateProfile} from '@/service/profileService';
 import ReportModal from '@/components/ReportModal.vue'
 import {getPostsByAccountId} from '@/service/postService';
 import { getCommentsByPostId } from '@/service/commentService';
-import { likePost, unlikePost,getPostById  } from '@/service/postService'
+import { likePost, unlikePost } from '@/service/postService'
 import { useRoute } from 'vue-router';
+import {getFriendList} from '@/service/friendService';
 
 // Reactive variables
 const search = ref('');
@@ -517,27 +560,23 @@ function goToEdit() {
   editForm.value.dateOfBirth = user.value.dateOfBirth || '';
   editMode.value = true;
 }
-function getLikeIcon(post) {
-  return post.liked ? '/assets/liked.png' : '/assets/like.png';
-}
-async function checkLikedStatus(postId) {
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (!user?.id) return false;
-
-    const detail = await getPostById(postId);
-    return detail?.listLike?.some(like => String(like.id) === String(user.id));
-  } catch (error) {
-    console.error('❌ Lỗi kiểm tra liked status:', error);
-    return false;
-  }
+function deleteAvatar() {
+  editProfileForm.value.avatar = null;
+  editProfileForm.value.avatarPreview = '';
+  user.value.avatar = ''; // nếu muốn cập nhật giao diện luôn
 }
 
 function deleteBanner() {
   editProfileForm.value.banner = null;
   editProfileForm.value.bannerPreview = '';
+  user.value.banner = ''; // nếu muốn cập nhật giao diện luôn
 }
-
+function getLatestComments(comments) {
+  if (!Array.isArray(comments)) return [];
+  return [...comments]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // sắp xếp mới nhất
+    .slice(0, 3); // lấy 3 cái đầu
+}
 
 async function saveDetails() {
   const phone = editForm.value.phone || '';
@@ -615,8 +654,7 @@ function handleBannerChange(e) {
 }
 
 async function loadUserProfile() {
-const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || '{}')?.id;
-
+  const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || '{}')?.id;
 
   if (!accountId) {
     console.error('❌ Không tìm thấy accountId trong localStorage');
@@ -628,14 +666,15 @@ const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || 
     console.log('📤 Gọi API với accountId:', accountId);
     const profile = await getProfileByAccountId(accountId);
 
+    // 🔁 Gọi API lấy danh sách bạn bè
+    const friends = await getFriendList(accountId);
+
     user.value = {
       id: profile.id,
       name: profile.fullName,
-
       avatar: profile.avatarUrl || '/image/avata.jpg',
-
       banner: profile.coverUrl || '',
-      friends: 500,
+      friends: friends?.length || 0, // ✅ số lượng bạn bè thực tế
       bio: profile.bio || '',
       phone: profile.phoneNumber || '',
       hometown: profile.hometown || '',
@@ -649,6 +688,7 @@ const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || 
     showNotification('Không thể tải thông tin hồ sơ!', 'error');
   }
 }
+
 function genderLabel(sex) {
   const sexNum = Number(sex);
   if (sexNum === 0) return 'Nam';
@@ -661,20 +701,28 @@ async function saveProfileEdit() {
     const formData = new FormData();
     formData.append('fullName', editProfileForm.value.username);
 
-    // Avatar
-    if (editProfileForm.value.avatar) {
+    // ✅ Xử lý avatar
+    if (editProfileForm.value.avatar === null) {
+      // Avatar bị xóa => gửi chuỗi rỗng
+      formData.append('avatar', '');
+    } else if (editProfileForm.value.avatar) {
+      // Có avatar mới được chọn
       formData.append('avatar', editProfileForm.value.avatar);
     } else {
-      // Gửi URL hiện tại nếu không đổi để backend giữ nguyên
+      // Không đổi => giữ nguyên
       const blob = await fetch(user.value.avatar).then(res => res.blob());
       formData.append('avatar', blob, 'avatar.jpg');
     }
 
-    // Banner
-    if (editProfileForm.value.banner) {
+    // ✅ Xử lý banner
+    if (editProfileForm.value.banner === null) {
+      // Banner bị xóa => gửi chuỗi rỗng
+      formData.append('cover', '');
+    } else if (editProfileForm.value.banner) {
+      // Có banner mới được chọn
       formData.append('cover', editProfileForm.value.banner);
     } else {
-      // Gửi URL hiện tại nếu không đổi để backend giữ nguyên
+      // Không đổi => giữ nguyên
       const blob = await fetch(user.value.banner).then(res => res.blob());
       formData.append('cover', blob, 'cover.jpg');
     }
@@ -682,8 +730,8 @@ async function saveProfileEdit() {
     const updated = await updateProfile(user.value.id, formData);
 
     user.value.name = updated.fullName || user.value.name;
-    user.value.avatar = updated.avatarUrl || user.value.avatar;
-    user.value.banner = updated.coverUrl || user.value.banner;
+    user.value.avatar = updated.avatarUrl || '';
+    user.value.banner = updated.coverUrl || '';
 
     showNotification('Thông tin cá nhân đã được cập nhật!', 'success');
   } catch (error) {
@@ -694,6 +742,7 @@ async function saveProfileEdit() {
   showEditProfileModal.value = false;
   resetProfileForm();
 }
+
 
 function cancelProfileEdit() {
   showEditProfileModal.value = false;
@@ -706,6 +755,9 @@ function resetProfileForm() {
   editProfileForm.value.avatarPreview = '';
   editProfileForm.value.banner = null;
   editProfileForm.value.bannerPreview = '';
+}
+function isVideo(url) {
+  return /\.(mp4|webm|ogg)$/i.test(url);
 }
 
 // Functions for posts
@@ -759,34 +811,34 @@ function formatVietnameseTime(dateStr) {
   const minutes = date.getMinutes().toString().padStart(2, '0');
   return `${day} tháng ${month} lúc ${hours}:${minutes}`;
 }
+
 async function toggleLike(post) {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const accountId = user?.id;
-    const postId = post?.postId;
+    const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}')
+    const accountId = userFromStorage?.id
+    const postId = post?.postId
 
     if (!accountId || !postId) {
-      console.error('❌ Thiếu accountId hoặc postId khi like:', { accountId, postId });
-      return;
+      console.error('❌ Thiếu accountId hoặc postId khi like:', { accountId, postId })
+      return
     }
 
     if (post.liked) {
-      await unlikePost(accountId, postId);
-      post.likes -= 1;
-      post.liked = false;
-      post.postLikes = post.postLikes.filter(like => like.accountId !== accountId);
+      await unlikePost(accountId, postId)
+      post.likes -= 1
+      post.liked = false
     } else {
-      await likePost(accountId, postId);
-      post.likes += 1;
-      post.liked = true;
-      if (!Array.isArray(post.postLikes)) post.postLikes = [];
-      post.postLikes.push({ accountId, username: user.username, email: user.email });
+      await likePost(accountId, postId)
+      post.likes += 1
+      post.liked = true
     }
+
+    await refreshData()
   } catch (error) {
-    console.error('❌ Lỗi khi xử lý like/unlike:', error);
-    showNotification('Không thể xử lý like!', 'error');
+    console.error('❌ Lỗi khi xử lý like/unlike:', error)
   }
 }
+
 function togglePostMenu(id) {
   openedMenuPostId.value = openedMenuPostId.value === id ? null : id;
 }
@@ -984,7 +1036,7 @@ onMounted(async () => {
           likes: post.likeAmount || 0,
           commentsList,
           postLikes: post.listLike || [],
-          liked: await checkLikedStatus(post.postId),
+          liked: post.listLike?.some(like => like.accountId === accountId),
           images: post.postMedias?.map(m => m.mediaUrl) || []
         };
       })
@@ -1740,7 +1792,7 @@ onMounted(async () => {
   background: #007ACC;
 }
 
-.comment-list {
+/* .comment-list {
   margin-top: 8px;
 }
 
@@ -1782,7 +1834,7 @@ onMounted(async () => {
   color: #65676b;
   margin-top: 4px;
   margin-left: 5px;
-}
+} */
 
 /* Comment Modal */
 .comment-modal-overlay {
@@ -1832,7 +1884,23 @@ onMounted(async () => {
   grid-auto-rows: 180px;
   gap: 4px;
 }
+.post-media-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
 
+.post-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+}
+
+.post-video {
+  width: 400px;
+  max-height: 400px;
+}
 .comment-modal-gallery img {
   width: 100%;
   height: 100%;
@@ -2197,6 +2265,7 @@ onMounted(async () => {
 }
 
 /* Delete Banner */
+.btn-delete-avatar,
 .btn-delete-banner {
   margin-top: 8px;
   padding: 6px 12px;
@@ -2441,4 +2510,72 @@ onMounted(async () => {
   background-color: #e6e6e6;
 } */
 
+/* ========== Comment-list trên trang chính (giống modal) ========== */
+.comment-list {
+  margin-top: 8px;
+  padding: 0;
+}
+
+.comment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comment-bubble {
+ background: #f0f2f5;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    padding: 5px 10px;
+}
+
+.comment-username {
+  font-weight: 600;
+  font-size: 14px;
+  color: #141414;
+  margin-right: 4px;
+}
+
+.comment-text {
+  font-size: 14px;
+  color: #050505;
+  line-height: 1.4;
+}
+
+.comment-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #65676b;
+  margin-left: 4px; /* lùi nhẹ để canh dưới khung bubble */
+}
+
+.comment-time {
+  /* nếu bạn muốn định dạng “Vừa xong” */
+}
+
+.comment-reply {
+  color: #1877F2;
+  cursor: pointer;
+}
+
+.comment-reply:hover {
+  text-decoration: underline;
+}
 </style>

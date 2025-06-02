@@ -39,7 +39,7 @@
             </div>
             <div class="pet-name">{{ pet.fullName || pet.username }}</div>
               <button class="action-button profile" @click="goToFriendProfile(pet.id)">Xem trang cá nhân</button>
-            <button class="action-button reject" @click="isDeleteFriend(pet.id)">Xoá</button>
+              <button class="action-button reject" @click="confirmDeleteFriend(pet.id)">Xoá</button>
           </div>
         </div>
 

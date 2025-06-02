@@ -24,17 +24,24 @@
         <!-- Previews -->
         <div v-if="mediaFiles.length" class="media-previews">
           <div v-for="(file, idx) in mediaFiles" :key="idx" class="preview-item">
-            <img :src="file.url" alt="preview" />
+            <img v-if="file.type === 'image'" :src="file.url" alt="preview" />
+            <video v-else controls :src="file.url" />
             <button class="remove-preview" @click.stop="removeMedia(idx)">×</button>
           </div>
         </div>
 
         <!-- File Input -->
-        <input type="file" ref="fileInput" accept="image/*" multiple @change="handleMediaChange"
-          style="display: none;" />
+        <input
+          type="file"
+          ref="fileInput"
+          accept="image/*,video/*"
+          multiple
+          @change="handleMediaChange"
+          style="display: none;"
+        />
         <div class="media-picker" @click="pickMedia">
           <i class="far fa-image"></i>
-          <span>Thêm ảnh</span>
+          <span>Thêm ảnh / video</span>
         </div>
 
         <!-- Submit -->
@@ -51,13 +58,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { createPost } from '@/service/postService'
 import { getAccountById } from '@/service/authService'
 import { getProfileByAccountId } from '@/service/profileService'
-import { toast } from 'vue3-toastify';
-import 'vue3-toastify/dist/index.css';
+import { toast } from 'vue3-toastify'
+import 'vue3-toastify/dist/index.css'
 
 const emit = defineEmits(['close', 'post', 'refresh'])
 
 const content = ref('')
-const mediaFiles = reactive([])
+const mediaFiles = reactive([]) // { file, url, type: 'image' | 'video' }
 const fileInput = ref(null)
 const avatar = ref('/image/avata.jpg')
 const displayName = ref('')
@@ -75,7 +82,8 @@ function handleMediaChange(event) {
   files.forEach(file => {
     const reader = new FileReader()
     reader.onload = e => {
-      mediaFiles.push({ file, url: e.target.result })
+      const fileType = file.type.startsWith('video/') ? 'video' : 'image'
+      mediaFiles.push({ file, url: e.target.result, type: fileType })
     }
     reader.readAsDataURL(file)
   })
@@ -96,32 +104,30 @@ async function submitPost() {
     }
 
     if (!content.value.trim() && mediaFiles.length === 0) {
-      alert('Bạn chưa nhập nội dung hoặc chọn ảnh!')
+      alert('Bạn chưa nhập nội dung hoặc chọn ảnh/video!')
       return
     }
 
     const formData = new FormData()
     formData.append('accountId', userId)
     formData.append('content', content.value.trim())
-    // 👇 Thêm scope mặc định là PUBLIC (có thể đổi thành FRIEND nếu muốn)
     formData.append('scope', 'PUBLIC')
 
-    // Nếu cần groupId thì thêm: formData.append('groupId', groupId)
+    mediaFiles.forEach(item => {
+      const field = item.type === 'video' ? 'videos' : 'images'
+      formData.append(field, item.file)
+    })
 
-    for (const file of mediaFiles.map(f => f.file)) {
-      formData.append('images', file)
-    }
-
-
-
-    for (const [key, val] of formData.entries()) {
-      console.log('formData:', key, val)
-
+    // ✅ LOG TOÀN BỘ formData
+    for (const pair of formData.entries()) {
+      if (pair[1] instanceof File) {
+        console.log('📦 Media:', pair[0], pair[1].name, pair[1].type)
+      } else {
+        console.log('📄 Field:', pair[0], pair[1])
+      }
     }
 
     const res = await createPost(formData)
-    console.log('Post created:', res)
-
     emit('post', res.data)
     emit('refresh')
     toast.success('Đăng bài viết thành công', {
@@ -129,10 +135,9 @@ async function submitPost() {
       position: toast.POSITION.TOP_RIGHT,
       theme: 'colored'
     })
-
     closeModal()
   } catch (err) {
-    console.error('Lỗi khi tạo bài viết:', err?.response?.data || err)
+    console.error('❌ Lỗi khi tạo bài viết:', err?.response?.data || err)
     toast.error('Đăng bài viết thất bại!', {
       autoClose: 3000,
       position: toast.POSITION.TOP_RIGHT,
@@ -140,6 +145,7 @@ async function submitPost() {
     })
   }
 }
+
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user'))
   if (user.id) {
@@ -147,13 +153,7 @@ onMounted(async () => {
       getAccountById(user.id),
       getProfileByAccountId(user.id)
     ])
-
-    if (profile?.avatarUrl?.trim()) {
-      avatar.value = profile.avatarUrl
-    } else if (account?.avatar?.trim()) {
-      avatar.value = account.avatar
-    }
-
+    avatar.value = profile?.avatarUrl?.trim() || account?.avatar?.trim() || '/image/avata.jpg'
     displayName.value = profile?.fullName || account?.username || 'Ẩn danh'
   }
 })
@@ -252,7 +252,8 @@ onMounted(async () => {
   position: relative;
 }
 
-.preview-item img {
+.preview-item img,
+.preview-item video {
   width: 80px;
   height: 80px;
   object-fit: cover;
