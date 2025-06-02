@@ -98,7 +98,7 @@
         >
           Xóa ảnh bìa
         </button>
-      </div>
+      </div>  
       <div class="confirm-modal-actions">
         <button type="submit" class="confirm-button">Lưu</button>
         <button type="button" class="cancel-button" @click="cancelProfileEdit">Hủy</button>
@@ -140,7 +140,9 @@
     <div class="profile-container">
       <div
         class="profile-banner"
-        :style="{ 'background-image': user.banner ? 'url(' + user.banner + ')' : 'linear-gradient(to bottom, #e6e6e6, #f0f2f5)' }"
+        :style="{ backgroundImage: user.banner ? 'url(' + user.banner + ')' : '',
+             backgroundColor: user.banner ? '' : '#ffffff'
+         }"
       ></div>
       <div class="profile-details-new">
         <div
@@ -315,16 +317,31 @@
               </button>
             </div>
 
-            <!-- Comment list -->
-            <div class="comment-list">
-              <div class="comment-item" v-for="(cmt, idx) in post.commentsList" :key="idx">
-                <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
-                <div class="comment-bubble">
-                  <span class="comment-username">{{ cmt.user }}</span>
-                  <span class="comment-text">{{ cmt.text }}</span>
-                  <div class="comment-time">{{ formatDate(cmt.createdAt) }}</div>
-                </div>
-              </div>
+            <!-- Comment-list (kiểu Facebook-like theo hình) -->
+<div class="comment-list">
+  <div
+    class="comment-item"
+    v-for="(cmt, idx) in post.commentsList"
+    :key="idx"
+  >
+    <!-- Avatar -->
+    <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
+
+    <!-- Phần body chứa khung comment -->
+    <div class="comment-content">
+      <!-- Tên người comment (in đậm), và nội dung -->
+      <div class="comment-bubble">
+        <span class="comment-username">{{ cmt.user }}</span>
+        <span class="comment-text">{{ cmt.text }}</span>
+      </div>
+
+      <!-- Dòng thời gian + Trả lời -->
+      <div class="comment-footer">
+        <span class="comment-time">{{ formatDate(cmt.createdAt) }}</span>
+        <span class="comment-reply" @click="prepareReply(cmt)">Trả lời</span>
+      </div>
+    </div>
+  </div>
             </div>
             <!-- Stats -->
             <button class="btn-icon comment-btn" @click="toggleCommentPopup(post)">Xem thêm bình luận</button>
@@ -476,6 +493,7 @@ const showPrivacy = ref(false);
 const privacySetting = ref('Bằng feed');
 const shareText = ref('');
 const editMode = ref(false);
+const removeBannerRequested = ref(false);
 const showEditProfileModal = ref(false);
 const editProfileForm = ref({
   username: '',
@@ -523,10 +541,13 @@ function goToEdit() {
 }
 
 function deleteBanner() {
+  // Xóa file banner đang cầm trong form
   editProfileForm.value.banner = null;
   editProfileForm.value.bannerPreview = '';
-}
 
+  // Reset luôn giá trị banner trong user để UI hiển thị nền trắng
+  user.value.banner = '';
+}
 
 async function saveDetails() {
   const phone = editForm.value.phone || '';
@@ -1729,7 +1750,7 @@ onMounted(async () => {
   background: #007ACC;
 }
 
-.comment-list {
+/* .comment-list {
   margin-top: 8px;
 }
 
@@ -1771,7 +1792,7 @@ onMounted(async () => {
   color: #65676b;
   margin-top: 4px;
   margin-left: 5px;
-}
+} */
 
 /* Comment Modal */
 .comment-modal-overlay {
@@ -2430,4 +2451,72 @@ onMounted(async () => {
   background-color: #e6e6e6;
 } */
 
+/* ========== Comment-list trên trang chính (giống modal) ========== */
+.comment-list {
+  margin-top: 8px;
+  padding: 0;
+}
+
+.comment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comment-bubble {
+ background: #f0f2f5;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    padding: 5px 10px;
+}
+
+.comment-username {
+  font-weight: 600;
+  font-size: 14px;
+  color: #141414;
+  margin-right: 4px;
+}
+
+.comment-text {
+  font-size: 14px;
+  color: #050505;
+  line-height: 1.4;
+}
+
+.comment-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #65676b;
+  margin-left: 4px; /* lùi nhẹ để canh dưới khung bubble */
+}
+
+.comment-time {
+  /* nếu bạn muốn định dạng “Vừa xong” */
+}
+
+.comment-reply {
+  color: #1877F2;
+  cursor: pointer;
+}
+
+.comment-reply:hover {
+  text-decoration: underline;
+}
 </style>

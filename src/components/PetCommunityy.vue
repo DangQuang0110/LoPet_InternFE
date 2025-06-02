@@ -158,7 +158,9 @@
           <img :src="group.image" alt="Group Image" />
           <div class="content">
             <div class="info">
+              
               <h3>{{ group.name }}</h3>
+              <span class="privacy-badge public">Công khai</span>
               <p>{{ group.members }} Thành viên</p>
             </div>
             <button class="join-btn joined" disabled>Đã tham gia</button>
@@ -194,6 +196,7 @@
           <div class="content">
             <div class="info">
               <h3>{{ group.name }}</h3>
+              <span class="privacy-badge public">Công khai</span>
               <p>{{ group.members }} Thành viên</p>
             </div>
             <button
@@ -907,6 +910,7 @@ const navigateToGroupJoined = (groupId) => {
   flex-direction: column;
   gap: 12px;                /* khoảng cách đều giữa các phần tử */
   height: 100%;
+  padding-bottom: 36px;
 }
 
 .info h3 {
@@ -917,13 +921,15 @@ const navigateToGroupJoined = (groupId) => {
   min-height: 42px;
   display: -webkit-box;
   overflow: hidden;
-  -webkit-line-clamp: 2;
+  /* -webkit-line-clamp: 2px; */
   -webkit-box-orient: vertical;
+
 }
 
 .info p {
   font-size: 14px;
   color: #666;
+  margin-top: 10px;
 }
 
 .join-btn {
@@ -954,7 +960,7 @@ const navigateToGroupJoined = (groupId) => {
   font-weight: bold;
   cursor: default;
   transform: scale(1.03);
-  margin-top: 22px;
+  margin-top: 2px;
 }
 
 .no-joined-groups {
@@ -1299,4 +1305,26 @@ const navigateToGroupJoined = (groupId) => {
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+  .privacy-badge {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 12px;
+    margin: 6px 0;       /* Khoảng cách trên/xuống so với các phần khác */
+    margin-left: -2px;
+    margin-top: 10px;
+   
+  }
+
+  .privacy-badge.public {
+    background-color: #e6f4ea;
+    color: #1e7e34;
+  }
+
+  .privacy-badge.private {
+    background-color: #fef3f2;
+    color: #b42318;
+  }
 </style>

@@ -124,8 +124,9 @@ const errors = reactive({
 })
 
 const validateEmail = () => {
-  const value = email.value
-   if (!value) {
+  const value = email.value.trim()
+
+  if (!value) {
     errors.email = 'Vui lòng nhập tên đăng nhập'
   } else if (value.length < 6 || value.length > 20) {
     errors.email = 'Tên đăng nhập phải từ 6 đến 20 ký tự'
@@ -133,12 +134,12 @@ const validateEmail = () => {
     errors.email = 'Tên đăng nhập không được chứa khoảng trắng'
   } else if (/^\d+$/.test(value)) {
     errors.email = 'Tên đăng nhập không được chỉ gồm số'
-  } else if (!usernameRegex.test(value)) {
-    errors.email = 'Phải có ít nhất 1 chữ và 1 số, chỉ chứa chữ & số'
+  } else if (!/^[A-Za-z\d]+$/.test(value)) {
+    errors.email = 'Tên đăng nhập chỉ được chứa chữ cái và số'
   } else {
     errors.email = ''
   }
-}
+} 
 
 const validatePassword = () => {
   if (!password.value) {
