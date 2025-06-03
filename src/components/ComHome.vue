@@ -1,5 +1,5 @@
 <template>
-  <layout>
+  <Layout>
     <div class="app-wrapper">
       <div class="main">
         <!-- Search -->
@@ -80,8 +80,16 @@
                   {{ expandedPosts[post.postId] ? 'Thu gọn' : 'Xem thêm' }}
                 </button>
 
-                <div class="post-image-wrapper" v-if="post.img">
-                  <img :src="post.img" alt="" />
+                <div class="post-media-wrapper" v-if="post.mediaUrl">
+                  <template v-if="isVideo(post.mediaUrl)">
+                    <video controls class="post-video">
+                      <source :src="post.mediaUrl" type="video/mp4" />
+                      Trình duyệt của bạn không hỗ trợ video.
+                    </video>
+                  </template>
+                  <template v-else>
+                    <img :src="post.mediaUrl" alt="Hình ảnh" class="post-image" />
+                  </template>
                 </div>
               </div>
               <!-- Actions -->
@@ -129,7 +137,7 @@
                     <div class="comments-footer">
                       <input v-model="newComment" type="text" placeholder="Viết bình luận..."
                         @keydown.enter.prevent="addComment(activePost)" />
-                      <button class="src/assets/security-password.png" @click="toggleCommentPopup(post)">Gửi</button>
+                    <button class="btn-send" @click="addComment()">Gửi </button>
                       
                     </div>
                   </div>
@@ -153,7 +161,7 @@
               <div class="post-comment">
               <input
                 type="text"
-                placeholder="Bình luận..."
+                placeholder="Bình luận ..."
                 v-model="newCommentMap[post.postId]"
                 @keydown.enter.prevent="addComment(post)"
               />
@@ -187,19 +195,18 @@
         <hr />
 
         <h3>Gợi ý cho bạn</h3>
-        <ul class="suggestion-list">
-          <li v-for="s in suggestions" :key="s.name" class="suggestion-card">
-            <img :src="s.src" alt="" />
-            <div class="info">
-              <span class="name">{{ s.name }}</span>
-              <small>Gợi ý cho bạn</small>
-            </div>
-            <div class="actions">
-              <button class="btn-add">Thêm</button>
-              <button class="btn-remove">Xóa</button>
-            </div>
-          </li>
-        </ul>
+          <ul class="suggestion-list">
+            <li v-for="s in suggestions" :key="s.id" class="suggestion-card">
+              <img :src="s.src" alt="" />
+              <div class="info">
+                <span class="name">{{ s.name }}</span>
+                <small>Gợi ý cho bạn</small>
+              </div>
+              <div class="actions">
+                <button class="btn-add" @click="handleAddFriend(s.id)">Thêm</button>
+              </div>
+            </li>
+          </ul>
       </aside>
 
 
@@ -232,7 +239,12 @@
               </div>
             </div>
             <div class="comments-footer">
-              <input v-model="newComment" type="text" placeholder="Viết bình luận..." />
+              <input
+                type="text"
+                placeholder="Bình luận t..."
+                v-model="newCommentMap[post.postId]"
+                @keydown.enter.prevent="addComment(post)"
+              />
                 <button class="btn-icon post-comment" @click="addComment(post)">
                  <img src="../assets/Sendbutton.svg" alt="Send Button" class="send-icon">
                 </button>           
@@ -343,13 +355,13 @@
           </div>
           <!-- 5. Input comment -->
           <div class="comments-footer">
-            <input v-model="newComment" type="text" placeholder="Viết bình luận..." />
-            <button class="btn-send" @click="addComment(activePost)">Gửi</button>
+            <input v-model="newComment" type="text" placeholder="Viết bình luận t..." />
+            <button class="btn-send" @click="addComment(activePost)">Gửi </button>
           </div>
         </div>
       </div>
     </transition>
-  </layout>
+  </Layout>
 </template>
 
 <script setup>
@@ -364,6 +376,10 @@ import { getCommentsByPostId, createComment } from '@/service/commentService'
 import { getProfileByAccountId } from '@/service/profileService'
 import { createReport } from '@/service/reportService'
 import { getListAds } from '@/service/admin/AdsService'
+import {
+  sendFriendRequest,
+  rejectFriendReq
+} from '@/service/friendService'
 // import Sendbutton from "@/assets/Sendbutton.svg"
 
 const search = ref('')
@@ -399,6 +415,41 @@ const currentUserAvatar = ref('/image/avata.jpg')
 const currentUserName = ref('Ẩn danh')
 const newCommentMap = reactive({})
 
+const user = JSON.parse(localStorage.getItem('user') || '{}')
+
+const loadSuggestions = async () => {
+  if (!user?.id) return
+  suggestions.value = await getSuggestedFriends(user.id)
+}
+
+onMounted(() => {
+  loadSuggestions()
+})
+
+const handleAddFriend = async (targetId) => {
+  try {
+    await sendFriendRequest(user.id, targetId)
+    alert('✅ Đã gửi lời mời kết bạn!')
+    suggestions.value = suggestions.value.filter(s => s.id !== targetId)
+  } catch (err) {
+    console.error('❌ Lỗi gửi lời mời:', err)
+    alert('Không thể gửi lời mời. Thử lại sau.')
+  }
+}
+
+const handleRemoveSuggestion = async (targetId) => {
+  try {
+    await rejectFriendReq(user.id, targetId)
+    suggestions.value = suggestions.value.filter(s => s.id !== targetId)
+  } catch (err) {
+    console.error('❌ Lỗi khi xoá gợi ý:', err)
+    alert('Không thể xoá gợi ý. Thử lại sau.')
+  }
+}
+
+function isVideo(url) {
+  return url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.ogg')
+}
 function getRandomAds(list, count = 3) {
   if (!Array.isArray(list)) {
     console.warn('⚠️ getRandomAds nhận dữ liệu không phải mảng:', list)
@@ -442,8 +493,6 @@ async function submitReplyModal(cmt) {
       content: text,
       replyCommentId: cmt.id
     })
-
-    // Gọi lại toàn bộ comment từ backend để đảm bảo dữ liệu đồng bộ
     const commentRes = await getCommentsByPostId(activePost.value.postId)
 
     const commentMap = {}
@@ -599,24 +648,29 @@ function closeComments() {
 
 async function addComment(post) {
   try {
-    const user = JSON.parse(localStorage.getItem('user'))
-    if (!user?.id || !newComment.value.trim()) return
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user?.id) return
 
+    const isModal = post?.postId === activePost.value?.postId
     const target = post || selectedPost.value
+    const commentText = isModal
+      ? newComment.value.trim()
+      : (newCommentMap[post.postId] || '').trim()
 
-    // 1. Tạo bình luận mới
+    if (!commentText) return
+
     await createComment({
       postId: target.postId,
       accountId: user.id,
-      content: newComment.value,
+      content: commentText,
       replyCommentId: ''
     })
 
-    // 2. Gọi lại comment từ backend để đồng bộ
     const commentRes = await getCommentsByPostId(target.postId)
 
     const commentMap = {}
     const repliesMap = {}
+
     for (const c of commentRes.comments) {
       const [acc, prof] = await Promise.all([
         getAccountById(c.account.id),
@@ -631,6 +685,7 @@ async function addComment(post) {
         replyToCommentId: c.replyToCommentId || null,
         replies: []
       }
+
       if (!commentData.replyToCommentId) {
         commentMap[commentData.id] = commentData
       } else {
@@ -641,7 +696,6 @@ async function addComment(post) {
       }
     }
 
-    // Gắn reply vào comment gốc
     for (const parentId in repliesMap) {
       if (commentMap[parentId]) {
         commentMap[parentId].replies = repliesMap[parentId]
@@ -649,12 +703,19 @@ async function addComment(post) {
     }
 
     target.commentsList = Object.values(commentMap)
-    newComment.value = ''
+
+    // Reset đúng ô input
+    if (isModal) {
+      newComment.value = ''
+    } else {
+      newCommentMap[post.postId] = ''
+    }
   } catch (error) {
     console.error('❌ Lỗi khi thêm bình luận:', error)
     alert('Không thể gửi bình luận. Vui lòng thử lại.')
   }
-} 
+}
+
 async function fetchPosts() {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -767,7 +828,7 @@ async function fetchPosts() {
               userSrc: avatarUrl,
               time: formatVietnameseTime(post.createdAt),
               text: post.content,
-              img: post.postMedias?.[0]?.mediaUrl || null,
+              mediaUrl: post.postMedias?.[0]?.mediaUrl || null,
               likes: post.likeAmount || 0,
               commentsList: comments,
               postLikes: post.listLike || [],
@@ -934,6 +995,23 @@ html,
   height: 100vh;
   background: var(--bg-page);
   overflow: hidden;
+}
+.post-media-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.post-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+}
+
+.post-video {
+  width: 400px;
+  max-height: 400px;
 }
 
 .main {

@@ -71,6 +71,14 @@
     class="avatar-preview"
     :style="{ 'background-image': 'url(' + editProfileForm.avatarPreview + ')' }"
   ></div>
+  <button
+  v-if="editProfileForm.avatarPreview"
+  type="button"
+  class="btn-delete-avatar"
+  @click="deleteAvatar"
+>
+  Xóa ảnh đại diện
+</button>
 </div>
      <div class="form-group">
   <label for="banner">Ảnh bìa</label>
@@ -295,8 +303,23 @@
               >
                 {{ expandedPosts[post.postId] ? 'Thu gọn' : 'Xem thêm' }}
               </button>
-              <div class="post-image-wrapper" v-if="post.img">
-                <img :src="post.img" alt="" />
+              <div class="post-media-wrapper" v-if="post.images.length">
+                <template v-for="(media, index) in post.images" :key="index">
+                  <video
+                    v-if="isVideo(media)"
+                    controls
+                    class="post-video"
+                  >
+                    <source :src="media" type="video/mp4" />
+                    Trình duyệt của bạn không hỗ trợ video.
+                  </video>
+                  <img
+                    v-else
+                    :src="media"
+                    class="post-image"
+                    alt="post media"
+                  />
+                </template>
               </div>
             </div>
             <div class="post-actions">
@@ -321,8 +344,8 @@
 <div class="comment-list">
   <div
     class="comment-item"
-    v-for="(cmt, idx) in post.commentsList"
-    :key="idx"
+    v-for="(cmt) in getLatestComments(post.commentsList)"
+    :key="cmt.id"
   >
     <!-- Avatar -->
     <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
@@ -473,6 +496,7 @@ import {getPostsByAccountId} from '@/service/postService';
 import { getCommentsByPostId } from '@/service/commentService';
 import { likePost, unlikePost } from '@/service/postService'
 import { useRoute } from 'vue-router';
+import {getFriendList} from '@/service/friendService';
 
 // Reactive variables
 const search = ref('');
@@ -539,14 +563,23 @@ function goToEdit() {
   editForm.value.dateOfBirth = user.value.dateOfBirth || '';
   editMode.value = true;
 }
+function deleteAvatar() {
+  editProfileForm.value.avatar = null;
+  editProfileForm.value.avatarPreview = '';
+  user.value.avatar = ''; // nếu muốn cập nhật giao diện luôn
+}
 
 function deleteBanner() {
   // Xóa file banner đang cầm trong form
   editProfileForm.value.banner = null;
   editProfileForm.value.bannerPreview = '';
-
-  // Reset luôn giá trị banner trong user để UI hiển thị nền trắng
-  user.value.banner = '';
+  user.value.banner = ''; // nếu muốn cập nhật giao diện luôn
+}
+function getLatestComments(comments) {
+  if (!Array.isArray(comments)) return [];
+  return [...comments]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // sắp xếp mới nhất
+    .slice(0, 3); // lấy 3 cái đầu
 }
 
 async function saveDetails() {
@@ -625,8 +658,7 @@ function handleBannerChange(e) {
 }
 
 async function loadUserProfile() {
-const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || '{}')?.id;
-
+  const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || '{}')?.id;
 
   if (!accountId) {
     console.error('❌ Không tìm thấy accountId trong localStorage');
@@ -638,14 +670,15 @@ const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || 
     console.log('📤 Gọi API với accountId:', accountId);
     const profile = await getProfileByAccountId(accountId);
 
+    // 🔁 Gọi API lấy danh sách bạn bè
+    const friends = await getFriendList(accountId);
+
     user.value = {
       id: profile.id,
       name: profile.fullName,
-
       avatar: profile.avatarUrl || '/image/avata.jpg',
-
       banner: profile.coverUrl || '',
-      friends: 500,
+      friends: friends?.length || 0, // ✅ số lượng bạn bè thực tế
       bio: profile.bio || '',
       phone: profile.phoneNumber || '',
       hometown: profile.hometown || '',
@@ -659,6 +692,7 @@ const accountId = route.params.id || JSON.parse(localStorage.getItem('user') || 
     showNotification('Không thể tải thông tin hồ sơ!', 'error');
   }
 }
+
 function genderLabel(sex) {
   const sexNum = Number(sex);
   if (sexNum === 0) return 'Nam';
@@ -671,20 +705,28 @@ async function saveProfileEdit() {
     const formData = new FormData();
     formData.append('fullName', editProfileForm.value.username);
 
-    // Avatar
-    if (editProfileForm.value.avatar) {
+    // ✅ Xử lý avatar
+    if (editProfileForm.value.avatar === null) {
+      // Avatar bị xóa => gửi chuỗi rỗng
+      formData.append('avatar', '');
+    } else if (editProfileForm.value.avatar) {
+      // Có avatar mới được chọn
       formData.append('avatar', editProfileForm.value.avatar);
     } else {
-      // Gửi URL hiện tại nếu không đổi để backend giữ nguyên
+      // Không đổi => giữ nguyên
       const blob = await fetch(user.value.avatar).then(res => res.blob());
       formData.append('avatar', blob, 'avatar.jpg');
     }
 
-    // Banner
-    if (editProfileForm.value.banner) {
+    // ✅ Xử lý banner
+    if (editProfileForm.value.banner === null) {
+      // Banner bị xóa => gửi chuỗi rỗng
+      formData.append('cover', '');
+    } else if (editProfileForm.value.banner) {
+      // Có banner mới được chọn
       formData.append('cover', editProfileForm.value.banner);
     } else {
-      // Gửi URL hiện tại nếu không đổi để backend giữ nguyên
+      // Không đổi => giữ nguyên
       const blob = await fetch(user.value.banner).then(res => res.blob());
       formData.append('cover', blob, 'cover.jpg');
     }
@@ -692,8 +734,8 @@ async function saveProfileEdit() {
     const updated = await updateProfile(user.value.id, formData);
 
     user.value.name = updated.fullName || user.value.name;
-    user.value.avatar = updated.avatarUrl || user.value.avatar;
-    user.value.banner = updated.coverUrl || user.value.banner;
+    user.value.avatar = updated.avatarUrl || '';
+    user.value.banner = updated.coverUrl || '';
 
     showNotification('Thông tin cá nhân đã được cập nhật!', 'success');
   } catch (error) {
@@ -704,6 +746,7 @@ async function saveProfileEdit() {
   showEditProfileModal.value = false;
   resetProfileForm();
 }
+
 
 function cancelProfileEdit() {
   showEditProfileModal.value = false;
@@ -716,6 +759,9 @@ function resetProfileForm() {
   editProfileForm.value.avatarPreview = '';
   editProfileForm.value.banner = null;
   editProfileForm.value.bannerPreview = '';
+}
+function isVideo(url) {
+  return /\.(mp4|webm|ogg)$/i.test(url);
 }
 
 // Functions for posts
@@ -1842,7 +1888,23 @@ onMounted(async () => {
   grid-auto-rows: 180px;
   gap: 4px;
 }
+.post-media-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
 
+.post-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+}
+
+.post-video {
+  width: 400px;
+  max-height: 400px;
+}
 .comment-modal-gallery img {
   width: 100%;
   height: 100%;
@@ -2207,6 +2269,7 @@ onMounted(async () => {
 }
 
 /* Delete Banner */
+.btn-delete-avatar,
 .btn-delete-banner {
   margin-top: 8px;
   padding: 6px 12px;

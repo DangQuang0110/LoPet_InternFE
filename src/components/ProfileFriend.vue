@@ -282,8 +282,23 @@
               >
                 {{ expandedPosts[post.postId] ? 'Thu gọn' : 'Xem thêm' }}
               </button>
-              <div class="post-image-wrapper" v-if="post.img">
-                <img :src="post.img" alt="" />
+              <div class="post-media-wrapper" v-if="post.images.length">
+                <template v-for="(media, index) in post.images" :key="index">
+                  <video
+                    v-if="isVideo(media)"
+                    controls
+                    class="post-video"
+                  >
+                    <source :src="media" type="video/mp4" />
+                    Trình duyệt của bạn không hỗ trợ video.
+                  </video>
+                  <img
+                    v-else
+                    :src="media"
+                    class="post-image"
+                    alt="post media"
+                  />
+                </template>
               </div>
             </div>
             <div class="post-actions">
@@ -306,11 +321,11 @@
 
              <!-- Comment-list (kiểu Facebook-like theo hình) -->
 <div class="comment-list">
-  <div
-    class="comment-item"
-    v-for="(cmt, idx) in post.commentsList"
-    :key="idx"
-  >
+    <div
+      class="comment-item"
+      v-for="(cmt) in getLatestComments(post.commentsList)"
+      :key="cmt.id"
+    >
     <!-- Avatar -->
     <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
 
@@ -542,12 +557,22 @@ async function saveDetails() {
     showNotification('Cập nhật thông tin thất bại!', 'error');
   }
 }
+function isVideo(url) {
+  return /\.(mp4|webm|ogg)$/i.test(url);
+}
 
 function genderToNumber(label) {
   if (label === 'Nam') return 0;
   if (label === 'Nữ') return 1;
   return -1;
 }
+function getLatestComments(comments) {
+  if (!Array.isArray(comments)) return [];
+  return [...comments]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // sắp xếp mới nhất
+    .slice(0, 3); // lấy 3 cái đầu
+}
+
 
 function cancelEdit() {
   editMode.value = false;
@@ -1085,7 +1110,23 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
   align-items: center;
   background-color: #FFFFFF;
 }
+.post-media-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
 
+.post-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+}
+
+.post-video {
+  width: 400px;
+  max-height: 400px;
+}
 .profile-avatar {
   position: relative;
   margin-top: -50px;
