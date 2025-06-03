@@ -1525,13 +1525,12 @@ html,
 .ad-card,
 .suggestion-card {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 12px;
   border-radius: 8px;
-  text-decoration: none;
-  color: inherit;
+  transition: all 0.2s ease;
 }
 
 .ad-card:hover {

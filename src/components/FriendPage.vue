@@ -83,7 +83,16 @@
           </div>
         </div>
       </div>
-
+<!-- Popup xác nhận xóa bạn bè -->
+      <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDeleteFriend">
+        <div class="modal-content">
+          <h3>Bạn có chắc chắn muốn xóa bạn này không?</h3>
+          <div class="modal-actions">
+            <button class="btn-confirm" @click="performDeleteFriend">Xóa</button>
+            <button class="btn-cancel" @click="cancelDeleteFriend">Hủy</button>
+          </div>
+        </div>
+      </div>
     </div>
   </layout>
 </template>
@@ -95,6 +104,9 @@ import { getProfileByAccountId } from '@/service/profileService';
 import Layout from '@/components/Layout.vue'
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
+
+
+
 
 export default {
   components: {

@@ -326,7 +326,6 @@
       v-for="(cmt) in getLatestComments(post.commentsList)"
       :key="cmt.id"
     >
-
     <!-- Avatar -->
     <img :src="cmt.userSrc" alt="avatar" class="comment-avatar" />
 
