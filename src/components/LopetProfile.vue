@@ -148,7 +148,9 @@
     <div class="profile-container">
       <div
         class="profile-banner"
-        :style="{ 'background-image': user.banner ? 'url(' + user.banner + ')' : 'linear-gradient(to bottom, #e6e6e6, #f0f2f5)' }"
+        :style="{ backgroundImage: user.banner ? 'url(' + user.banner + ')' : '',
+             backgroundColor: user.banner ? '' : '#ffffff'
+         }"
       ></div>
       <div class="profile-details-new">
         <div
@@ -516,6 +518,7 @@ const showPrivacy = ref(false);
 const privacySetting = ref('Bằng feed');
 const shareText = ref('');
 const editMode = ref(false);
+const removeBannerRequested = ref(false);
 const showEditProfileModal = ref(false);
 const editProfileForm = ref({
   username: '',
@@ -568,6 +571,7 @@ function deleteAvatar() {
 }
 
 function deleteBanner() {
+  // Xóa file banner đang cầm trong form
   editProfileForm.value.banner = null;
   editProfileForm.value.bannerPreview = '';
   user.value.banner = ''; // nếu muốn cập nhật giao diện luôn
