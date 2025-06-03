@@ -5,69 +5,74 @@
         <img src="/assets/logoPetGram.png" alt="LOPET Logo" class="logo-img" />
       </div>
       <div class="menu-container">
-                <nav class="nav-menu">
-            <ul>
-              <li class="nav-item">
-                <router-link to="/home" class="nav-link">
-                  <img src="../assets/trangchu.png" alt="Trang chủ" class="nav-icon" />
-                  <span>Trang chủ</span>
+        <nav class="nav-menu">
+          <ul>
+            <li class="nav-item">
+              <router-link to="/home" class="nav-link">
+                <img src="../assets/trangchu.png" alt="Trang chủ" class="nav-icon" />
+                <span>Trang chủ</span>
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link notification-wrapper" @click.prevent="toggleNotifications">
+                <div class="icon-with-badge">
+                  <img src="../assets/notification.png" alt="Thông báo" class="nav-icon" />
+                  <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
+                </div>
+                <span>Thông báo</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <router-link to="/message" class="nav-link">
+                <img src="../assets/message.png" alt="Nhắn tin" class="nav-icon" />
+                <span>Nhắn tin</span>
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link to="/groups" class="nav-link">
+                <img src="../assets/community.png" alt="Cộng đồng" class="nav-icon" />
+                <span>Cộng đồng</span>
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link to="/friend" class="nav-link">
+                <img src="../assets/friends.png" alt="Bạn bè" class="nav-icon" />
+                <span>Bạn bè</span>
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link to="/profile/me" class="nav-link">
+                <img src="../assets/user.png" alt="Profile" class="nav-icon" />
+                <span>Profile</span>
+              </router-link>
+            </li>
+          </ul>
+          <hr />
+          <div class="user-panel" @click="showLogoutMenu = !showLogoutMenu">
+            <img class="avatar" :src="currentUser.avatar || '/image/avata.jpg'" alt="User Avatar" />
+            <span class="username">{{ currentUser.name || 'Ẩn danh' }}</span>
+            <img src="../assets/settings.png" alt="Cài đặt" class="nav-icon settings-icon" />
+            <div v-if="showLogoutMenu" class="logout-menu">
+              <ul>
+                <!-- Thay vì gọi handleLogout trực tiếp, ta sẽ gọi confirmLogout để hiển thị modal xác nhận -->
+                <li @click.stop="confirmLogout" class="logout-option">
+                  <img src="../assets/log-out.png" alt="Đăng xuất" class="nav-icon" /> Đăng xuất
+                </li>
+                <!-- Có thể giữ hoặc bỏ phần “Đổi mật khẩu” -->
+                <!--
+                <router-link to="/resetNewPassword" class="nav-link">
+                  <img src="../assets/security-password.png" class="nav-icon" />
+                  Đổi lại mật khẩu
                 </router-link>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link notification-wrapper" @click.prevent="toggleNotifications">
-                  <div class="icon-with-badge">
-                    <img src="../assets/notification.png" alt="Thông báo" class="nav-icon" />
-                    <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
-                  </div>
-                  <span>Thông báo</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <router-link to="/message" class="nav-link">
-                  <img src="../assets/message.png" alt="Nhắn tin" class="nav-icon" />
-                  <span>Nhắn tin</span>
-                </router-link>
-              </li>
-              <li class="nav-item">
-                <router-link to="/groups" class="nav-link">
-                  <img src="../assets/community.png" alt="Cộng đồng" class="nav-icon" />
-                  <span>Cộng đồng</span>
-                </router-link>
-              </li>
-              <li class="nav-item">
-                <router-link to="/friend" class="nav-link">
-                  <img src="../assets/friends.png" alt="Bạn bè" class="nav-icon" />
-                  <span>Bạn bè</span>
-                </router-link>
-              </li>
-              <li class="nav-item">
-                <router-link to="/profile/me" class="nav-link">
-                  <img src="../assets/user.png" alt="Profile" class="nav-icon" />
-                  <span>Profile</span>
-                </router-link>
-              </li>
-            </ul>
-            <hr>
-            <div class="user-panel" @click="showLogoutMenu = !showLogoutMenu">
-              <img class="avatar" :src="currentUser.avatar || '/image/avata.jpg'" alt="User Avatar" />
-              <span class="username">{{ currentUser.name || 'Ẩn danh' }}</span>
-              <img src="../assets/settings.png" alt="Cài đặt" class="nav-icon settings-icon" />
-              <div v-if="showLogoutMenu" class="logout-menu">
-                <ul>
-                  <li @click.stop="handleLogout" class="logout-option">
-                    <img src="../assets/log-out.png" alt="Đăng xuất" class="nav-icon" /> Đăng xuất
-                  </li>
-                  <!-- <router-link to="/resetNewPassword" class="nav-link">
-    <img src="../assets/security-password.png" class="nav-icon" />
-    Đổi lại mật khẩu
-  </router-link> -->
-                </ul>
-              </div>
+                -->
+              </ul>
             </div>
-          </nav>
+          </div>
+        </nav>
       </div>
       <div class="sidebar-footer"></div>
     </aside>
+
     <!-- Notification Popup -->
     <transition name="slide">
       <div v-if="showNotifications" class="notification-popup">
@@ -80,81 +85,52 @@
           <button :class="['tab-btn', { active: activeTab === 'unread' }]" @click="activeTab='unread'">Chưa đọc</button>
         </div>
         <div class="popup-content">
-          <!-- NEW & OLD -->
+          <!-- Tab “All” -->
           <template v-if="activeTab === 'all'">
             <p class="section-title">Mới</p>
-<!-- Click để mở chat -->
-              <div
-                v-for="(item, k) in notifications.unread"
-                :key="k"
-                :class="['notification-item', { unread: !item.isRead }]"
-                @click="handleNotificationClick(item, k)"
-              >
-                <!-- Di chuyển sự kiện click từ item-content lên notification-item -->
-                <div class="avatar-wrapper">
-                  <img class="avatar" :src="item.avatar" alt="avatar" />
-                </div>
-                <div class="item-content">
-                  <p>
-                    <span class="username">{{ item.name }}</span> {{ item.text }}
-                    <span v-if="!item.isRead" class="dot"></span>
-                  </p>
-                  <p class="timestamp">{{ item.time }}</p>
-                </div>
-                <!-- SỬA i => k -->
-                <!-- <button class="more-btn" @click.stop="toggleMenu(k)">
-                  <i class="fas fa-ellipsis-h"></i>
-                </button>
-
-                <div v-if="openMenuIdx === k" class="item-menu">
-                  <ul>
-                    <li @click="markAsRead(k)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
-                    <li @click="deleteNotification(k)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                    <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về “{{ item.name }}”</li>
-                    <li @click="reportIssue(k)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
-                  </ul>
-                </div> -->
-              </div>
-              <div
-                v-for="(item,j) in notifications.read"
-                :key="j"
-                :class="['notification-item', { unread: !item.isRead }]"
-              >
+            <div
+              v-for="(item, k) in notifications.unread"
+              :key="k"
+              :class="['notification-item', { unread: !item.isRead }]"
+              @click="handleNotificationClick(item, k)"
+            >
               <div class="avatar-wrapper">
                 <img class="avatar" :src="item.avatar" alt="avatar" />
               </div>
               <div class="item-content">
                 <p>
                   <span class="username">{{ item.name }}</span> {{ item.text }}
-                  <!-- ❌ KHÔNG có dot trong thông báo đã đọc -->
+                  <span v-if="!item.isRead" class="dot"></span>
                 </p>
                 <p class="timestamp">{{ item.time }}</p>
               </div>
-              <!-- <button class="more-btn" @click.stop="toggleMenu(j + notifications.unread.length)">
-                <i class="fas fa-ellipsis-h"></i>
-              </button>
-              <div v-if="openMenuIdx === j + notifications.unread.length" class="item-menu">
-                <ul>
-
-                  <li @click="markAsRead(j + notifications.unread.length)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
-                  <li @click="deleteNotification(j + notifications.unread.length)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                  <li @click="muteTopic(j + notifications.unread.length)"><i class="fas fa-cog"></i> Tắt thông báo về “{{item.name}}”</li>
-                  <li @click="reportIssue(j + notifications.unread.length)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
-                </ul>
-              </div> -->
+            </div>
+            <div
+              v-for="(item, j) in notifications.read"
+              :key="j"
+              :class="['notification-item', { unread: !item.isRead }]"
+            >
+              <div class="avatar-wrapper">
+                <img class="avatar" :src="item.avatar" alt="avatar" />
+              </div>
+              <div class="item-content">
+                <p>
+                  <span class="username">{{ item.name }}</span> {{ item.text }}
+                </p>
+                <p class="timestamp">{{ item.time }}</p>
+              </div>
             </div>
           </template>
-          <!-- UNREAD -->
+          <!-- Tab “Unread” -->
           <template v-else>
             <p class="section-title">Mới</p>
-            <div v-for="(item,k) in notifications.unread" :key="k" class="notification-item">
+            <div v-for="(item, k) in notifications.unread" :key="k" class="notification-item">
               <div class="avatar-wrapper">
                 <img class="avatar" :src="item.avatar" alt="avatar" />
               </div>
               <div class="item-content">
                 <p>
                   <span class="username">{{ item.name }}</span> {{ item.text }}<span v-if="!item.isRead" class="dot"></span>
-
                 </p>
                 <p class="timestamp">{{ item.time }}</p>
               </div>
@@ -165,7 +141,7 @@
                 <ul>
                   <li @click="markAsRead(k)"><i class="fas fa-check"></i> Đánh dấu là đã đọc</li>
                   <li @click="deleteNotification(k)"><i class="far fa-times-circle"></i> Xóa thông báo này</li>
-                  <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về "{{item.name}}"</li>
+                  <li @click="muteTopic(k)"><i class="fas fa-cog"></i> Tắt thông báo về “{{ item.name }}”</li>
                   <li @click="reportIssue(k)"><i class="fas fa-bug"></i> Báo cáo sự cố cho Thông báo</li>
                 </ul>
               </div>
@@ -174,11 +150,24 @@
         </div>
       </div>
     </transition>
+
+    <!-- Modal xác nhận đăng xuất -->
+    <div v-if="showLogoutConfirm" class="logout-confirm-overlay">
+      <div class="logout-confirm-modal">
+        <h3>Bạn có chắc chắn muốn đăng xuất?</h3>
+        <div class="modal-actions">
+          <button class="btn-confirm" @click="handleLogout">Đồng ý</button>
+          <button class="btn-cancel" @click="cancelLogout">Hủy</button>
+        </div>
+      </div>
+    </div>
+
     <main class="main-content">
       <slot />
     </main>
   </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted,computed,watch  } from 'vue'
@@ -198,7 +187,16 @@ const showLogoutMenu = ref(false)
 const currentUser = ref({ name: '', avatar: '' })
 const friends = ref([])
 const unreadCount = computed(() => notifications.value.unread.length)
+const showLogoutConfirm = ref(false)   // true => hiển thị modal xác nhận đăng xuất
 
+function confirmLogout() {
+  showLogoutConfirm.value = true
+  showLogoutMenu.value = false   // ẩn menu logout dropdown
+}
+
+function cancelLogout() {
+  showLogoutConfirm.value = false
+}
 const notifications = ref({
   unread: [],
   read: []
@@ -478,8 +476,8 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
   padding: 4px 0;
   
   /* ấn định width bé hơn, không cần min-width lớn */
-  width: 185px;
-  margin-right: -30px;
+  width: 200px;
+  margin-right: -25px;
   margin-top: 10px;
   
   background: #fff;
@@ -500,21 +498,19 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 }
 
 /* hover effect cho item */
-.logout-menu a:hover {
+/* .logout-menu a:hover {
   background-color: #f5f5f5;
-}
+} */
 .logout-option {
                /* đảm bảo padding có tác dụng */
   padding: 8px 16px;                   /* padding mặc định */
         /* tạo chuyển động mượt */
 }
 
-.logout-option:hover {
-  background-color: #f5f5f5;
-  padding: 8px 39px;                   /* kéo dài chiều ngang thêm 8px hai bên */
-}
-.logout-option i {
-  margin-right: 8px;
+
+.logout-option .nav-icon {
+  margin-right: 6px; /* khoảng cách giữa icon và chữ */
+  vertical-align: middle;
 }
 
 .resetpassword {
@@ -807,4 +803,56 @@ notifications.value.read = parsed.filter(n => n.isRead).map(n => ({ ...n, type: 
 .item-content {
   flex-grow: 1; /* Chiếm hết không gian còn lại */
 }
+/* Ví dụ style đơn giản cho modal */
+.logout-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.logout-confirm-modal {
+  background-color: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 320px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.logout-confirm-modal h3 {
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 16px;
+}
+
+.btn-confirm,
+.btn-cancel {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-confirm {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+.btn-cancel {
+  background-color: #bdc3c7;
+  color: #fff;
+}
+
 </style>

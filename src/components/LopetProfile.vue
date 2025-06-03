@@ -2,10 +2,6 @@
   <layout>
   <div class="lopet-app-new">
     <!-- Header with Search Bar -->
-    <div class="search-box">
-      <!-- <span class="material-icons">search</span> -->
-      <input v-model="search" type="text" placeholder="Tìm kiếm..." />
-    </div>
     <!-- Notification section -->
     <div class="notification-container">
       <div
@@ -130,7 +126,7 @@
         </div>
         <div class="modal-actions">
            <button class="btn-cancel" @click="cancelDelete">Không</button>
-          <button class="btn-confirm" @click="performDelete">Có, tôi muống</button>
+          <button class="btn-confirm" @click="performDelete">Có</button>
         </div>
       </div>
     </div>
@@ -280,7 +276,7 @@
                 </button>
                 <div v-if="openedMenuPostId === post.id" class="post-menu" @click.stop>
                   <ul>
-                    <li v-if="post.user === user.name" @click="editPost(post.id)">Sửa bài viết</li>
+                    <!-- <li v-if="post.user === user.name" @click="editPost(post.id)">Sửa bài viết</li> -->
                     <li v-if="post.user === user.name" @click="confirmDelete(post.id)">Xóa bài viết</li>
                     <li @click="showReport = true">Báo cáo bài viết</li>
                   </ul>
@@ -492,7 +488,7 @@ import { ref, onMounted, reactive, computed, watch } from 'vue';
 import layout from './Layout.vue';
 import { getProfileByAccountId,updateProfile} from '@/service/profileService';
 import ReportModal from '@/components/ReportModal.vue'
-import {getPostsByAccountId} from '@/service/postService';
+import {getPostsByAccountId,deletePost } from '@/service/postService';
 import { getCommentsByPostId } from '@/service/commentService';
 import { likePost, unlikePost } from '@/service/postService'
 import { useRoute } from 'vue-router';
@@ -519,6 +515,7 @@ const shareText = ref('');
 const editMode = ref(false);
 const removeBannerRequested = ref(false);
 const showEditProfileModal = ref(false);
+
 const editProfileForm = ref({
   username: '',
   avatar: null,
@@ -852,12 +849,25 @@ function confirmDelete(id) {
   showDeleteConfirm.value = true;
 }
 
-function performDelete() {
-  const idx = posts.value.findIndex(p => p.id === deleteTargetId.value);
-  if (idx !== -1) {
-    posts.value.splice(idx, 1);
+async function performDelete() {
+  if (!deleteTargetId.value) return;
+
+  try {
+    // Gọi API xóa bài viết
+    await deletePost(deleteTargetId.value);
+
+    // Nếu API trả về thành công, xóa khỏi mảng posts
+    const idx = posts.value.findIndex(p => p.id === deleteTargetId.value);
+    if (idx !== -1) {
+      posts.value.splice(idx, 1);
+    }
     showNotification('Bài viết đã được xóa!', 'success');
+  } catch (error) {
+    console.error('❌ Xóa bài viết thất bại:', error);
+    showNotification('Xóa bài viết thất bại!', 'error');
   }
+
+  // Reset trạng thái modal
   showDeleteConfirm.value = false;
   deleteTargetId.value = null;
 }
@@ -1667,7 +1677,9 @@ onMounted(async () => {
 .post-actions {
   display: flex;
   align-items: center;
-  gap: 6px;          /* khoảng cách giữa từng nhóm icon+count */
+  gap: 6px;
+  border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
 }
 
 .post-actions .count {
@@ -1893,6 +1905,8 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   margin-top: 10px;
+  border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
 }
 
 .post-image {

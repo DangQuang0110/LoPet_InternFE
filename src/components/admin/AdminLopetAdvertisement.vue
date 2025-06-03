@@ -338,9 +338,8 @@ const mapApiDataToDisplay = (apiData) => {
   }))
 }
 
-onMounted(async () => {
+const refreshAds = async () => {
   try {
-    // Lấy user từ localStorage
     const userStr = localStorage.getItem('user')
     if (!userStr) {
       console.error('Không tìm thấy ID người dùng')
@@ -350,18 +349,19 @@ onMounted(async () => {
     const user = JSON.parse(userStr)
     const response = await getListAds(user.id)
     
-    // Check if response has data property and it's an array
-    if (response?.data && Array.isArray(response.data)) {
-      ads.value = mapApiDataToDisplay(response.data)
+    if (Array.isArray(response)) {
+      ads.value = mapApiDataToDisplay(response)
     } else {
       console.warn('Invalid response format:', response)
       ads.value = []
     }
   } catch (error) {
     console.error('Error fetching ads:', error)
-    ads.value = [] // Set empty array on error
+    ads.value = []
   }
-})
+}
+
+onMounted(refreshAds)
 
 const handleImageUpload = (event, mode) => {
   const file = event.target.files[0]
@@ -420,8 +420,7 @@ const addNewAd = async () => {
     await createAds(formData)
 
     // Refresh danh sách quảng cáo
-    const response = await getListAds(user.id)
-    ads.value = mapApiDataToDisplay(response.data)
+    await refreshAds()
 
     // Reset form và đóng modal
     newAd.value = {
@@ -493,14 +492,6 @@ const updateAd = async () => {
       formData.append('image', editAd.value.image)
     }
 
-    // Log để kiểm tra dữ liệu trong FormData
-    console.log('=== FormData Content ===')
-    console.log('adsId:', editAd.value.id)
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value)
-    }
-    console.log('=====================')
-
     // Hiển thị loading toast
     const loadingToastId = toast.loading('Đang cập nhật quảng cáo...', {
       position: toast.POSITION.TOP_RIGHT,
@@ -510,8 +501,7 @@ const updateAd = async () => {
     await updateAds(editAd.value.id, formData)
 
     // Refresh danh sách
-    const response = await getListAds(user.id)
-    ads.value = mapApiDataToDisplay(response.data)
+    await refreshAds()
 
     // Đóng modal và reset form
     showEditModal.value = false
@@ -559,10 +549,7 @@ const confirmDelete = async () => {
     await delAds(deleteAd.value.id)
 
     // Refresh danh sách
-    const userStr = localStorage.getItem('user')
-    const user = JSON.parse(userStr)
-    const response = await getListAds(user.id)
-    ads.value = mapApiDataToDisplay(response.data)
+    await refreshAds()
 
     // Đóng modal
     showDeleteModal.value = false

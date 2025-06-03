@@ -474,6 +474,7 @@ import ReportModal from '@/components/ReportModal.vue'
 import {getPostsByAccountId} from '@/service/postService';
 import { getCommentsByPostId } from '@/service/commentService';
 import { likePost, unlikePost } from '@/service/postService'
+import {getFriendList} from '@/service/friendService';
 import { useRoute } from 'vue-router';
 
 // Reactive variables
@@ -595,13 +596,13 @@ async function loadUserProfile() {
   }
   try {
     const profile = await getProfileByAccountId(accountId);
-
+    const friends = await getFriendList(accountId);
     user.value = {
       id: profile.id,
       name: profile.fullName,
       avatar: profile.avatarUrl || '/image/avata.jpg',
       banner: profile.coverUrl || '',
-      friends: 500,
+      friends: friends?.length || 0,
       bio: profile.bio || '',
       phone: profile.phoneNumber || '',
       hometown: profile.hometown || '',
@@ -1115,6 +1116,8 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
   justify-content: center;
   align-items: center;
   margin-top: 10px;
+  border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
 }
 
 .post-image {
@@ -1509,7 +1512,9 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
 .post-actions {
   display: flex;
   align-items: center;
-  gap: 6px;          /* khoảng cách giữa từng nhóm icon+count */
+  gap: 6px;
+  border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
 }
 
 .post-actions .count {

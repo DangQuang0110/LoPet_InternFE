@@ -17,7 +17,7 @@ if (token) {
 
 html, body, #app {
   margin: 0;
-    overflow-y: hidden; /* ✅ chặn luôn tràn ngang */
+    overflow-y: auto; /* ✅ chặn luôn tràn ngang */
   padding: 0;
   box-sizing: border-box;
   height: 100%;

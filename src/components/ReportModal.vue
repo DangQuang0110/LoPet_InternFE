@@ -24,6 +24,8 @@
 <script setup>
 import { ref } from 'vue'
 import { createReport } from '@/service/reportService'
+import { toast } from 'vue3-toastify'
+import 'vue3-toastify/dist/index.css'
 
 const props = defineProps({
   postId: {
@@ -63,7 +65,10 @@ async function submitReport() {
 
   if (!userId || !postId) {
     console.error('❌ Thiếu thông tin:', { userId, postId })
-    alert('Không đủ thông tin để báo cáo.')
+    toast.error('⚠️ Không đủ thông tin để báo cáo.', {
+      autoClose: 2000,
+      position: toast.POSITION.TOP_RIGHT
+    })
     return
   }
 
@@ -75,12 +80,18 @@ async function submitReport() {
       reason: reasonMap[selected.value]
     })
 
-    alert('✅ Báo cáo đã được gửi thành công!')
+    toast.success('Báo cáo đã được gửi thành công!', {
+      autoClose: 2000,
+      position: toast.POSITION.TOP_RIGHT
+    })
     emit('done')
-    close()
+    emit('close')
   } catch (err) {
     console.error('❌ Lỗi gửi báo cáo:', err)
-    alert('❌ Không thể gửi báo cáo. Vui lòng thử lại.')
+    toast.error('❌ Không thể gửi báo cáo. Vui lòng thử lại.', {
+      autoClose: 2000,
+      position: toast.POSITION.TOP_RIGHT
+    })
   }
 }
 </script>

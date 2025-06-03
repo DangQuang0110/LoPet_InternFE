@@ -743,7 +743,7 @@ async function fetchPosts() {
     currentUserName.value = profile?.fullName?.trim() ? profile.fullName : (account?.username || 'Ẩn danh')
 
     const friendList = await getFriendList(user.id)
-    console.log('📥 Friend list:', friendList)
+    // console.log('📥 Friend list:', friendList)
     const friendIds = friendList.map(friend => friend.id)
 
     const res = await getPosts()
@@ -864,15 +864,20 @@ function onReport() {
   if (!user?.id || !openedMenuPostId.value) return
 
   const post = posts.value.find(p => p.postId === openedMenuPostId.value)
-
   if (!post || !post.postId) {
-    alert('❌ Không thể xác định bài viết cần báo cáo.')
+    toast.error('❌ Không thể xác định bài viết cần báo cáo.', {
+      autoClose: 2000,
+      position: toast.POSITION.TOP_RIGHT,
+    })
     return
   }
 
   const reason = prompt('Nhập lý do báo cáo bài viết này:')
   if (!reason || reason.trim().length === 0) {
-    alert('⚠️ Lý do không được để trống!')
+    toast.warning('⚠️ Lý do không được để trống!', {
+      autoClose: 2000,
+      position: toast.POSITION.TOP_RIGHT,
+    })
     return
   }
 
@@ -883,13 +888,19 @@ function onReport() {
     reason: reason.trim()
   })
     .then(() => {
-      alert('✅ Báo cáo đã được gửi thành công!')
+      toast.success('✅ Báo cáo đã được gửi thành công!', {
+        autoClose: 2000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
       showReport.value = false
       openedMenuPostId.value = null
     })
     .catch((error) => {
       console.error('❌ Lỗi gửi báo cáo:', error)
-      alert('❌ Không thể gửi báo cáo. Vui lòng thử lại sau.')
+      toast.error('❌ Không thể gửi báo cáo. Vui lòng thử lại sau.', {
+        autoClose: 2000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
     })
 }
 
@@ -943,15 +954,14 @@ async function checkLikedStatus(postId) {
 
     const detail = await getPostById(postId)
 
-    console.log('📌 Chi tiết bài viết ID', postId, ':', detail)
-    console.log('👤 Người dùng hiện tại ID:', user.id)
+   
 
     // Log từng ID trong danh sách like để chắc chắn có hay không
     const likeIds = detail?.listLike?.map(like => like.id)
-    console.log('❤️ Danh sách ID đã like:', likeIds)
+    // console.log('❤️ Danh sách ID đã like:', likeIds)
 
     const liked = detail?.listLike?.some(like => String(like.id) === String(user.id))
-    console.log(`✅ Kết quả đã like bài ${postId}?`, liked)
+    // console.log(`✅ Kết quả đã like bài ${postId}?`, liked)
 
     return liked
   } catch (error) {
@@ -1226,7 +1236,6 @@ html,
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 2px solid #000000;
   object-fit: cover;
   margin-right: 12px;
   margin-top: 10px;
@@ -1365,7 +1374,9 @@ html,
 .post-actions {
   display: flex;
   align-items: center;
-  gap: 6px;          /* khoảng cách giữa từng nhóm icon+count */
+  gap: 6px;       
+  border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
 }
 
 .post-actions .count {

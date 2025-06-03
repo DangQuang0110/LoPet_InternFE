@@ -699,8 +699,9 @@ onMounted(() => {
   background: #ffe0b2;
 }
 .avatar {
-  width: 35px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
+   object-fit: cover; 
   border-radius: 50%;
 }
 .friend-info,
@@ -754,6 +755,7 @@ onMounted(() => {
 .avatar-msg {
   width: 36px;
   height: 36px;
+   object-fit: cover; 
   border-radius: 50%;
   margin: 0 8px 4px 8px;
     flex-shrink: 0;

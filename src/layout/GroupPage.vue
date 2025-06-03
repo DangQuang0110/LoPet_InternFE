@@ -591,11 +591,11 @@
           </label>
         </div>
 
-        <select v-model="editPostForm.scope" class="scope-select">
+        <!-- <select v-model="editPostForm.scope" class="scope-select">
           <option value="PUBLIC">Công khai</option>
           <option value="FRIEND">Bạn bè</option>
           <option value="PRIVATE">Riêng tư</option>
-        </select>
+        </select> -->
 
         <button class="update-button" @click="handleUpdatePost" :disabled="!editPostForm.content.trim()">
           Cập nhật
@@ -2199,12 +2199,12 @@ body {
 
 /* --- Hành động nhóm --- */
 .group-actions button {
-  /* margin-right: 100px; */
+  margin-right: 10px;
   padding: 8px 14px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  margin-left: 10px;
+  margin-top: 10px;
   
 }
 .invite {
@@ -2213,6 +2213,9 @@ body {
 }
 .joined {
   background-color: #eee;
+  
+    margin-top: 6px;
+
 }
 .join {
   background-color: #2196f3;
@@ -2664,7 +2667,6 @@ body {
 }
 .edit-group-btn {
   margin-top: 12px;
-  margin-left: 9px;
   background-color: #f9a825;
   color: #000;
   border: none;
@@ -2988,7 +2990,7 @@ body {
 .privacy-badge.public {
   background-color: #e6f4ea;
   color: #1e7e34;
-  margin-top : 11px;
+  margin-top : 5px;
 }
 
 .privacy-badge.private {
