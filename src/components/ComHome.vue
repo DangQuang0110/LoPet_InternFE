@@ -635,10 +635,6 @@ function toggleCommentPopup(post = null) {
   }
 }
 
-function openComments(post) {
-  selectedPost.value = post
-  showCommentsModal.value = true
-}
 
 function closeComments() {
   showCommentsModal.value = false

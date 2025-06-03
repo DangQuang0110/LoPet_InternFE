@@ -323,7 +323,7 @@
             <div class="post-actions">
               <button class="btn-icon like-btn" @click="toggleLike(post)">
                 <img
-                  :src="post.liked ? '/assets/like.png' : '/assets/like.png'"
+                  :src="getLikeIcon(post)"
                   alt="Like"
                   class="icon-img-like"
                 />
@@ -488,13 +488,14 @@
 <script setup>
 import { ref, onMounted, reactive, computed, watch } from 'vue';
 import layout from './Layout.vue';
+import { getAccountById } from '@/service/authService';
 import { getProfileByAccountId,updateProfile} from '@/service/profileService';
 import ReportModal from '@/components/ReportModal.vue'
 import {getPostsByAccountId} from '@/service/postService';
 import { getCommentsByPostId } from '@/service/commentService';
-import { likePost, unlikePost } from '@/service/postService'
 import { useRoute } from 'vue-router';
 import {getFriendList} from '@/service/friendService';
+import { getPostById, likePost, unlikePost } from '@/service/postService';
 
 // Reactive variables
 const search = ref('');
@@ -586,7 +587,6 @@ async function saveDetails() {
     showNotification('Số điện thoại không hợp lệ! Phải bắt đầu bằng 0 và có 10 chữ số.', 'error');
     return; // Dừng không lưu
   }
-
   try {
     const formData = new FormData();
     formData.append('fullName', user.value.name); // giữ nguyên tên
@@ -814,30 +814,34 @@ function formatVietnameseTime(dateStr) {
 
 async function toggleLike(post) {
   try {
-    const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}')
-    const accountId = userFromStorage?.id
-    const postId = post?.postId
-
-    if (!accountId || !postId) {
-      console.error('❌ Thiếu accountId hoặc postId khi like:', { accountId, postId })
-      return
-    }
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.id || !post.postId) return;
 
     if (post.liked) {
-      await unlikePost(accountId, postId)
-      post.likes -= 1
-      post.liked = false
+      await unlikePost(user.id, post.postId);
+      post.likes -= 1;
+      post.liked = false;
+      post.postLikes = post.postLikes.filter(like => like.id !== user.id);
     } else {
-      await likePost(accountId, postId)
-      post.likes += 1
-      post.liked = true
+      await likePost(user.id, post.postId);
+      post.likes += 1;
+      post.liked = true;
+      if (!Array.isArray(post.postLikes)) post.postLikes = [];
+      post.postLikes.push({
+        id: user.id,
+        username: user.username,
+        email: user.email
+      });
     }
-
-    await refreshData()
   } catch (error) {
-    console.error('❌ Lỗi khi xử lý like/unlike:', error)
+    console.error('❌ Lỗi khi xử lý like/unlike:', error);
+    showNotification('Không thể thực hiện thao tác like.', 'error');
   }
 }
+function getLikeIcon(post) {
+  return post.liked ? '/assets/liked.png' : '/assets/like.png';
+}
+
 
 function togglePostMenu(id) {
   openedMenuPostId.value = openedMenuPostId.value === id ? null : id;
@@ -872,27 +876,58 @@ async function toggleCommentPopup(post = null) {
     try {
       const response = await getCommentsByPostId(post.postId);
       const comments = Array.isArray(response) ? response : response.comments || [];
-      let commentsList = comments.map(cmt => ({
-        id: cmt.id,
-        user: cmt.account?.fullName || cmt.account?.username || 'Ẩn danh',
-        userSrc: cmt.account?.avatarUrl || cmt.account?.avatar || '/image/avata.jpg',
-        text: cmt.content,
-        createdAt: cmt.createdAt,
-        replies: (cmt.replies || []).map(reply => ({
-          id: reply.id,
-          user: reply.account?.fullName || reply.account?.username || 'Ẩn danh',
-          userSrc: reply.account?.avatarUrl || reply.account?.avatar || '/image/avata.jpg',
-          text: reply.content,
-          createdAt: reply.createdAt,
-          time: formatVietnameseTime(reply.createdAt)
-        }))
-      }))
+
+      const commentMap = {};
+      const repliesMap = {};
+
+      for (const cmt of comments) {
+        try {
+          const [acc, prof] = await Promise.all([
+            getAccountById(cmt.account.id),
+            getProfileByAccountId(cmt.account.id)
+          ]);
+
+          const fullName = prof?.fullName?.trim() || acc?.username || 'Ẩn danh';
+          const avatar = prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg';
+
+          const commentData = {
+            id: cmt.id,
+            user: fullName,
+            userSrc: avatar,
+            text: cmt.content,
+            createdAt: cmt.createdAt,
+            replyToCommentId: cmt.replyToCommentId || null,
+            replies: []
+          };
+
+          if (!commentData.replyToCommentId) {
+            commentMap[commentData.id] = commentData;
+          } else {
+            if (!repliesMap[commentData.replyToCommentId]) {
+              repliesMap[commentData.replyToCommentId] = [];
+            }
+            repliesMap[commentData.replyToCommentId].push(commentData);
+          }
+        } catch (err) {
+          console.error('❌ Không lấy được thông tin comment:', err);
+        }
+      }
+
+      for (const parentId in repliesMap) {
+        if (commentMap[parentId]) {
+          commentMap[parentId].replies = repliesMap[parentId];
+        }
+      }
+
+      activePost.value.commentsList = Object.values(commentMap);
     } catch (e) {
       console.error(`❌ Không thể lấy comment cho post ${post.postId}:`, e);
     }
+
     showCommentModal.value = true;
   }
 }
+
 function addComment(post) {
   if (!newComment.value.trim()) return;
   if (!Array.isArray(post.commentsList)) post.commentsList = [];
@@ -989,31 +1024,36 @@ onMounted(async () => {
           const commentMap = {};
           const repliesMap = {};
 
+          // sửa từng comment:
           for (const cmt of comments) {
-            const acc = cmt.account || {};
-            const fullName = acc.fullName || acc.username || 'Ẩn danh';
-            const avatarUrl = acc.avatarUrl || acc.avatar || '/image/avata.jpg';
+            try {
+              const [acc, prof] = await Promise.all([
+                getAccountById(cmt.account.id),
+                getProfileByAccountId(cmt.account.id)
+              ]);
 
-            const commentData = {
-              id: cmt.id,
-              user: fullName,
-              userSrc: avatarUrl,
-              text: cmt.content,
-              createdAt: cmt.createdAt,
-              replyToCommentId: cmt.replyToCommentId || null,
-              replies: []
-            };
+              const commentData = {
+                id: cmt.id,
+                user: prof?.fullName?.trim() || acc?.username || 'Ẩn danh',
+                userSrc: prof?.avatarUrl?.trim() || acc?.avatar || '/image/avata.jpg',
+                text: cmt.content,
+                createdAt: cmt.createdAt,
+                replyToCommentId: cmt.replyToCommentId || null,
+                replies: []
+              };
 
-            if (!commentData.replyToCommentId) {
-              commentMap[commentData.id] = commentData;
-            } else {
-              if (!repliesMap[commentData.replyToCommentId]) {
-                repliesMap[commentData.replyToCommentId] = [];
+              if (!commentData.replyToCommentId) {
+                commentMap[commentData.id] = commentData;
+              } else {
+                if (!repliesMap[commentData.replyToCommentId]) {
+                  repliesMap[commentData.replyToCommentId] = [];
+                }
+                repliesMap[commentData.replyToCommentId].push(commentData);
               }
-              repliesMap[commentData.replyToCommentId].push(commentData);
+            } catch (err) {
+              console.error('❌ Không load được profile comment:', err);
             }
           }
-
           for (const parentId in repliesMap) {
             if (commentMap[parentId]) {
               commentMap[parentId].replies = repliesMap[parentId];
@@ -1036,7 +1076,7 @@ onMounted(async () => {
           likes: post.likeAmount || 0,
           commentsList,
           postLikes: post.listLike || [],
-          liked: post.listLike?.some(like => like.accountId === accountId),
+          liked: await checkLikedStatus(post.postId),
           images: post.postMedias?.map(m => m.mediaUrl) || []
         };
       })
@@ -1055,6 +1095,20 @@ onMounted(async () => {
     document.head.appendChild(script);
   }
 });
+async function checkLikedStatus(postId) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user?.id) return false;
+
+    const detail = await getPostById(postId);
+    const liked = detail?.listLike?.some(like => String(like.id) === String(user.id));
+    return liked;
+  } catch (error) {
+    console.error('❌ Lỗi kiểm tra liked status:', error);
+    return false;
+  }
+}
+
 
 </script>
 
