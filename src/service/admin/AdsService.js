@@ -6,12 +6,12 @@ export const getListAds = async () => {
     const response = await apiService.get(`/v1/advertisements`)
     
     if (response?.data?.data) {
-      return response.data
+      return response.data.data
     }
-    return { data: [] } 
+    return []
   } catch (error) {
     console.error('Lỗi khi lấy danh sách quảng cáo:', error)
-    return { data: [] } 
+    return []
   }
 }
 

@@ -381,6 +381,8 @@ import {
   rejectFriendReq
 } from '@/service/friendService'
 // import Sendbutton from "@/assets/Sendbutton.svg"
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 
 const search = ref('')
 const showCreate = ref(false)
@@ -429,11 +431,17 @@ onMounted(() => {
 const handleAddFriend = async (targetId) => {
   try {
     await sendFriendRequest(user.id, targetId)
-    alert('✅ Đã gửi lời mời kết bạn!')
+    toast.success('Gửi lời mời kết bạn thành công!', {
+        autoClose: 2000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
     suggestions.value = suggestions.value.filter(s => s.id !== targetId)
   } catch (err) {
-    console.error('❌ Lỗi gửi lời mời:', err)
-    alert('Không thể gửi lời mời. Thử lại sau.')
+    // console.error('❌ Lỗi gửi lời mời:', err)
+    toast.error('Lỗi khi gửi lời mời kết bạn thành công!', {
+        autoClose: 2000,
+        position: toast.POSITION.TOP_RIGHT,
+      })
   }
 }
 
@@ -890,8 +898,13 @@ onMounted(async () => {
   setInterval(refreshData, 60000)
 })
 onMounted(async () => {
-  const ads = await getListAds()
-  advertisements.value = getRandomAds(ads, 3)
+  const adsData = await getListAds()
+  if (Array.isArray(adsData)) {
+    advertisements.value = getRandomAds(adsData, 3)
+  } else {
+    console.error('❌ Unexpected ads data format:', adsData)
+    advertisements.value = []
+  }
 })
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')

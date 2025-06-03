@@ -188,9 +188,7 @@
           {{ group.totalMembers }} thành viên
         </p>
 
-        <!-- <div class="avatars">
-          <img v-for="i in 6" :key="i" class="avatar" :src="`https://i.pravatar.cc/40?img=${i}`" />
-        </div> -->
+        
         <div class="group-actions">
           <template v-if="isOwner">
             <button class="edit-group-btn" @click="openEditForm">Chỉnh sửa nhóm</button>
@@ -267,7 +265,7 @@
               class="post-card"
               :data-post-id="post.postId"
             >
-              <div class="post-header">
+              <div class="post-header"> 
                 <img :src="post.userSrc" class="avatar" />
                 <div class="post-info">
                   <span class="username">{{ post.user }}</span>
@@ -350,7 +348,7 @@
                   class="comment-item"
                 >
                   <img
-                    :src="comment.account?.profile?.avatarUrl || 'https://i.pravatar.cc/30?img=9'"
+                    :src="comment.account?.profile?.avatarUrl || '/image/avata.jpg'"
                     class="comment-avatar"
                   />
                   <div class="comment-bubble">
@@ -2177,7 +2175,7 @@ body {
 }
 .avatars .avatar,
 .post-header .avatar,
-.status-box .avatar,
+.status-box .avatar,  
 .recent-avatar {
   border-radius: 50%;
 }
@@ -2206,8 +2204,8 @@ body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  margin-left: -2px;
-  margin-top: 20px;
+  margin-left: 10px;
+  
 }
 .invite {
   background-color: orange;
@@ -2682,6 +2680,13 @@ body {
   height: 16px;
   vertical-align: middle;
   margin-right: 4px;
+  
+    padding-top: 0px;
+    border-bottom-width: 1px;
+    margin-right: 0px;
+    padding-bottom: 0px;
+    margin-bottom: 2px;
+
 }
 
 /* --- Sidebar --- */
