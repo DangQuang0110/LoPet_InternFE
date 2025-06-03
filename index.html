@@ -22,7 +22,7 @@
     <!-- Socket.io -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-      const socket = io('http://localhost:8080', {
+      const socket = io('http://13.213.78.134:8080', {
         auth: {
           token: localStorage.getItem('accessToken'),
         },
@@ -31,7 +31,7 @@
         console.log('Connected socket id:', socket.id)
         const userId = JSON.parse(localStorage.getItem('user')).id
         socket.emit('join room', `user_${userId}`)
-
+        
       })
       socket.on('chat messsage', (data) => {
         console.log('Received message:', data)
