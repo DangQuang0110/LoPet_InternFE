@@ -132,6 +132,7 @@
                 <p>
                   <span class="username">{{ item.name }}</span> {{ item.text }}<span v-if="!item.isRead" class="dot"></span>
                 </p>
+                
                 <p class="timestamp">{{ item.time }}</p>
               </div>
               <button class="more-btn" @click.stop="toggleMenu(k + notifications.unread.length + notifications.read.length)">

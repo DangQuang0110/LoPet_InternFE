@@ -1390,6 +1390,7 @@ onMounted(async () => {
 
 .intro-section {
   background-color: #FFFFFF;
+  margin-top:16px;
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
@@ -1539,7 +1540,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;                 /* avatar ↔ info */
   padding-bottom: 12px;      /* tách header/content */
-  border-bottom: 1px solid #EEE;
+  /* border-bottom: 1px solid #EEE; */
   margin-bottom: 12px;
   position: relative;        /* để menu absolute */
 }

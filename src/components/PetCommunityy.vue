@@ -3,10 +3,11 @@
     <div class="wrapper">
       <!-- Thanh tìm kiếm -->
       <div class="search-box-new">
-        <input type="text" placeholder="Tìm kiếm" v-model="searchTerm" />
         <button class="search-button">
           <img src="/icon/search.png" alt="Search" class="nav-icon" />
         </button>
+        <input type="text" placeholder="Tìm kiếm" v-model="searchTerm" />
+
       </div>
       <div class="search-bar">
         <button @click="showCreateGroup = true">+ Tạo nhóm</button>
@@ -182,7 +183,7 @@
       <div v-else-if="errorMessage" class="error-message">
         {{ errorMessage }}
       </div>
-      <div v-else-if="filteredSuggestedGroups.length === 0" class="no-groups">
+      <div v-else-if="filteredSuggestedGroups.length === 0"style="text-align: center;" class="no-groups" >
         <p>Không có nhóm gợi ý nào mới</p>
       </div>
       <div v-else class="group-grid">
@@ -848,7 +849,7 @@ const navigateToGroupJoined = (groupId) => {
   border-radius: 10px;
   padding: 8px 10px;
   flex: 0 1 200px;
-  border: 1px solid #ddd;
+  border: 1px solid black;
   margin: 0 10px;
   transition: box-shadow 0.3s ease;
   margin-bottom: 10px;

@@ -313,6 +313,8 @@ export default {
   padding: 8px 15px;
   border: 1px solid #000000;
   width: 600px;
+    background-color: rgba(165, 154, 154, 0.2);
+
 }
 
 .search-icon {

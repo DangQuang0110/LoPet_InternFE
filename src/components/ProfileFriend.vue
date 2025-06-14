@@ -2,10 +2,10 @@
   <layout>
   <div class="lopet-app-new">
     <!-- Header with Search Bar -->
-    <div class="search-box">
+    <!-- <div class="search-box">
       <span class="material-icons">search</span>
       <input v-model="search" type="text" placeholder="Tìm kiếm" />
-    </div>
+    </div> -->
 
     <!-- Notification section -->
     <div class="notification-container">
@@ -1237,6 +1237,7 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
 
 .intro-section {
   background-color: #FFFFFF;
+  margin-top:16px;
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
@@ -1374,7 +1375,7 @@ const accountId = route.params.accountId; // ✅ ĐÚNG
   align-items: center;
   gap: 12px;                 /* avatar ↔ info */
   padding-bottom: 12px;      /* tách header/content */
-  border-bottom: 1px solid #EEE;
+  /* border-bottom: 1px solid #EEE; */
   margin-bottom: 12px;
   position: relative;        /* để menu absolute */
 }
